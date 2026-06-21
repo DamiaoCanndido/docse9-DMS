@@ -12,13 +12,12 @@ type municipalityRepository struct {
 	db *gorm.DB
 }
 
-// New retorna uma implementação de MunicipalityRepository.
 func NewMunicipalityRepository(db *gorm.DB) domain.MunicipalityRepository {
 	return &municipalityRepository{db: db}
 }
 
 func (r *municipalityRepository) Create(m *domain.Municipality) error {
-	return r.db.Create(m).Error
+	return translatePgError(r.db.Create(m).Error)
 }
 
 func (r *municipalityRepository) FindAll(page, pageSize int) ([]domain.Municipality, int64, error) {
@@ -74,7 +73,7 @@ func (r *municipalityRepository) FindByUF(uf string, page, pageSize int) ([]doma
 }
 
 func (r *municipalityRepository) Update(m *domain.Municipality) error {
-	return r.db.Save(m).Error
+	return translatePgError(r.db.Save(m).Error)
 }
 
 func (r *municipalityRepository) Delete(id uuid.UUID) error {

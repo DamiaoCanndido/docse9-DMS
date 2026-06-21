@@ -1,20 +1,25 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+// Erros de domínio da entidade Municipality.
+var ErrNameAlreadyExists = errors.New("já existe um município com este nome")
 
 // Municipality representa um município (organização base do sistema)
 type Municipality struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Name      string     `gorm:"type:varchar(255);not null;uniqueIndex"         json:"name"`
-	UF        string     `gorm:"type:char(2);not null"                          json:"uf"`
-	ImageURL  string     `gorm:"type:text"                                      json:"imageUrl,omitempty"`
-	CreatedAt time.Time  `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt time.Time  `gorm:"autoUpdateTime"                                 json:"updatedAt"`
-	DeletedAt *time.Time `gorm:"index"                                          json:"-"` // soft-delete
+	ID        uuid.UUID  	 `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name      string     	 `gorm:"type:varchar(255);not null;uniqueIndex"         json:"name"`
+	UF        string     	 `gorm:"type:char(2);not null"                          json:"uf"`
+	ImageURL  string     	 `gorm:"type:text"                                      json:"imageUrl,omitempty"`
+	CreatedAt time.Time  	 `gorm:"autoCreateTime"                                 json:"createdAt"`
+	UpdatedAt time.Time  	 `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 
 // ──────────────────────────────────────────────
