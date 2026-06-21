@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres-docseq-dms
+    restart: unless-stopped
+    ports:
+      - "5455:5432"
+    environment:
+      POSTGRES_DB: docseq_dms
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data_docseq_dms:/var/lib/postgresql/data
+    networks:
+      - backend
+
+volumes:
+  postgres_data_docseq_dms:
+
+networks:
+  backend:
+    driver: bridge
