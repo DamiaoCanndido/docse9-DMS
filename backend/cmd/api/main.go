@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/handler"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/repository"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/database"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/seu-usuario/doc-manager/internal/handler"
-	"github.com/seu-usuario/doc-manager/internal/repository"
-	"github.com/seu-usuario/doc-manager/internal/service"
-	"github.com/seu-usuario/doc-manager/pkg/database"
 )
 
 func main() {

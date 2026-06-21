@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/google/uuid"
-	"github.com/seu-usuario/doc-manager/internal/domain"
 )
 
 // Erros de domínio — o handler os mapeia para HTTP status codes.

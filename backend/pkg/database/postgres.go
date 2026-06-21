@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/seu-usuario/doc-manager/internal/domain"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

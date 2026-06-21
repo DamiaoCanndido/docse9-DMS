@@ -3,8 +3,8 @@ package repository
 import (
 	"errors"
 
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/google/uuid"
-	"github.com/seu-usuario/doc-manager/internal/domain"
 	"gorm.io/gorm"
 )
 

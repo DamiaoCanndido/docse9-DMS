@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/seu-usuario/doc-manager/internal/domain"
-	"github.com/seu-usuario/doc-manager/internal/service"
-	"github.com/seu-usuario/doc-manager/pkg/response"
 )
 
 type MunicipalityHandler struct {

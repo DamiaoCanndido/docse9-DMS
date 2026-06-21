@@ -1,4 +1,4 @@
-module github.com/seu-usuario/doc-manager
+module github.com/DamiaoCanndido/docse9-DMS/backend
 
 go 1.25.0
 
