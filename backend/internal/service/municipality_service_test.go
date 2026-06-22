@@ -234,3 +234,27 @@ func TestDelete_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
 	repo.AssertNotCalled(t, "Delete")
 }
+
+func TestHardDelete_Success(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+
+	repo.On("FindByIDUnscoped", m.ID).Return(&m, nil)
+	repo.On("HardDelete", m.ID).Return(nil)
+
+	err := svc.HardDelete(m.ID)
+
+	assert.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestHardDelete_NotFound(t *testing.T) {
+	svc, repo := newSvc(t)
+
+	repo.On("FindByIDUnscoped", testhelper.NonExistentID).Return(nil, nil)
+
+	err := svc.HardDelete(testhelper.NonExistentID)
+
+	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
+	repo.AssertNotCalled(t, "HardDelete")
+}

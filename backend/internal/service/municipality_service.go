@@ -132,3 +132,14 @@ func (s *municipalityService) Delete(id uuid.UUID) error {
 	}
 	return s.repo.Delete(id)
 }
+
+func (s *municipalityService) HardDelete(id uuid.UUID) error {
+	m, err := s.repo.FindByIDUnscoped(id)
+	if err != nil {
+		return err
+	}
+	if m == nil {
+		return ErrMunicipalityNotFound
+	}
+	return s.repo.HardDelete(id)
+}

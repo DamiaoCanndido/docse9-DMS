@@ -49,3 +49,8 @@ func (m *MunicipalityService) Delete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
+
+func (m *MunicipalityService) HardDelete(id uuid.UUID) error {
+	args := m.Called(id)
+	return args.Error(0)
+}

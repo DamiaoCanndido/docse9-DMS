@@ -205,7 +205,7 @@ func (s *MunicipalityRepositorySuite) TestUpdate_PersistsChanges() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Delete (soft-delete)
+// Delete
 // ═══════════════════════════════════════════════════════════════════════════════
 
 func (s *MunicipalityRepositorySuite) TestDelete_SoftDelete() {
@@ -225,6 +225,31 @@ func (s *MunicipalityRepositorySuite) TestDelete_SoftDelete() {
 		Where("id = ?", inserted.ID).
 		Count(&count)
 	s.Equal(int64(1), count)
+}
+
+func (s *MunicipalityRepositorySuite) TestHardDelete_RemovesPhysically() {
+	inserted := s.insertPassagem()
+
+	err := s.repo.HardDelete(inserted.ID)
+	s.NoError(err)
+
+	var count int64
+	s.db.Unscoped().Model(&domain.Municipality{}).
+		Where("id = ?", inserted.ID).
+		Count(&count)
+	s.Equal(int64(0), count)
+}
+
+func (s *MunicipalityRepositorySuite) TestFindByIDUnscoped_FindsSoftDeleted() {
+	inserted := s.insertPassagem()
+	s.Require().NoError(s.repo.Delete(inserted.ID))
+
+	found, err := s.repo.FindByIDUnscoped(inserted.ID)
+
+	s.NoError(err)
+	s.NotNil(found)
+	s.Equal(inserted.ID, found.ID)
+	s.True(found.DeletedAt.Valid)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

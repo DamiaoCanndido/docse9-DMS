@@ -295,3 +295,37 @@ func TestDelete_Handler_404(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+func TestHardDelete_Handler_204(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+	m := testhelper.MakePassagem()
+
+	svc.On("HardDelete", m.ID).Return(nil)
+
+	path := fmt.Sprintf("/api/v1/municipalities/%s/hard", m.ID)
+	w := doRequest(setupRouter(svc), http.MethodDelete, path, nil)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	assert.Empty(t, w.Body.String())
+	svc.AssertExpectations(t)
+}
+
+func TestHardDelete_Handler_404(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+
+	svc.On("HardDelete", testhelper.NonExistentID).Return(service.ErrMunicipalityNotFound)
+
+	path := fmt.Sprintf("/api/v1/municipalities/%s/hard", testhelper.NonExistentID)
+	w := doRequest(setupRouter(svc), http.MethodDelete, path, nil)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHardDelete_Handler_400_InvalidUUID(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+
+	w := doRequest(setupRouter(svc), http.MethodDelete, "/api/v1/municipalities/nao-e-uuid/hard", nil)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	svc.AssertNotCalled(t, "HardDelete")
+}

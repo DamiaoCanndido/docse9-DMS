@@ -46,9 +46,11 @@ type MunicipalityRepository interface {
 	Create(m *Municipality) error
 	FindAll(page, pageSize int) ([]Municipality, int64, error)
 	FindByID(id uuid.UUID) (*Municipality, error)
+	FindByIDUnscoped(id uuid.UUID) (*Municipality, error)
 	FindByUF(uf string, page, pageSize int) ([]Municipality, int64, error)
 	Update(m *Municipality) error
 	Delete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
 	ExistsByName(name string, excludeID *uuid.UUID) (bool, error)
 }
 
@@ -63,4 +65,5 @@ type MunicipalityService interface {
 	GetByUF(uf string, page, pageSize int) ([]Municipality, int64, error)
 	Update(id uuid.UUID, input UpdateMunicipalityInput) (*Municipality, error)
 	Delete(id uuid.UUID) error
+	HardDelete(id uuid.UUID) error
 }

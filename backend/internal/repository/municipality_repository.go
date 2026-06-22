@@ -52,6 +52,15 @@ func (r *municipalityRepository) FindByID(id uuid.UUID) (*domain.Municipality, e
 	return &m, err
 }
 
+func (r *municipalityRepository) FindByIDUnscoped(id uuid.UUID) (*domain.Municipality, error) {
+	var m domain.Municipality
+	err := r.db.Unscoped().First(&m, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &m, err
+}
+
 func (r *municipalityRepository) FindByUF(uf string, page, pageSize int) ([]domain.Municipality, int64, error) {
 	var (
 		municipalities []domain.Municipality
@@ -78,6 +87,10 @@ func (r *municipalityRepository) Update(m *domain.Municipality) error {
 
 func (r *municipalityRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&domain.Municipality{}, "id = ?", id).Error
+}
+
+func (r *municipalityRepository) HardDelete(id uuid.UUID) error {
+	return r.db.Unscoped().Delete(&domain.Municipality{}, "id = ?", id).Error
 }
 
 func (r *municipalityRepository) ExistsByName(name string, excludeID *uuid.UUID) (bool, error) {

@@ -28,6 +28,7 @@ func (h *MunicipalityHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		g.GET("/:id", h.GetByID)
 		g.GET("/uf/:uf", h.GetByUF)
 		g.PATCH("/:id", h.Update)
+		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
 	}
 }
@@ -156,6 +157,24 @@ func (h *MunicipalityHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.svc.Delete(id); err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+
+	response.NoContent(c)
+}
+
+// ──────────────────────────────────────────────
+// DELETE /municipalities/:id/hard
+// ──────────────────────────────────────────────
+
+func (h *MunicipalityHandler) HardDelete(c *gin.Context) {
+	id, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := h.svc.HardDelete(id); err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
