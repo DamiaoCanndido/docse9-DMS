@@ -25,8 +25,9 @@ func (h *MunicipalityHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	{
 		g.POST("", h.Create)
 		g.GET("", h.GetAll)
-		g.GET("/:id", h.GetByID)
+		g.GET("/trash", h.GetDeleted)
 		g.GET("/uf/:uf", h.GetByUF)
+		g.GET("/:id", h.GetByID)
 		g.PATCH("/:id", h.Update)
 		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
@@ -77,6 +78,29 @@ func (h *MunicipalityHandler) GetAll(c *gin.Context) {
 	page, pageSize := parsePagination(c)
 
 	municipalities, total, err := h.svc.GetAll(page, pageSize)
+	if err != nil {
+		response.InternalError(c)
+		return
+	}
+
+	response.Paginated(c, municipalities, total, page, pageSize)
+}
+
+// ──────────────────────────────────────────────
+// GET /municipalities/trash
+// ──────────────────────────────────────────────
+
+// @Summary     Lista municípios removidos (lixeira)
+// @Tags        municipalities
+// @Produce     json
+// @Param       page     query int false "Página (default 1)"
+// @Param       pageSize query int false "Itens por página (default 20, max 100)"
+// @Success     200 {object} response.paginatedResponse
+// @Router      /municipalities/trash [get]
+func (h *MunicipalityHandler) GetDeleted(c *gin.Context) {
+	page, pageSize := parsePagination(c)
+
+	municipalities, total, err := h.svc.GetDeleted(page, pageSize)
 	if err != nil {
 		response.InternalError(c)
 		return

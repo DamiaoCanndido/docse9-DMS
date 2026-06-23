@@ -13,12 +13,12 @@ var ErrNameAlreadyExists = errors.New("já existe um município com este nome")
 
 // Municipality representa um município (organização base do sistema)
 type Municipality struct {
-	ID        uuid.UUID  	 `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Name      string     	 `gorm:"type:varchar(255);not null;uniqueIndex"         json:"name"`
-	UF        string     	 `gorm:"type:char(2);not null"                          json:"uf"`
-	ImageURL  string     	 `gorm:"type:text"                                      json:"imageUrl,omitempty"`
-	CreatedAt time.Time  	 `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt time.Time  	 `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	ID        uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name      string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"name"`
+	UF        string         `gorm:"type:char(2);not null"                          json:"uf"`
+	ImageURL  string         `gorm:"type:text"                                      json:"imageUrl,omitempty"`
+	CreatedAt time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 
@@ -45,6 +45,7 @@ type UpdateMunicipalityInput struct {
 type MunicipalityRepository interface {
 	Create(m *Municipality) error
 	FindAll(page, pageSize int) ([]Municipality, int64, error)
+	FindDeleted(page, pageSize int) ([]Municipality, int64, error)
 	FindByID(id uuid.UUID) (*Municipality, error)
 	FindByIDUnscoped(id uuid.UUID) (*Municipality, error)
 	FindByUF(uf string, page, pageSize int) ([]Municipality, int64, error)
@@ -61,6 +62,7 @@ type MunicipalityRepository interface {
 type MunicipalityService interface {
 	Create(input CreateMunicipalityInput) (*Municipality, error)
 	GetAll(page, pageSize int) ([]Municipality, int64, error)
+	GetDeleted(page, pageSize int) ([]Municipality, int64, error)
 	GetByID(id uuid.UUID) (*Municipality, error)
 	GetByUF(uf string, page, pageSize int) ([]Municipality, int64, error)
 	Update(id uuid.UUID, input UpdateMunicipalityInput) (*Municipality, error)

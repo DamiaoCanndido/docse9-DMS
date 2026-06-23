@@ -168,7 +168,7 @@ func (s *MunicipalityRepositorySuite) TestFindByID_Found() {
 func (s *MunicipalityRepositorySuite) TestFindByID_NotFound_ReturnsNil() {
 	found, err := s.repo.FindByID(testhelper.NonExistentID)
 
-	s.NoError(err)   // sem erro, apenas nil
+	s.NoError(err) // sem erro, apenas nil
 	s.Nil(found)
 }
 
@@ -250,6 +250,21 @@ func (s *MunicipalityRepositorySuite) TestFindByIDUnscoped_FindsSoftDeleted() {
 	s.NotNil(found)
 	s.Equal(inserted.ID, found.ID)
 	s.True(found.DeletedAt.Valid)
+}
+
+func (s *MunicipalityRepositorySuite) TestFindDeleted_ReturnsOnlySoftDeleted() {
+	deleted := s.insertPassagem()
+	active := domain.Municipality{ID: uuid.New(), Name: "Patos", UF: "PB"}
+	s.Require().NoError(s.repo.Create(&active))
+	s.Require().NoError(s.repo.Delete(deleted.ID))
+
+	result, total, err := s.repo.FindDeleted(1, 20)
+
+	s.NoError(err)
+	s.Equal(int64(1), total)
+	s.Len(result, 1)
+	s.Equal(deleted.ID, result[0].ID)
+	s.True(result[0].DeletedAt.Valid)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -43,6 +43,32 @@ func (r *municipalityRepository) FindAll(page, pageSize int) ([]domain.Municipal
 	return municipalities, total, nil
 }
 
+func (r *municipalityRepository) FindDeleted(page, pageSize int) ([]domain.Municipality, int64, error) {
+	var (
+		municipalities []domain.Municipality
+		total          int64
+	)
+
+	offset := (page - 1) * pageSize
+	query := r.db.Unscoped().
+		Model(&domain.Municipality{}).
+		Where("deleted_at IS NOT NULL")
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.
+		Order("deleted_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&municipalities).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return municipalities, total, nil
+}
+
 func (r *municipalityRepository) FindByID(id uuid.UUID) (*domain.Municipality, error) {
 	var m domain.Municipality
 	err := r.db.First(&m, "id = ?", id).Error

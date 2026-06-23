@@ -64,6 +64,10 @@ func (s *municipalityService) GetAll(page, pageSize int) ([]domain.Municipality,
 	return s.repo.FindAll(page, pageSize)
 }
 
+func (s *municipalityService) GetDeleted(page, pageSize int) ([]domain.Municipality, int64, error) {
+	return s.repo.FindDeleted(page, pageSize)
+}
+
 func (s *municipalityService) GetByID(id uuid.UUID) (*domain.Municipality, error) {
 	m, err := s.repo.FindByID(id)
 	if err != nil {

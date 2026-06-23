@@ -24,6 +24,11 @@ func (m *MunicipalityService) GetAll(page, pageSize int) ([]domain.Municipality,
 	return args.Get(0).([]domain.Municipality), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MunicipalityService) GetDeleted(page, pageSize int) ([]domain.Municipality, int64, error) {
+	args := m.Called(page, pageSize)
+	return args.Get(0).([]domain.Municipality), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MunicipalityService) GetByID(id uuid.UUID) (*domain.Municipality, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {

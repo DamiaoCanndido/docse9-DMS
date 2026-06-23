@@ -134,6 +134,23 @@ func TestGetAll_EmptyResult(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// GetDeleted
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestGetDeleted_ReturnsPaginatedResults(t *testing.T) {
+	svc, repo := newSvc(t)
+	municipalities := []domain.Municipality{testhelper.MakePassagem()}
+
+	repo.On("FindDeleted", 1, 20).Return(municipalities, int64(1), nil)
+
+	result, total, err := svc.GetDeleted(1, 20)
+
+	require.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, int64(1), total)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // GetByUF
 // ═══════════════════════════════════════════════════════════════════════════════
 

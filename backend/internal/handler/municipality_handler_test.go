@@ -161,6 +161,46 @@ func TestGetAll_Handler_PageSizeCappedAt100(t *testing.T) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/v1/municipalities/trash
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestGetDeleted_Handler_200_DefaultPagination(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+	municipalities := []domain.Municipality{testhelper.MakePassagem()}
+
+	svc.On("GetDeleted", 1, 20).Return(municipalities, int64(1), nil)
+
+	w := doRequest(setupRouter(svc), http.MethodGet, "/api/v1/municipalities/trash", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	parseBody(t, w, &resp)
+	assert.True(t, resp["success"].(bool))
+
+	data := resp["data"].([]any)
+	assert.Len(t, data, 1)
+	assert.Equal(t, "Passagem", data[0].(map[string]any)["name"])
+
+	pagination := resp["pagination"].(map[string]any)
+	assert.Equal(t, float64(1), pagination["page"])
+	assert.Equal(t, float64(20), pagination["pageSize"])
+	assert.Equal(t, float64(1), pagination["total"])
+}
+
+func TestGetDeleted_Handler_200_CustomPagination(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+
+	svc.On("GetDeleted", 2, 5).Return([]domain.Municipality{}, int64(0), nil)
+
+	w := doRequest(setupRouter(svc), http.MethodGet, "/api/v1/municipalities/trash?page=2&pageSize=5", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertCalled(t, "GetDeleted", 2, 5)
+	svc.AssertNotCalled(t, "GetByID")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // GET /api/v1/municipalities/:id
 // ═══════════════════════════════════════════════════════════════════════════════
 
