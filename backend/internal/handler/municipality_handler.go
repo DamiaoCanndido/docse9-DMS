@@ -29,6 +29,7 @@ func (h *MunicipalityHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		g.GET("/uf/:uf", h.GetByUF)
 		g.GET("/:id", h.GetByID)
 		g.PATCH("/:id", h.Update)
+		g.PATCH("/:id/restore", h.Restore)
 		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
 	}
@@ -186,6 +187,33 @@ func (h *MunicipalityHandler) Delete(c *gin.Context) {
 	}
 
 	response.NoContent(c)
+}
+
+// ──────────────────────────────────────────────
+// PATCH /municipalities/:id/restore
+// ──────────────────────────────────────────────
+
+// @Summary     Restaura um município removido da lixeira
+// @Tags        municipalities
+// @Produce     json
+// @Param       id path string true "UUID do município"
+// @Success     200 {object} domain.Municipality
+// @Failure     400 {object} response.errorResponse
+// @Failure     404 {object} response.errorResponse
+// @Router      /municipalities/{id}/restore [patch]
+func (h *MunicipalityHandler) Restore(c *gin.Context) {
+	id, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+
+	m, err := h.svc.Restore(id)
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+
+	response.OK(c, m)
 }
 
 // ──────────────────────────────────────────────

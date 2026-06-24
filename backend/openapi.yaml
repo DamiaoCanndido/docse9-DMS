@@ -274,6 +274,40 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # ─────────────────────────────────────────────
+  # PATCH /municipalities/:id/restore
+  # ─────────────────────────────────────────────
+  /municipalities/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/MunicipalityID'
+
+    patch:
+      summary: Restaurar município removido da lixeira
+      operationId: restoreMunicipality
+      tags: [municipalities]
+      responses:
+        '200':
+          description: Município restaurado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                success: true
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  name: "Passagem"
+                  uf: "PB"
+                  imageUrl: "https://example.com/brasoes/passagem-pb.png"
+                  createdAt: "2025-01-15T10:30:00Z"
+                  updatedAt: "2025-01-15T10:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ─────────────────────────────────────────────
   # GET /municipalities/uf/:uf
   # ─────────────────────────────────────────────
   /municipalities/uf/{uf}:

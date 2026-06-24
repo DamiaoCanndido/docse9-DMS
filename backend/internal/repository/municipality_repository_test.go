@@ -267,6 +267,20 @@ func (s *MunicipalityRepositorySuite) TestFindDeleted_ReturnsOnlySoftDeleted() {
 	s.True(result[0].DeletedAt.Valid)
 }
 
+func (s *MunicipalityRepositorySuite) TestRestore_RemovesSoftDelete() {
+	inserted := s.insertPassagem()
+	s.Require().NoError(s.repo.Delete(inserted.ID))
+
+	err := s.repo.Restore(inserted.ID)
+
+	s.NoError(err)
+
+	found, err := s.repo.FindByID(inserted.ID)
+	s.NoError(err)
+	s.NotNil(found)
+	s.False(found.DeletedAt.Valid)
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ExistsByName
 // ═══════════════════════════════════════════════════════════════════════════════

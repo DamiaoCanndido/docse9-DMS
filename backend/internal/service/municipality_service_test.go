@@ -252,6 +252,45 @@ func TestDelete_NotFound(t *testing.T) {
 	repo.AssertNotCalled(t, "Delete")
 }
 
+func TestRestore_Success(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+	m.DeletedAt.Valid = true
+
+	repo.On("FindByIDUnscoped", m.ID).Return(&m, nil)
+	repo.On("Restore", m.ID).Return(nil)
+
+	result, err := svc.Restore(m.ID)
+
+	require.NoError(t, err)
+	assert.Equal(t, m.ID, result.ID)
+	assert.False(t, result.DeletedAt.Valid)
+	repo.AssertExpectations(t)
+}
+
+func TestRestore_NotFound(t *testing.T) {
+	svc, repo := newSvc(t)
+
+	repo.On("FindByIDUnscoped", testhelper.NonExistentID).Return(nil, nil)
+
+	_, err := svc.Restore(testhelper.NonExistentID)
+
+	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
+	repo.AssertNotCalled(t, "Restore")
+}
+
+func TestRestore_ActiveMunicipalityNotFound(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+
+	repo.On("FindByIDUnscoped", m.ID).Return(&m, nil)
+
+	_, err := svc.Restore(m.ID)
+
+	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
+	repo.AssertNotCalled(t, "Restore")
+}
+
 func TestHardDelete_Success(t *testing.T) {
 	svc, repo := newSvc(t)
 	m := testhelper.MakePassagem()

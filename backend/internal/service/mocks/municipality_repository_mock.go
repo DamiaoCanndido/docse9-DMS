@@ -57,6 +57,11 @@ func (m *MunicipalityRepository) Delete(id uuid.UUID) error {
 	return args.Error(0)
 }
 
+func (m *MunicipalityRepository) Restore(id uuid.UUID) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
 func (m *MunicipalityRepository) HardDelete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)

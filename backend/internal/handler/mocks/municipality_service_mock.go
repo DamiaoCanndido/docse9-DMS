@@ -55,6 +55,14 @@ func (m *MunicipalityService) Delete(id uuid.UUID) error {
 	return args.Error(0)
 }
 
+func (m *MunicipalityService) Restore(id uuid.UUID) (*domain.Municipality, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Municipality), args.Error(1)
+}
+
 func (m *MunicipalityService) HardDelete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)

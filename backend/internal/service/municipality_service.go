@@ -137,6 +137,21 @@ func (s *municipalityService) Delete(id uuid.UUID) error {
 	return s.repo.Delete(id)
 }
 
+func (s *municipalityService) Restore(id uuid.UUID) (*domain.Municipality, error) {
+	m, err := s.repo.FindByIDUnscoped(id)
+	if err != nil {
+		return nil, err
+	}
+	if m == nil || !m.DeletedAt.Valid {
+		return nil, ErrMunicipalityNotFound
+	}
+	if err := s.repo.Restore(id); err != nil {
+		return nil, err
+	}
+	m.DeletedAt.Valid = false
+	return m, nil
+}
+
 func (s *municipalityService) HardDelete(id uuid.UUID) error {
 	m, err := s.repo.FindByIDUnscoped(id)
 	if err != nil {

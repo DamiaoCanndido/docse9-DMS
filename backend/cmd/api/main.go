@@ -52,7 +52,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("🚀  doc-manager rodando em :%s", port)
+	log.Printf("🚀  docseq-DMS rodando em :%s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("server: %v", err)
 	}

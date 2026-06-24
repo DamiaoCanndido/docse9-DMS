@@ -115,6 +115,13 @@ func (r *municipalityRepository) Delete(id uuid.UUID) error {
 	return r.db.Delete(&domain.Municipality{}, "id = ?", id).Error
 }
 
+func (r *municipalityRepository) Restore(id uuid.UUID) error {
+	return r.db.Unscoped().
+		Model(&domain.Municipality{}).
+		Where("id = ?", id).
+		Update("deleted_at", nil).Error
+}
+
 func (r *municipalityRepository) HardDelete(id uuid.UUID) error {
 	return r.db.Unscoped().Delete(&domain.Municipality{}, "id = ?", id).Error
 }

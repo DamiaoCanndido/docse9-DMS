@@ -336,6 +336,44 @@ func TestDelete_Handler_404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestRestore_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+	m := testhelper.MakePassagem()
+
+	svc.On("Restore", m.ID).Return(&m, nil)
+
+	path := fmt.Sprintf("/api/v1/municipalities/%s/restore", m.ID)
+	w := doRequest(setupRouter(svc), http.MethodPatch, path, nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	parseBody(t, w, &resp)
+	assert.True(t, resp["success"].(bool))
+	assert.Equal(t, m.ID.String(), resp["data"].(map[string]any)["id"])
+	svc.AssertExpectations(t)
+}
+
+func TestRestore_Handler_404(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+
+	svc.On("Restore", testhelper.NonExistentID).Return(nil, service.ErrMunicipalityNotFound)
+
+	path := fmt.Sprintf("/api/v1/municipalities/%s/restore", testhelper.NonExistentID)
+	w := doRequest(setupRouter(svc), http.MethodPatch, path, nil)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestRestore_Handler_400_InvalidUUID(t *testing.T) {
+	svc := new(handlerMocks.MunicipalityService)
+
+	w := doRequest(setupRouter(svc), http.MethodPatch, "/api/v1/municipalities/nao-e-uuid/restore", nil)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	svc.AssertNotCalled(t, "Restore")
+}
+
 func TestHardDelete_Handler_204(t *testing.T) {
 	svc := new(handlerMocks.MunicipalityService)
 	m := testhelper.MakePassagem()
