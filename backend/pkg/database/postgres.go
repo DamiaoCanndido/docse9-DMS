@@ -64,6 +64,7 @@ func Migrate(db *gorm.DB) error {
 
 	return db.AutoMigrate(
 		&domain.Municipality{},
+		&domain.User{},
 		// adicione futuras entidades aqui
 	)
 }
