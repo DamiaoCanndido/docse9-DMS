@@ -48,3 +48,26 @@ func MakeCreateInput(name, uf, imageURL string) domain.CreateMunicipalityInput {
 
 // StringPtr converte string para *string (útil para UpdateMunicipalityInput).
 func StringPtr(s string) *string { return &s }
+
+func MakeUserAdmin(munID uuid.UUID) domain.User {
+	return domain.User{
+		ID:             uuid.MustParse("770e8400-e29b-41d4-a716-446655440002"),
+		Username:       "admin_user",
+		Email:          "admin@example.com",
+		Password:       "hashed_password_123",
+		Role:           domain.RoleAdmin,
+		MunicipalityID: munID,
+	}
+}
+
+func MakeUserCommon(munID uuid.UUID) domain.User {
+	return domain.User{
+		ID:             uuid.MustParse("880e8400-e29b-41d4-a716-446655440003"),
+		Username:       "common_user",
+		Email:          "common@example.com",
+		Password:       "hashed_password_456",
+		Role:           domain.RoleCommon,
+		MunicipalityID: munID,
+	}
+}
+
