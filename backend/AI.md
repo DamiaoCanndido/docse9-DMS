@@ -62,10 +62,10 @@ Abaixo está o mapeamento dos componentes implementados para as entidades atuais
 | Módulo / Entidade | Domain | Repository | Service | Handler / API | Testes de Integração | Testes Unitários | Rotas no `main.go` |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Municípios (Municipalities)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Usuários (Users)** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **Usuários (Users)** | ✅ | ✅ | ✅ | ❌ | ✅ | ⚠️ | ❌ |
 
 > [!IMPORTANT]
-> **Lacuna Crítica:** O módulo de **Usuários** está incompleto. A camada de domínio e o repositório GORM estão completamente implementados e testados, porém não existem os serviços, os controladores HTTP (handlers) e nem o registro de rotas no servidor.
+> **Lacuna Crítica:** O módulo de **Usuários** está incompleto. A camada de domínio, o repositório GORM e a camada de serviços estão completamente implementados e testados, porém não existem os controladores HTTP (handlers) e nem o registro de rotas no servidor.
 
 ---
 
@@ -76,7 +76,7 @@ Para evoluir o backend do **Docseq DMS** de forma consistente e segura, recomend
 ### 🔹 Fase 1: Finalizar o Módulo de Usuários (CRUD)
 Implementar as camadas em falta para o módulo de usuários com base nos padrões já estabelecidos para municípios.
 
-1. **Service de Usuários:**
+1. **Service de Usuários (Concluído ✅):**
    - Criar o arquivo `internal/service/user_service.go` implementando a interface `domain.UserService` definida em [user.go](file:///home/nergal/apps/docSe9-DMS/backend/internal/domain/user.go).
    - Adicionar validações de negócio (ex: verificar se o e-mail ou nome de usuário já existem usando o repositório, garantir que o `MunicipalityID` informado pertença a um município existente e ativo).
    - Criar mocks para o repositório de usuários (`mocks.UserRepository`).
