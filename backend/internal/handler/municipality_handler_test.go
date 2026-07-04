@@ -13,7 +13,9 @@ import (
 	handlerMocks "github.com/DamiaoCanndido/docse9-DMS/backend/internal/handler/mocks"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/testhelper"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,6 +27,16 @@ func init() {
 // setupRouter monta o Gin com o handler e o mock de service injetado.
 func setupRouter(svc domain.MunicipalityService) *gin.Engine {
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		claims := &security.UserClaims{
+			UserID:         uuid.New(),
+			Username:       "admin_test",
+			Role:           string(domain.RoleAdmin),
+			MunicipalityID: uuid.New(),
+		}
+		c.Set("user", claims)
+		c.Next()
+	})
 	h := handler.NewMunicipalityHandler(svc)
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r

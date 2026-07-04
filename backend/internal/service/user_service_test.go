@@ -8,6 +8,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service/mocks"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/testhelper"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -48,7 +49,7 @@ func TestCreateUser_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "new_user", result.Username)
 	assert.Equal(t, "new@example.com", result.Email)
-	assert.Equal(t, "secret123", result.Password)
+	assert.True(t, security.CheckPasswordHash("secret123", result.Password))
 	assert.Equal(t, domain.RoleCommon, result.Role)
 	assert.Equal(t, mun.ID, result.MunicipalityID)
 	assert.NotEqual(t, uuid.Nil, result.ID)
@@ -220,7 +221,7 @@ func TestUpdateUser_PartialSuccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "updated_name", result.Username)
 	assert.Equal(t, "updated@example.com", result.Email)
-	assert.Equal(t, "newpassword123", result.Password)
+	assert.True(t, security.CheckPasswordHash("newpassword123", result.Password))
 	assert.Equal(t, domain.RoleAdmin, result.Role)
 	assert.Equal(t, newMunID, result.MunicipalityID)
 	assert.Equal(t, &lastLogin, result.LastLogin)

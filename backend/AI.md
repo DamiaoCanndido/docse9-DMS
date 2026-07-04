@@ -62,10 +62,10 @@ Abaixo está o mapeamento dos componentes implementados para as entidades atuais
 | Módulo / Entidade | Domain | Repository | Service | Handler / API | Testes de Integração | Testes Unitários | Rotas no `main.go` |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Municípios (Municipalities)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Usuários (Users)** | ✅ | ✅ | ✅ | ❌ | ✅ | ⚠️ | ❌ |
+| **Usuários (Users)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 > [!IMPORTANT]
-> **Lacuna Crítica:** O módulo de **Usuários** está incompleto. A camada de domínio, o repositório GORM e a camada de serviços estão completamente implementados e testados, porém não existem os controladores HTTP (handlers) e nem o registro de rotas no servidor.
+> **Lacuna Crítica:** Nenhuma lacuna crítica no módulo de usuários. O CRUD completo está implementado e integrado.
 
 ---
 
@@ -73,7 +73,7 @@ Abaixo está o mapeamento dos componentes implementados para as entidades atuais
 
 Para evoluir o backend do **Docseq DMS** de forma consistente e segura, recomenda-se seguir o seguinte cronograma de tarefas:
 
-### 🔹 Fase 1: Finalizar o Módulo de Usuários (CRUD)
+### 🔹 Fase 1: Finalizar o Módulo de Usuários (CRUD) (Concluído ✅)
 Implementar as camadas em falta para o módulo de usuários com base nos padrões já estabelecidos para municípios.
 
 1. **Service de Usuários (Concluído ✅):**
@@ -82,7 +82,7 @@ Implementar as camadas em falta para o módulo de usuários com base nos padrõe
    - Criar mocks para o repositório de usuários (`mocks.UserRepository`).
    - Criar testes unitários em `internal/service/user_service_test.go`.
 
-2. **Handler de Usuários:**
+2. **Handler de Usuários (Concluído ✅):**
    - Criar o arquivo `internal/handler/user_handler.go` expondo as seguintes rotas:
      - `POST /api/v1/users` (Criar usuário)
      - `GET /api/v1/users` (Listar usuários ativos - paginado)
@@ -94,28 +94,28 @@ Implementar as camadas em falta para o módulo de usuários com base nos padrõe
      - `DELETE /api/v1/users/:id/hard` (Hard delete definitivo)
    - Adicionar testes unitários em `internal/handler/user_handler_test.go` usando os mocks do Service.
 
-3. **Fiação e Registro:**
+3. **Fiação e Registro (Concluído ✅):**
    - Instanciar o `UserRepository`, `UserService` e `UserHandler` dentro de [main.go](file:///home/nergal/apps/docSe9-DMS/backend/cmd/api/main.go) e registrar as rotas de usuários no roteador Gin.
 
 ---
 
-### 🔒 Fase 2: Segurança & Autenticação (JWT)
+### 🔒 Fase 2: Segurança & Autenticação (JWT) (Concluído ✅)
 O OpenAPI em [openapi.yaml](file:///home/nergal/apps/docSe9-DMS/backend/openapi.yaml) prevê segurança por Token Bearer (JWT).
 
-1. **Hashing de Senha Real:**
+1. **Hashing de Senha Real (Concluído ✅):**
    - Atualmente, nos testes, as senhas de usuários são inseridas como texto puro (`hashed_password_123`). É necessário implementar criptografia real.
    - Adicionar o pacote `golang.org/x/crypto/bcrypt`.
    - Adicionar lógica de hash de senha no `UserService` antes de persistir no banco e lógica de validação durante o login.
 
-2. **Endpoint de Autenticação:**
+2. **Endpoint de Autenticação (Concluído ✅):**
    - Criar endpoint `POST /api/v1/auth/login` recebendo email/username e senha.
    - Validar credenciais e emitir um token JWT com claims seguras (ex: `user_id`, `username`, `role`, `municipality_id`, expiração).
    - Atualizar a coluna `LastLogin` no banco de dados com a data/hora atual no momento do login.
 
-3. **Middleware de Autenticação (`AuthMiddleware`):**
+3. **Middleware de Autenticação (`AuthMiddleware`) (Concluído ✅):**
    - Criar um middleware Gin para interceptar requisições protegidas, extrair o cabeçalho `Authorization: Bearer <token>`, decodificar o JWT e injetar as informações do usuário autenticado no contexto do Gin (`c.Set("user", user)`).
 
-4. **Autorização Baseada em Roles (RBAC):**
+4. **Autorização Baseada em Roles (RBAC) (Concluído ✅):**
    - Utilizar a propriedade `Role` (`ADMIN` vs `COMMON`) para proteger rotas críticas. Por exemplo, apenas administradores (`RoleAdmin`) devem ter permissão para criar/atualizar/excluir municípios ou gerenciar outros usuários.
 
 ---

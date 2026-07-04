@@ -76,6 +76,14 @@ func Conflict(c *gin.Context, msg string) {
 	c.JSON(http.StatusConflict, errorResponse{Success: false, Error: msg})
 }
 
+func Unauthorized(c *gin.Context, msg string) {
+	c.JSON(http.StatusUnauthorized, errorResponse{Success: false, Error: msg})
+}
+
+func Forbidden(c *gin.Context, msg string) {
+	c.JSON(http.StatusForbidden, errorResponse{Success: false, Error: msg})
+}
+
 func InternalError(c *gin.Context) {
 	c.JSON(http.StatusInternalServerError, errorResponse{
 		Success: false,

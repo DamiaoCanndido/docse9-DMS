@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/google/uuid"
 )
 
@@ -52,12 +53,17 @@ func (s *userService) Create(input domain.CreateUserInput) (*domain.User, error)
 		return nil, ErrMunicipalityNotFound
 	}
 
+	hashedPassword, err := security.HashPassword(input.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	// 5. Criar a entidade User
 	u := &domain.User{
 		ID:             uuid.New(),
 		Username:       username,
 		Email:          email,
-		Password:       input.Password, // Fase 2 cuidará do hashing real com bcrypt
+		Password:       hashedPassword,
 		Role:           input.Role,
 		MunicipalityID: input.MunicipalityID,
 	}
@@ -126,7 +132,11 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 
 	// 4. Atualizar senha se fornecida
 	if input.Password != nil {
-		u.Password = *input.Password // Fase 2 cuidará do hashing real com bcrypt
+		hashedPassword, err := security.HashPassword(*input.Password)
+		if err != nil {
+			return nil, err
+		}
+		u.Password = hashedPassword
 	}
 
 	// 5. Atualizar role se fornecida
