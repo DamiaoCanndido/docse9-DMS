@@ -124,17 +124,19 @@ O OpenAPI em [openapi.yaml](file:///home/nergal/apps/docSe9-DMS/backend/openapi.
 Implementar as entidades de negócio principais do sistema.
 
 1. **Modelagem de Domínio:**
-   - Criar entidades `Folder` (Pastas para categorização lógica) e `Document` (Metadados dos arquivos).
-   - Relacionar `Document` e `Folder` com `Municipality` (para multi-inquilinato / isolamento de dados) e com `User` (autor do upload).
+   - Criar entidades `Document` (Metadados dos arquivos).
+   - Tipos de documentos:
+      - Notices (óficios)
+      - Decrees (decretos)
+      - Ordinances (portarias)
+      - Laws (leis)
+      - Contracts (contratos)
+   - notices, decrees, oridinances e laws compartilham a mesma estrutura: id, order, description, fileKey (em branco por padrão, será implementado no futuro), ownerId, municipalityId, createdAt, updatedAt e deletedAt. order reseta de ano em ano. exemplo: começa em 1 no inicio do ano até o fim do mesmo.
+   - laws: o order nunca reseta.
+   - contracts: id, order, description, duration, type (publicinterest, bidding, service), value, startIn, fileKey (em branco por padrão, será implementado no futuro), ownerId, municipalityId, createdAt, updatedAt e deletedAt. order reseta de ano em ano. exemplo: começa em 1 no inicio do ano até o fim do mesmo.
+   - Relacionar `Document` com `Municipality` (para multi-inquilinato / isolamento de dados) e com `User` (autor do documento).
 
-2. **Upload e Armazenamento:**
-   - Decidir a estratégia de armazenamento físico dos documentos:
-     - *Local Storage:* Gravação em pasta específica no disco do servidor (bom para desenvolvimento local).
-     - *Cloud Object Storage:* Integração via SDK com AWS S3 / MinIO (ideal para produção).
-   - Criar serviço de Storage abstraído por interface para fácil substituição.
-
-3. **Endpoints de Documentos:**
-   - Upload de arquivos com validação de extensão, tamanho máximo e geração automática de hash/metadados.
+2. **Filtros:**
    - Busca textual de documentos e filtragem por metadados (data de criação, autor, pasta).
 
 ---

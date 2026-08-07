@@ -42,6 +42,10 @@ func main() {
 	userSvc := service.NewUserService(userRepo, municipalityRepo)
 	userHnd := handler.NewUserHandler(userSvc)
 
+	docRepo := repository.NewDocumentRepository(db)
+	docSvc := service.NewDocumentService(docRepo, userRepo, municipalityRepo)
+	docHnd := handler.NewDocumentHandler(docSvc)
+
 	authSvc := service.NewAuthService(userRepo)
 	authHnd := handler.NewAuthHandler(authSvc)
 
@@ -69,6 +73,7 @@ func main() {
 	{
 		municipalityHnd.RegisterRoutes(protected)
 		userHnd.RegisterRoutes(protected)
+		docHnd.RegisterRoutes(protected)
 	}
 
 	port := os.Getenv("APP_PORT")
