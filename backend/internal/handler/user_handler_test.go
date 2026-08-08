@@ -213,6 +213,7 @@ func TestUpdateUser_Handler_200(t *testing.T) {
 	updated := u
 	updated.Email = newEmail
 
+	svc.On("GetByID", u.ID).Return(&u, nil)
 	svc.On("Update", u.ID, input).Return(&updated, nil)
 
 	path := fmt.Sprintf("/api/v1/users/%s", u.ID)
@@ -233,6 +234,7 @@ func TestDeleteUser_Handler_204(t *testing.T) {
 	svc := new(handlerMocks.UserService)
 	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
 
+	svc.On("GetByID", u.ID).Return(&u, nil)
 	svc.On("Delete", u.ID).Return(nil)
 
 	path := fmt.Sprintf("/api/v1/users/%s", u.ID)
@@ -249,6 +251,7 @@ func TestRestoreUser_Handler_200(t *testing.T) {
 	svc := new(handlerMocks.UserService)
 	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
 
+	svc.On("GetByIDUnscoped", u.ID).Return(&u, nil)
 	svc.On("Restore", u.ID).Return(&u, nil)
 
 	path := fmt.Sprintf("/api/v1/users/%s/restore", u.ID)
@@ -265,6 +268,7 @@ func TestHardDeleteUser_Handler_204(t *testing.T) {
 	svc := new(handlerMocks.UserService)
 	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
 
+	svc.On("GetByIDUnscoped", u.ID).Return(&u, nil)
 	svc.On("HardDelete", u.ID).Return(nil)
 
 	path := fmt.Sprintf("/api/v1/users/%s/hard", u.ID)

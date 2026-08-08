@@ -38,13 +38,14 @@ func main() {
 	municipalitySvc := service.NewMunicipalityService(municipalityRepo)
 	municipalityHnd := handler.NewMunicipalityHandler(municipalitySvc)
 
+	permissionRepo := repository.NewUserPermissionRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	userSvc := service.NewUserService(userRepo, municipalityRepo)
+	userSvc := service.NewUserService(userRepo, municipalityRepo, permissionRepo)
 	userHnd := handler.NewUserHandler(userSvc)
 
 	docRepo := repository.NewDocumentRepository(db)
 	docSvc := service.NewDocumentService(docRepo, userRepo, municipalityRepo)
-	docHnd := handler.NewDocumentHandler(docSvc)
+	docHnd := handler.NewDocumentHandler(docSvc, permissionRepo)
 
 	authSvc := service.NewAuthService(userRepo)
 	authHnd := handler.NewAuthHandler(authSvc)

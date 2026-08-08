@@ -23,22 +23,17 @@ func NewMunicipalityHandler(svc domain.MunicipalityService) *MunicipalityHandler
 // RegisterRoutes registra todas as rotas do recurso Municipality.
 func (h *MunicipalityHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	g := rg.Group("/municipalities")
+	g.Use(middleware.RequireRole(domain.RoleAdmin))
 	{
+		g.POST("", h.Create)
 		g.GET("", h.GetAll)
+		g.GET("/trash", h.GetDeleted)
 		g.GET("/uf/:uf", h.GetByUF)
 		g.GET("/:id", h.GetByID)
-
-		// Apenas administradores podem criar, alterar ou deletar
-		adminOnly := g.Group("")
-		adminOnly.Use(middleware.RequireRole(domain.RoleAdmin))
-		{
-			adminOnly.POST("", h.Create)
-			adminOnly.GET("/trash", h.GetDeleted)
-			adminOnly.PATCH("/:id", h.Update)
-			adminOnly.PATCH("/:id/restore", h.Restore)
-			adminOnly.DELETE("/:id/hard", h.HardDelete)
-			adminOnly.DELETE("/:id", h.Delete)
-		}
+		g.PATCH("/:id", h.Update)
+		g.PATCH("/:id/restore", h.Restore)
+		g.DELETE("/:id/hard", h.HardDelete)
+		g.DELETE("/:id", h.Delete)
 	}
 }
 

@@ -19,6 +19,7 @@ type Role string
 
 const (
 	RoleAdmin  Role = "ADMIN"
+	RoleMod    Role = "MOD"
 	RoleCommon Role = "COMMON"
 )
 
@@ -46,7 +47,7 @@ type CreateUserInput struct {
 	Email           string    `json:"email"           binding:"required,email,max=255"`
 	Password        string    `json:"password"        binding:"required,min=6,max=255"`
 	ConfirmPassword string    `json:"confirmPassword" binding:"required,eqfield=Password"`
-	Role            Role      `json:"role"            binding:"required,oneof=ADMIN COMMON"`
+	Role            Role      `json:"role"            binding:"required,oneof=ADMIN MOD COMMON"`
 	MunicipalityID  uuid.UUID `json:"municipalityId"  binding:"required"`
 }
 
@@ -54,7 +55,7 @@ type UpdateUserInput struct {
 	Username       *string    `json:"username"       binding:"omitempty,min=3,max=255"`
 	Email          *string    `json:"email"          binding:"omitempty,email,max=255"`
 	Password       *string    `json:"password"       binding:"omitempty,min=6,max=255"`
-	Role           *Role      `json:"role"           binding:"omitempty,oneof=ADMIN COMMON"`
+	Role           *Role      `json:"role"           binding:"omitempty,oneof=ADMIN MOD COMMON"`
 	MunicipalityID *uuid.UUID `json:"municipalityId" binding:"omitempty"`
 	LastLogin      *time.Time `json:"lastLogin"      binding:"omitempty"`
 }
@@ -88,8 +89,11 @@ type UserService interface {
 	GetAll(page, pageSize int) ([]User, int64, error)
 	GetDeleted(page, pageSize int) ([]User, int64, error)
 	GetByID(id uuid.UUID) (*User, error)
+	GetByIDUnscoped(id uuid.UUID) (*User, error)
 	Update(id uuid.UUID, input UpdateUserInput) (*User, error)
 	Delete(id uuid.UUID) error
 	Restore(id uuid.UUID) (*User, error)
 	HardDelete(id uuid.UUID) error
+	GetPermissions(userID uuid.UUID) (*UserPermission, error)
+	UpdatePermissions(userID uuid.UUID, input UpdateUserPermissionInput) (*UserPermission, error)
 }

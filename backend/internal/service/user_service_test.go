@@ -19,7 +19,9 @@ func newUserService(t *testing.T) (domain.UserService, *mocks.UserRepository, *m
 	t.Helper()
 	userRepo := new(mocks.UserRepository)
 	munRepo := new(mocks.MunicipalityRepository)
-	svc := service.NewUserService(userRepo, munRepo)
+	permRepo := new(mocks.UserPermissionRepository)
+	permRepo.On("DeleteByUserID", mock.Anything).Return(nil).Maybe()
+	svc := service.NewUserService(userRepo, munRepo, permRepo)
 	return svc, userRepo, munRepo
 }
 
@@ -389,4 +391,46 @@ func TestHardDeleteUser_NotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrUserNotFound)
 	userRepo.AssertNotCalled(t, "HardDelete")
+}
+
+func TestGetPermissions_Success(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	munRepo := new(mocks.MunicipalityRepository)
+	permRepo := new(mocks.UserPermissionRepository)
+	svc := service.NewUserService(userRepo, munRepo, permRepo)
+
+	userID := uuid.New()
+	u := &domain.User{ID: userID, Role: domain.RoleCommon}
+	p := &domain.UserPermission{UserID: userID, CanView: true}
+
+	userRepo.On("FindByID", userID).Return(u, nil)
+	permRepo.On("FindByUserID", userID).Return(p, nil)
+
+	res, err := svc.GetPermissions(userID)
+	require.NoError(t, err)
+	assert.Equal(t, userID, res.UserID)
+	assert.True(t, res.CanView)
+}
+
+func TestUpdatePermissions_Success(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	munRepo := new(mocks.MunicipalityRepository)
+	permRepo := new(mocks.UserPermissionRepository)
+	svc := service.NewUserService(userRepo, munRepo, permRepo)
+
+	userID := uuid.New()
+	u := &domain.User{ID: userID, Role: domain.RoleCommon}
+	p := &domain.UserPermission{UserID: userID, CanView: false}
+
+	userRepo.On("FindByID", userID).Return(u, nil)
+	permRepo.On("FindByUserID", userID).Return(p, nil)
+	permRepo.On("Update", mock.AnythingOfType("*domain.UserPermission")).Return(nil)
+
+	canView := true
+	input := domain.UpdateUserPermissionInput{CanView: &canView}
+
+	res, err := svc.UpdatePermissions(userID, input)
+	require.NoError(t, err)
+	assert.Equal(t, userID, res.UserID)
+	assert.True(t, res.CanView)
 }

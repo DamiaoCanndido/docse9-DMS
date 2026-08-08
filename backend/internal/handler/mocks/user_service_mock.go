@@ -37,6 +37,14 @@ func (m *UserService) GetByID(id uuid.UUID) (*domain.User, error) {
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
+func (m *UserService) GetByIDUnscoped(id uuid.UUID) (*domain.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
+}
+
 func (m *UserService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domain.User, error) {
 	args := m.Called(id, input)
 	if args.Get(0) == nil {
@@ -61,4 +69,20 @@ func (m *UserService) Restore(id uuid.UUID) (*domain.User, error) {
 func (m *UserService) HardDelete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)
+}
+
+func (m *UserService) GetPermissions(userID uuid.UUID) (*domain.UserPermission, error) {
+	args := m.Called(userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.UserPermission), args.Error(1)
+}
+
+func (m *UserService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionInput) (*domain.UserPermission, error) {
+	args := m.Called(userID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.UserPermission), args.Error(1)
 }

@@ -115,8 +115,11 @@ O OpenAPI em [openapi.yaml](file:///home/nergal/apps/docSe9-DMS/backend/openapi.
 3. **Middleware de Autenticação (`AuthMiddleware`) (Concluído ✅):**
    - Criar um middleware Gin para interceptar requisições protegidas, extrair o cabeçalho `Authorization: Bearer <token>`, decodificar o JWT e injetar as informações do usuário autenticado no contexto do Gin (`c.Set("user", user)`).
 
-4. **Autorização Baseada em Roles (RBAC) (Concluído ✅):**
-   - Utilizar a propriedade `Role` (`ADMIN` vs `COMMON`) para proteger rotas críticas. Por exemplo, apenas administradores (`RoleAdmin`) devem ter permissão para criar/atualizar/excluir municípios ou gerenciar outros usuários.
+4. **Autorização Baseada em Roles (RBAC):**
+   - Utilizar a propriedade `Role` (`ADMIN`, `MOD`, `COMMON`) para proteger rotas críticas. Por exemplo, apenas administradores (`RoleAdmin`) devem ter permissão para ver/criar/atualizar/excluir municípios. Administradores tambem podem ver/criar/atualizar/excluir usuários do tipo MOD e COMMON. Administradores não terão acesso a gerenciar documentos.
+   - Usuários MOD poderão ver/criar/atualizar/excluir usuarios MODS e COMMON no seu respectivo municipio. usuarios MOD poderão ver/criar/atualizar/excluir qualquer tipo de documento do seu respectivo municipio.
+   - Usuários COMMON não poderão ver/criar/atualizar/excluir usuarios. usuarios COMMON só poderão ver/criar/atualizar/excluir se o MOD do municipio der permissão. exemplo: nem todos os usuarios necessitam ver/criar/atualizar/excluir todo tipo de documento o MOD pode dar alguma permissão para somente READ_NOTICES ou para mais tipos de documentos. estou pensando em READ(1), WRITE(2), DELETE(3) se o usuario common tiver DELETE_ORDINANCES ele poderá ver/criar/atualizar/excluir se for WRITE_ORDINANCES somente ver/criar/atualizar e READ_ORDINANCES poderá somente ver.
+
 
 ---
 

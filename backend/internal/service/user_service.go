@@ -11,13 +11,19 @@ import (
 type userService struct {
 	userRepo         domain.UserRepository
 	municipalityRepo domain.MunicipalityRepository
+	permissionRepo   domain.UserPermissionRepository
 }
 
 // NewUserService cria uma nova instância do serviço de usuários.
-func NewUserService(userRepo domain.UserRepository, municipalityRepo domain.MunicipalityRepository) domain.UserService {
+func NewUserService(
+	userRepo domain.UserRepository,
+	municipalityRepo domain.MunicipalityRepository,
+	permissionRepo domain.UserPermissionRepository,
+) domain.UserService {
 	return &userService{
 		userRepo:         userRepo,
 		municipalityRepo: municipalityRepo,
+		permissionRepo:   permissionRepo,
 	}
 }
 
@@ -85,6 +91,17 @@ func (s *userService) GetDeleted(page, pageSize int) ([]domain.User, int64, erro
 
 func (s *userService) GetByID(id uuid.UUID) (*domain.User, error) {
 	u, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, domain.ErrUserNotFound
+	}
+	return u, nil
+}
+
+func (s *userService) GetByIDUnscoped(id uuid.UUID) (*domain.User, error) {
+	u, err := s.userRepo.FindByIDUnscoped(id)
 	if err != nil {
 		return nil, err
 	}
@@ -205,5 +222,92 @@ func (s *userService) HardDelete(id uuid.UUID) error {
 	if u == nil {
 		return domain.ErrUserNotFound
 	}
+	_ = s.permissionRepo.DeleteByUserID(id)
 	return s.userRepo.HardDelete(id)
+}
+
+func (s *userService) GetPermissions(userID uuid.UUID) (*domain.UserPermission, error) {
+	u, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, domain.ErrUserNotFound
+	}
+
+	p, err := s.permissionRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if p == nil {
+		p = &domain.UserPermission{
+			ID:        uuid.New(),
+			UserID:    userID,
+			CanView:   false,
+			CanCreate: false,
+			CanUpdate: false,
+			CanDelete: false,
+		}
+		if err := s.permissionRepo.Create(p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
+}
+
+func (s *userService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionInput) (*domain.UserPermission, error) {
+	u, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, domain.ErrUserNotFound
+	}
+
+	p, err := s.permissionRepo.FindByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if p == nil {
+		p = &domain.UserPermission{
+			ID:     uuid.New(),
+			UserID: userID,
+		}
+		if input.CanView != nil {
+			p.CanView = *input.CanView
+		}
+		if input.CanCreate != nil {
+			p.CanCreate = *input.CanCreate
+		}
+		if input.CanUpdate != nil {
+			p.CanUpdate = *input.CanUpdate
+		}
+		if input.CanDelete != nil {
+			p.CanDelete = *input.CanDelete
+		}
+		if err := s.permissionRepo.Create(p); err != nil {
+			return nil, err
+		}
+	} else {
+		if input.CanView != nil {
+			p.CanView = *input.CanView
+		}
+		if input.CanCreate != nil {
+			p.CanCreate = *input.CanCreate
+		}
+		if input.CanUpdate != nil {
+			p.CanUpdate = *input.CanUpdate
+		}
+		if input.CanDelete != nil {
+			p.CanDelete = *input.CanDelete
+		}
+		if err := s.permissionRepo.Update(p); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
 }

@@ -66,5 +66,6 @@ func Migrate(db *gorm.DB) error {
 		&domain.Municipality{},
 		&domain.User{},
 		&domain.Document{},
+		&domain.UserPermission{},
 	)
 }

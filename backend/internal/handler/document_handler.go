@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/middleware"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
@@ -12,12 +11,13 @@ import (
 )
 
 type DocumentHandler struct {
-	svc domain.DocumentService
+	svc      domain.DocumentService
+	permRepo domain.UserPermissionRepository
 }
 
-// NewDocumentHandler cria um novo handler de documentos.
-func NewDocumentHandler(svc domain.DocumentService) *DocumentHandler {
-	return &DocumentHandler{svc: svc}
+// NewDocumentHandler cria um novo handler de documentos com suporte a permissões.
+func NewDocumentHandler(svc domain.DocumentService, permRepo domain.UserPermissionRepository) *DocumentHandler {
+	return &DocumentHandler{svc: svc, permRepo: permRepo}
 }
 
 // RegisterRoutes registra todas as rotas do recurso Document.
@@ -30,33 +30,57 @@ func (h *DocumentHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		g.GET("/:id", h.GetByID)
 		g.PATCH("/:id", h.Update)
 		g.PATCH("/:id/restore", h.Restore)
-		g.DELETE("/:id/hard", middleware.RequireRole(domain.RoleAdmin), h.HardDelete)
+		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
 	}
 }
 
 // Create cria um novo documento
 func (h *DocumentHandler) Create(c *gin.Context) {
-	var input domain.CreateDocumentInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
 	claims := getClaims(c)
 	if claims == nil {
 		response.Unauthorized(c, "usuário não autenticado")
 		return
 	}
 
-	// Restrições de Multi-inquilinato (Tenant Isolation)
-	if domain.Role(claims.Role) == domain.RoleCommon {
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleAdmin {
+		response.Forbidden(c, "administradores não têm permissão para acessar documentos")
+		return
+	}
+
+	var input domain.CreateDocumentInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	// MOD pode criar qualquer documento em seu município
+	if actorRole == domain.RoleMod {
+		if input.MunicipalityID != claims.MunicipalityID {
+			response.Forbidden(c, "permissão insuficiente para criar documentos em outro município")
+			return
+		}
+	}
+
+	// COMMON requer CanCreate
+	if actorRole == domain.RoleCommon {
 		if input.MunicipalityID != claims.MunicipalityID {
 			response.Forbidden(c, "permissão insuficiente para criar documentos em outro município")
 			return
 		}
 		if input.OwnerID != claims.UserID {
 			response.Forbidden(c, "permissão insuficiente para criar documentos em nome de outro usuário")
+			return
+		}
+
+		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		if err != nil {
+			response.InternalError(c)
+			return
+		}
+		if perm == nil || !perm.CanCreate {
+			response.Forbidden(c, "permissão insuficiente para criar documentos")
 			return
 		}
 	}
@@ -72,20 +96,36 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 
 // GetAll lista todos os documentos (paginado, filtrado)
 func (h *DocumentHandler) GetAll(c *gin.Context) {
-	var filter domain.DocumentFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
 	claims := getClaims(c)
 	if claims == nil {
 		response.Unauthorized(c, "usuário não autenticado")
 		return
 	}
 
-	// Força isolamento de dados para usuários comuns
-	if domain.Role(claims.Role) == domain.RoleCommon {
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleAdmin {
+		response.Forbidden(c, "administradores não têm permissão para acessar documentos")
+		return
+	}
+
+	var filter domain.DocumentFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	if actorRole == domain.RoleCommon {
+		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		if err != nil {
+			response.InternalError(c)
+			return
+		}
+		if perm == nil || !perm.CanView {
+			response.Forbidden(c, "permissão insuficiente para visualizar documentos")
+			return
+		}
+		filter.MunicipalityID = &claims.MunicipalityID
+	} else if actorRole == domain.RoleMod {
 		filter.MunicipalityID = &claims.MunicipalityID
 	}
 
@@ -102,20 +142,36 @@ func (h *DocumentHandler) GetAll(c *gin.Context) {
 
 // GetDeleted lista os documentos na lixeira (soft-deleted)
 func (h *DocumentHandler) GetDeleted(c *gin.Context) {
-	var filter domain.DocumentFilter
-	if err := c.ShouldBindQuery(&filter); err != nil {
-		response.BadRequest(c, err.Error())
-		return
-	}
-
 	claims := getClaims(c)
 	if claims == nil {
 		response.Unauthorized(c, "usuário não autenticado")
 		return
 	}
 
-	// Força isolamento de dados para usuários comuns
-	if domain.Role(claims.Role) == domain.RoleCommon {
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleAdmin {
+		response.Forbidden(c, "administradores não têm permissão para acessar documentos")
+		return
+	}
+
+	var filter domain.DocumentFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	if actorRole == domain.RoleCommon {
+		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		if err != nil {
+			response.InternalError(c)
+			return
+		}
+		if perm == nil || !perm.CanView {
+			response.Forbidden(c, "permissão insuficiente para visualizar documentos")
+			return
+		}
+		filter.MunicipalityID = &claims.MunicipalityID
+	} else if actorRole == domain.RoleMod {
 		filter.MunicipalityID = &claims.MunicipalityID
 	}
 
@@ -137,21 +193,13 @@ func (h *DocumentHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	claims := getClaims(c)
-	if claims == nil {
-		response.Unauthorized(c, "usuário não autenticado")
-		return
-	}
-
 	d, err := h.svc.GetByID(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	// Força isolamento de dados para usuários comuns
-	if domain.Role(claims.Role) == domain.RoleCommon && d.MunicipalityID != claims.MunicipalityID {
-		response.Forbidden(c, "permissão insuficiente para acessar este recurso")
+	if !h.checkAccess(c, d, "view") {
 		return
 	}
 
@@ -165,21 +213,13 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 		return
 	}
 
-	claims := getClaims(c)
-	if claims == nil {
-		response.Unauthorized(c, "usuário não autenticado")
-		return
-	}
-
-	// Busca o documento para validar permissões antes de atualizar
 	d, err := h.svc.GetByID(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	if domain.Role(claims.Role) == domain.RoleCommon && d.MunicipalityID != claims.MunicipalityID {
-		response.Forbidden(c, "permissão insuficiente para acessar este recurso")
+	if !h.checkAccess(c, d, "update") {
 		return
 	}
 
@@ -205,20 +245,13 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	claims := getClaims(c)
-	if claims == nil {
-		response.Unauthorized(c, "usuário não autenticado")
-		return
-	}
-
 	d, err := h.svc.GetByID(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	if domain.Role(claims.Role) == domain.RoleCommon && d.MunicipalityID != claims.MunicipalityID {
-		response.Forbidden(c, "permissão insuficiente para acessar este recurso")
+	if !h.checkAccess(c, d, "delete") {
 		return
 	}
 
@@ -243,29 +276,26 @@ func (h *DocumentHandler) Restore(c *gin.Context) {
 		return
 	}
 
-	// Busca sem escopo de soft-delete para restaurar
-	// Como a camada de serviço do Restore já valida, buscamos antes apenas para validar tenant
-	// Mas a entidade retornada no GetByIDUnscoped ainda é comparada.
-	// Vamos buscar usando o Restore diretamente e, caso ocorra erro, tratar.
-	// Se for COMMON, validamos após o restore no serviço (mas para evitar restaurar e depois proibir,
-	// podemos tratar no próprio serviço ou fazer validação prévia).
-	// A melhor abordagem é restaurar na service e verificar se o retornado bate com o tenant.
-	// Se não bater, podemos dar rollback? GORM faz soft restoration.
-	// De forma elegante, faremos a chamada direta e validamos o resultado.
-	d, err := h.svc.Restore(id)
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleAdmin {
+		response.Forbidden(c, "administradores não têm permissão para acessar documentos")
+		return
+	}
+
+	// Executa restauração temporária para validação
+	restored, err := h.svc.Restore(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	if domain.Role(claims.Role) == domain.RoleCommon && d.MunicipalityID != claims.MunicipalityID {
+	if !h.checkAccess(c, restored, "delete") {
 		// Desfaz o restore caso o usuário não tenha permissão
 		_ = h.svc.Delete(id)
-		response.Forbidden(c, "permissão insuficiente para acessar este recurso")
 		return
 	}
 
-	response.OK(c, d)
+	response.OK(c, restored)
 }
 
 // HardDelete remove permanentemente um documento
@@ -275,12 +305,112 @@ func (h *DocumentHandler) HardDelete(c *gin.Context) {
 		return
 	}
 
+	claims := getClaims(c)
+	if claims == nil {
+		response.Unauthorized(c, "usuário não autenticado")
+		return
+	}
+
+	actorRole := domain.Role(claims.Role)
+	if actorRole != domain.RoleMod {
+		response.Forbidden(c, "apenas moderadores podem realizar hard delete de documentos")
+		return
+	}
+
+	// Restaura temporariamente para obter o MunicipalityID
+	restored, err := h.svc.Restore(id)
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+
+	if restored.MunicipalityID != claims.MunicipalityID {
+		_ = h.svc.Delete(id) // desfaz o restore
+		response.Forbidden(c, "permissão insuficiente para gerenciar documentos de outro município")
+		return
+	}
+
 	if err := h.svc.HardDelete(id); err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
 	response.NoContent(c)
+}
+
+func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, action string) bool {
+	claims := getClaims(c)
+	if claims == nil {
+		response.Unauthorized(c, "usuário não autenticado")
+		return false
+	}
+
+	actorRole := domain.Role(claims.Role)
+
+	if actorRole == domain.RoleAdmin {
+		response.Forbidden(c, "administradores não têm permissão para acessar documentos")
+		return false
+	}
+
+	// MOD tem acesso total no mesmo município
+	if actorRole == domain.RoleMod {
+		if doc.MunicipalityID != claims.MunicipalityID {
+			response.Forbidden(c, "permissão insuficiente para gerenciar documentos de outro município")
+			return false
+		}
+		return true
+	}
+
+	// COMMON requer validação da tabela UserPermission
+	if actorRole == domain.RoleCommon {
+		if doc.MunicipalityID != claims.MunicipalityID {
+			response.Forbidden(c, "permissão insuficiente para gerenciar documentos de outro município")
+			return false
+		}
+
+		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		if err != nil {
+			response.InternalError(c)
+			return false
+		}
+		if perm == nil {
+			response.Forbidden(c, "permissão insuficiente")
+			return false
+		}
+
+		switch action {
+		case "view":
+			if !perm.CanView {
+				response.Forbidden(c, "permissão insuficiente para visualizar documentos")
+				return false
+			}
+		case "update":
+			if !perm.CanUpdate {
+				response.Forbidden(c, "permissão insuficiente para atualizar documentos")
+				return false
+			}
+			if doc.OwnerID != claims.UserID {
+				response.Forbidden(c, "permissão insuficiente para atualizar documentos de outro usuário")
+				return false
+			}
+		case "delete":
+			if !perm.CanDelete {
+				response.Forbidden(c, "permissão insuficiente para deletar documentos")
+				return false
+			}
+			if doc.OwnerID != claims.UserID {
+				response.Forbidden(c, "permissão insuficiente para deletar documentos de outro usuário")
+				return false
+			}
+		default:
+			response.Forbidden(c, "ação inválida")
+			return false
+		}
+		return true
+	}
+
+	response.Forbidden(c, "permissão insuficiente")
+	return false
 }
 
 func (h *DocumentHandler) handleServiceError(c *gin.Context, err error) {
