@@ -10,19 +10,7 @@ info:
   contact:
     name: Docseq DMS
 
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
 
-  schemas:
-    Error:
-      type: object
-      properties:
-        error:
-          type: string
 
 servers:
   - url: http://localhost:8080/api/v1
@@ -31,6 +19,12 @@ servers:
 tags:
   - name: municipalities
     description: Gestão de municípios (organizações)
+  - name: auth
+    description: Autenticação de usuários
+  - name: users
+    description: Gestão de usuários e permissões
+  - name: documents
+    description: Gestão de documentos municipais
 
 paths:
 
@@ -371,11 +365,595 @@ paths:
             application/json:
               example:
                 status: ok
+  # ─────────────────────────────────────────────
+  # GET/PUT /users/{id}/permissions
+  # ─────────────────────────────────────────────
+  /users/{id}/permissions:
+    get:
+      summary: Obter permissões do usuário
+      operationId: getUserPermissions
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Permissões do usuário
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserPermission'
+    put:
+      summary: Atualizar permissões do usuário
+      operationId: updateUserPermissions
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPermissionsInput'
+      responses:
+        '200':
+          description: Permissões atualizadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserPermission'
+
+  # ─────────────────────────────────────────────
+  # POST /auth/login
+  # ─────────────────────────────────────────────
+  /auth/login:
+    servers:
+      - url: http://localhost:8080/api/v1
+        description: Desenvolvimento local
+    post:
+      summary: Realizar login
+      operationId: login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ─────────────────────────────────────────────
+  # POST/GET /users
+  # ─────────────────────────────────────────────
+  /users:
+    post:
+      summary: Criar usuário
+      operationId: createUser
+      tags: [users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserInput'
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      summary: Listar usuários
+      operationId: listUsers
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Lista paginada de usuários
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsersResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/trash:
+    get:
+      summary: Listar usuários excluídos (lixeira)
+      operationId: listDeletedUsers
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Lista paginada de usuários na lixeira
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsersResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/{id}:
+    get:
+      summary: Buscar usuário por ID
+      operationId: getUserByID
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      summary: Atualizar usuário parcialmente
+      operationId: updateUser
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserInput'
+      responses:
+        '200':
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Excluir usuário (soft delete)
+      operationId: deleteUser
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Usuário excluído com sucesso
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/{id}/restore:
+    patch:
+      summary: Restaurar usuário da lixeira
+      operationId: restoreUser
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Usuário restaurado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/{id}/hard:
+    delete:
+      summary: Excluir usuário permanentemente
+      operationId: hardDeleteUser
+      tags: [users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Usuário excluído permanentemente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ─────────────────────────────────────────────
+  # POST/GET /documents
+  # ─────────────────────────────────────────────
+  /documents:
+    post:
+      summary: Criar documento
+      operationId: createDocument
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentInput'
+      responses:
+        '201':
+          description: Documento criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      summary: Listar documentos
+      operationId: listDocuments
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        - name: municipalityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: contractType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [publicinterest, bidding, service]
+      responses:
+        '200':
+          description: Lista paginada de documentos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentsResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/trash:
+    get:
+      summary: Listar documentos excluídos (lixeira)
+      operationId: listDeletedDocuments
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        - name: municipalityId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: contractType
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [publicinterest, bidding, service]
+      responses:
+        '200':
+          description: Lista paginada de documentos na lixeira
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDocumentsResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/{id}:
+    get:
+      summary: Buscar documento por ID
+      operationId: getDocumentByID
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Documento encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      summary: Atualizar documento parcialmente
+      operationId: updateDocument
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentInput'
+      responses:
+        '200':
+          description: Documento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      summary: Excluir documento (soft delete)
+      operationId: deleteDocument
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Documento excluído com sucesso
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/{id}/restore:
+    patch:
+      summary: Restaurar documento da lixeira
+      operationId: restoreDocument
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Documento restaurado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /documents/{id}/hard:
+    delete:
+      summary: Excluir documento permanentemente
+      operationId: hardDeleteDocument
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Documento excluído permanentemente
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
 # ═══════════════════════════════════════════════
 # COMPONENTS
 # ═══════════════════════════════════════════════
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   # ─── Parameters ─────────────────────────────
   parameters:
@@ -414,6 +992,276 @@ components:
 
   # ─── Schemas ────────────────────────────────
   schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: "admin_test"
+        password:
+          type: string
+          example: "password_123"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            user:
+              $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MOD, COMMON]
+        municipalityId:
+          type: string
+          format: uuid
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/User'
+
+    PaginatedUsersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateUserInput:
+      type: object
+      required: [username, email, password, confirmPassword, role, municipalityId]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "secret123"
+        confirmPassword:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "secret123"
+        role:
+          type: string
+          enum: [ADMIN, MOD, COMMON]
+          example: "COMMON"
+        municipalityId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    UpdateUserInput:
+      type: object
+      minProperties: 1
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: "john_doe"
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: "john@example.com"
+        password:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "new_secret123"
+        role:
+          type: string
+          enum: [ADMIN, MOD, COMMON]
+          example: "COMMON"
+        municipalityId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        order:
+          type: integer
+        description:
+          type: string
+        fileKey:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        municipalityId:
+          type: string
+          format: uuid
+        duration:
+          type: integer
+          nullable: true
+        contractType:
+          type: string
+          enum: [publicinterest, bidding, service]
+          nullable: true
+        value:
+          type: number
+          nullable: true
+        startIn:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Document'
+
+    PaginatedDocumentsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateDocumentInput:
+      type: object
+      required: [type, description, ownerId, municipalityId]
+      properties:
+        type:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+          example: "NOTICE"
+        description:
+          type: string
+          minLength: 3
+          example: "Edital de licitação para contratação de serviços de TI."
+        ownerId:
+          type: string
+          format: uuid
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        municipalityId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        duration:
+          type: integer
+          minimum: 1
+          example: 12
+        contractType:
+          type: string
+          enum: [publicinterest, bidding, service]
+          example: "service"
+        value:
+          type: number
+          minimum: 0.01
+          example: 150000.50
+        startIn:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+
+    UpdateDocumentInput:
+      type: object
+      minProperties: 1
+      properties:
+        description:
+          type: string
+          minLength: 3
+          example: "Edital retificado."
+        fileKey:
+          type: string
+          example: "uploads/docs/notice_updated.pdf"
+        duration:
+          type: integer
+          minimum: 1
+          example: 24
+        contractType:
+          type: string
+          enum: [publicinterest, bidding, service]
+          example: "service"
+        value:
+          type: number
+          minimum: 0.01
+          example: 180000.00
+        startIn:
+          type: string
+          format: date-time
+          example: "2025-02-01T00:00:00Z"
+
     Municipality:
       type: object
       properties:
@@ -540,6 +1388,48 @@ components:
         error:
           type: string
           example: "descrição do erro"
+
+    UserPermission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        documentType:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        level:
+          type: string
+          enum: [NONE, READ, WRITE, DELETE]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserPermissionsInput:
+      type: object
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateUserPermissionItem'
+
+    UpdateUserPermissionItem:
+      type: object
+      required: [documentType, level]
+      properties:
+        documentType:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        level:
+          type: string
+          enum: [NONE, READ, WRITE, DELETE]
 
   # ─── Responses reutilizáveis ─────────────────
   responses:

@@ -131,6 +131,9 @@ func applyFilters(query *gorm.DB, filter domain.DocumentFilter) *gorm.DB {
 	if filter.Type != nil {
 		query = query.Where("type = ?", *filter.Type)
 	}
+	if len(filter.AllowedTypes) > 0 {
+		query = query.Where("type IN ?", filter.AllowedTypes)
+	}
 	if filter.MunicipalityID != nil {
 		query = query.Where("municipality_id = ?", *filter.MunicipalityID)
 	}

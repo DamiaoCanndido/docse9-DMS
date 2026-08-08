@@ -64,12 +64,13 @@ type Document struct {
 // ──────────────────────────────────────────────
 
 type DocumentFilter struct {
-	Type           *DocumentType `json:"type"           form:"type"`
-	MunicipalityID *uuid.UUID    `json:"municipalityId" form:"municipalityId"`
-	OwnerID        *uuid.UUID    `json:"ownerId"        form:"ownerId"`
-	Search         string        `json:"search"         form:"search"` // Busca textual na descrição
-	Year           *int          `json:"year"           form:"year"`   // Ano do documento ou contrato
-	ContractType   *ContractType `json:"contractType"   form:"contractType"`
+	Type           *DocumentType  `json:"type"           form:"type"`
+	AllowedTypes   []DocumentType `json:"-"`
+	MunicipalityID *uuid.UUID     `json:"municipalityId" form:"municipalityId"`
+	OwnerID        *uuid.UUID     `json:"ownerId"        form:"ownerId"`
+	Search         string         `json:"search"         form:"search"` // Busca textual na descrição
+	Year           *int           `json:"year"           form:"year"`   // Ano do documento ou contrato
+	ContractType   *ContractType  `json:"contractType"   form:"contractType"`
 }
 
 type CreateDocumentInput struct {

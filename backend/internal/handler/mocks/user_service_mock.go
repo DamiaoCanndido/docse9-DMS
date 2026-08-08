@@ -71,18 +71,18 @@ func (m *UserService) HardDelete(id uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *UserService) GetPermissions(userID uuid.UUID) (*domain.UserPermission, error) {
+func (m *UserService) GetPermissions(userID uuid.UUID) ([]domain.UserPermission, error) {
 	args := m.Called(userID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.UserPermission), args.Error(1)
+	return args.Get(0).([]domain.UserPermission), args.Error(1)
 }
 
-func (m *UserService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionInput) (*domain.UserPermission, error) {
+func (m *UserService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionsInput) ([]domain.UserPermission, error) {
 	args := m.Called(userID, input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.UserPermission), args.Error(1)
+	return args.Get(0).([]domain.UserPermission), args.Error(1)
 }

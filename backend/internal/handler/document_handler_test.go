@@ -51,9 +51,12 @@ func TestCreateDocument_Handler_201(t *testing.T) {
 	}
 
 	svc.On("Create", input).Return(doc, nil)
-	permRepo.On("FindByUserID", userID).Return(&domain.UserPermission{
-		UserID:    userID,
-		CanCreate: true,
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelWrite,
+		},
 	}, nil)
 
 	claims := &security.UserClaims{
@@ -111,9 +114,12 @@ func TestGetDocumentByID_Handler_200(t *testing.T) {
 	}
 
 	svc.On("GetByID", docID).Return(doc, nil)
-	permRepo.On("FindByUserID", userID).Return(&domain.UserPermission{
-		UserID:  userID,
-		CanView: true,
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelRead,
+		},
 	}, nil)
 
 	claims := &security.UserClaims{
@@ -174,14 +180,18 @@ func TestGetAllDocuments_Handler_200(t *testing.T) {
 		MunicipalityID: munID,
 	}
 
-	permRepo.On("FindByUserID", userID).Return(&domain.UserPermission{
-		UserID:  userID,
-		CanView: true,
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelRead,
+		},
 	}, nil)
 
 	// Como o usuário é COMMON, a rota deve forçar a busca pelo MunicipalityID dele nas claims
 	svc.On("GetAll", mock.MatchedBy(func(filter domain.DocumentFilter) bool {
-		return filter.MunicipalityID != nil && *filter.MunicipalityID == munID
+		return filter.MunicipalityID != nil && *filter.MunicipalityID == munID &&
+			len(filter.AllowedTypes) == 1 && filter.AllowedTypes[0] == domain.TypeNotice
 	}), 1, 20).Return(docs, int64(1), nil)
 
 	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, "/api/v1/documents", nil)

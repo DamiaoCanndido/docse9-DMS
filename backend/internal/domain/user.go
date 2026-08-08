@@ -94,6 +94,6 @@ type UserService interface {
 	Delete(id uuid.UUID) error
 	Restore(id uuid.UUID) (*User, error)
 	HardDelete(id uuid.UUID) error
-	GetPermissions(userID uuid.UUID) (*UserPermission, error)
-	UpdatePermissions(userID uuid.UUID, input UpdateUserPermissionInput) (*UserPermission, error)
+	GetPermissions(userID uuid.UUID) ([]UserPermission, error)
+	UpdatePermissions(userID uuid.UUID, input UpdateUserPermissionsInput) ([]UserPermission, error)
 }

@@ -401,15 +401,25 @@ func TestGetPermissions_Success(t *testing.T) {
 
 	userID := uuid.New()
 	u := &domain.User{ID: userID, Role: domain.RoleCommon}
-	p := &domain.UserPermission{UserID: userID, CanView: true}
+	p := []domain.UserPermission{
+		{UserID: userID, DocumentType: domain.TypeNotice, Level: domain.LevelRead},
+	}
 
 	userRepo.On("FindByID", userID).Return(u, nil)
 	permRepo.On("FindByUserID", userID).Return(p, nil)
 
 	res, err := svc.GetPermissions(userID)
 	require.NoError(t, err)
-	assert.Equal(t, userID, res.UserID)
-	assert.True(t, res.CanView)
+	assert.Len(t, res, 5)
+
+	var noticePerm *domain.UserPermission
+	for i := range res {
+		if res[i].DocumentType == domain.TypeNotice {
+			noticePerm = &res[i]
+		}
+	}
+	require.NotNil(t, noticePerm)
+	assert.Equal(t, domain.LevelRead, noticePerm.Level)
 }
 
 func TestUpdatePermissions_Success(t *testing.T) {
@@ -420,17 +430,32 @@ func TestUpdatePermissions_Success(t *testing.T) {
 
 	userID := uuid.New()
 	u := &domain.User{ID: userID, Role: domain.RoleCommon}
-	p := &domain.UserPermission{UserID: userID, CanView: false}
 
 	userRepo.On("FindByID", userID).Return(u, nil)
-	permRepo.On("FindByUserID", userID).Return(p, nil)
-	permRepo.On("Update", mock.AnythingOfType("*domain.UserPermission")).Return(nil)
+	permRepo.On("DeleteByUserID", userID).Return(nil)
+	permRepo.On("Create", mock.AnythingOfType("*domain.UserPermission")).Return(nil)
 
-	canView := true
-	input := domain.UpdateUserPermissionInput{CanView: &canView}
+	pAfter := []domain.UserPermission{
+		{UserID: userID, DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+	}
+	permRepo.On("FindByUserID", userID).Return(pAfter, nil)
+
+	input := domain.UpdateUserPermissionsInput{
+		Permissions: []domain.UpdateUserPermissionItem{
+			{DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+		},
+	}
 
 	res, err := svc.UpdatePermissions(userID, input)
 	require.NoError(t, err)
-	assert.Equal(t, userID, res.UserID)
-	assert.True(t, res.CanView)
+	assert.Len(t, res, 5)
+
+	var noticePerm *domain.UserPermission
+	for i := range res {
+		if res[i].DocumentType == domain.TypeNotice {
+			noticePerm = &res[i]
+		}
+	}
+	require.NotNil(t, noticePerm)
+	assert.Equal(t, domain.LevelWrite, noticePerm.Level)
 }

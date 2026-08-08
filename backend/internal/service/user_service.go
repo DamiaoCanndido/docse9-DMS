@@ -226,7 +226,7 @@ func (s *userService) HardDelete(id uuid.UUID) error {
 	return s.userRepo.HardDelete(id)
 }
 
-func (s *userService) GetPermissions(userID uuid.UUID) (*domain.UserPermission, error) {
+func (s *userService) GetPermissions(userID uuid.UUID) ([]domain.UserPermission, error) {
 	u, err := s.userRepo.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -235,29 +235,41 @@ func (s *userService) GetPermissions(userID uuid.UUID) (*domain.UserPermission, 
 		return nil, domain.ErrUserNotFound
 	}
 
-	p, err := s.permissionRepo.FindByUserID(userID)
+	perms, err := s.permissionRepo.FindByUserID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	if p == nil {
-		p = &domain.UserPermission{
-			ID:        uuid.New(),
-			UserID:    userID,
-			CanView:   false,
-			CanCreate: false,
-			CanUpdate: false,
-			CanDelete: false,
-		}
-		if err := s.permissionRepo.Create(p); err != nil {
-			return nil, err
+	existing := make(map[domain.DocumentType]domain.UserPermission)
+	for _, p := range perms {
+		existing[p.DocumentType] = p
+	}
+
+	docTypes := []domain.DocumentType{
+		domain.TypeNotice,
+		domain.TypeDecree,
+		domain.TypeOrdinance,
+		domain.TypeLaw,
+		domain.TypeContract,
+	}
+
+	var result []domain.UserPermission
+	for _, dt := range docTypes {
+		if p, ok := existing[dt]; ok {
+			result = append(result, p)
+		} else {
+			result = append(result, domain.UserPermission{
+				UserID:       userID,
+				DocumentType: dt,
+				Level:        domain.LevelNone,
+			})
 		}
 	}
 
-	return p, nil
+	return result, nil
 }
 
-func (s *userService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionInput) (*domain.UserPermission, error) {
+func (s *userService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUserPermissionsInput) ([]domain.UserPermission, error) {
 	u, err := s.userRepo.FindByID(userID)
 	if err != nil {
 		return nil, err
@@ -266,48 +278,23 @@ func (s *userService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUse
 		return nil, domain.ErrUserNotFound
 	}
 
-	p, err := s.permissionRepo.FindByUserID(userID)
-	if err != nil {
+	if err := s.permissionRepo.DeleteByUserID(userID); err != nil {
 		return nil, err
 	}
 
-	if p == nil {
-		p = &domain.UserPermission{
-			ID:     uuid.New(),
-			UserID: userID,
-		}
-		if input.CanView != nil {
-			p.CanView = *input.CanView
-		}
-		if input.CanCreate != nil {
-			p.CanCreate = *input.CanCreate
-		}
-		if input.CanUpdate != nil {
-			p.CanUpdate = *input.CanUpdate
-		}
-		if input.CanDelete != nil {
-			p.CanDelete = *input.CanDelete
-		}
-		if err := s.permissionRepo.Create(p); err != nil {
-			return nil, err
-		}
-	} else {
-		if input.CanView != nil {
-			p.CanView = *input.CanView
-		}
-		if input.CanCreate != nil {
-			p.CanCreate = *input.CanCreate
-		}
-		if input.CanUpdate != nil {
-			p.CanUpdate = *input.CanUpdate
-		}
-		if input.CanDelete != nil {
-			p.CanDelete = *input.CanDelete
-		}
-		if err := s.permissionRepo.Update(p); err != nil {
-			return nil, err
+	for _, item := range input.Permissions {
+		if item.Level != domain.LevelNone {
+			p := &domain.UserPermission{
+				ID:           uuid.New(),
+				UserID:       userID,
+				DocumentType: item.DocumentType,
+				Level:        item.Level,
+			}
+			if err := s.permissionRepo.Create(p); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return p, nil
+	return s.GetPermissions(userID)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
+	"github.com/google/uuid"
 	"github.com/gin-gonic/gin"
 )
 
@@ -63,7 +64,7 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 		}
 	}
 
-	// COMMON requer CanCreate
+	// COMMON requer permissão WRITE ou DELETE para o tipo de documento
 	if actorRole == domain.RoleCommon {
 		if input.MunicipalityID != claims.MunicipalityID {
 			response.Forbidden(c, "permissão insuficiente para criar documentos em outro município")
@@ -74,12 +75,19 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 			return
 		}
 
-		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		permList, err := h.permRepo.FindByUserID(claims.UserID)
 		if err != nil {
 			response.InternalError(c)
 			return
 		}
-		if perm == nil || !perm.CanCreate {
+		var hasWrite bool
+		for _, p := range permList {
+			if p.DocumentType == input.Type && (p.Level == domain.LevelWrite || p.Level == domain.LevelDelete) {
+				hasWrite = true
+				break
+			}
+		}
+		if !hasWrite {
 			response.Forbidden(c, "permissão insuficiente para criar documentos")
 			return
 		}
@@ -115,13 +123,13 @@ func (h *DocumentHandler) GetAll(c *gin.Context) {
 	}
 
 	if actorRole == domain.RoleCommon {
-		perm, err := h.permRepo.FindByUserID(claims.UserID)
-		if err != nil {
-			response.InternalError(c)
-			return
-		}
-		if perm == nil || !perm.CanView {
-			response.Forbidden(c, "permissão insuficiente para visualizar documentos")
+		ok, msg := h.buildAllowedTypesFilter(claims.UserID, &filter)
+		if !ok {
+			if msg == "erro interno" {
+				response.InternalError(c)
+			} else {
+				response.Forbidden(c, msg)
+			}
 			return
 		}
 		filter.MunicipalityID = &claims.MunicipalityID
@@ -161,13 +169,13 @@ func (h *DocumentHandler) GetDeleted(c *gin.Context) {
 	}
 
 	if actorRole == domain.RoleCommon {
-		perm, err := h.permRepo.FindByUserID(claims.UserID)
-		if err != nil {
-			response.InternalError(c)
-			return
-		}
-		if perm == nil || !perm.CanView {
-			response.Forbidden(c, "permissão insuficiente para visualizar documentos")
+		ok, msg := h.buildAllowedTypesFilter(claims.UserID, &filter)
+		if !ok {
+			if msg == "erro interno" {
+				response.InternalError(c)
+			} else {
+				response.Forbidden(c, msg)
+			}
 			return
 		}
 		filter.MunicipalityID = &claims.MunicipalityID
@@ -361,31 +369,35 @@ func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, acti
 		return true
 	}
 
-	// COMMON requer validação da tabela UserPermission
+	// COMMON requer validação da tabela UserPermission por tipo de documento
 	if actorRole == domain.RoleCommon {
 		if doc.MunicipalityID != claims.MunicipalityID {
 			response.Forbidden(c, "permissão insuficiente para gerenciar documentos de outro município")
 			return false
 		}
 
-		perm, err := h.permRepo.FindByUserID(claims.UserID)
+		permList, err := h.permRepo.FindByUserID(claims.UserID)
 		if err != nil {
 			response.InternalError(c)
 			return false
 		}
-		if perm == nil {
-			response.Forbidden(c, "permissão insuficiente")
-			return false
+
+		var level domain.PermissionLevel = domain.LevelNone
+		for _, p := range permList {
+			if p.DocumentType == doc.Type {
+				level = p.Level
+				break
+			}
 		}
 
 		switch action {
 		case "view":
-			if !perm.CanView {
+			if level != domain.LevelRead && level != domain.LevelWrite && level != domain.LevelDelete {
 				response.Forbidden(c, "permissão insuficiente para visualizar documentos")
 				return false
 			}
 		case "update":
-			if !perm.CanUpdate {
+			if level != domain.LevelWrite && level != domain.LevelDelete {
 				response.Forbidden(c, "permissão insuficiente para atualizar documentos")
 				return false
 			}
@@ -394,7 +406,7 @@ func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, acti
 				return false
 			}
 		case "delete":
-			if !perm.CanDelete {
+			if level != domain.LevelDelete {
 				response.Forbidden(c, "permissão insuficiente para deletar documentos")
 				return false
 			}
@@ -411,6 +423,40 @@ func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, acti
 
 	response.Forbidden(c, "permissão insuficiente")
 	return false
+}
+
+func (h *DocumentHandler) buildAllowedTypesFilter(userID uuid.UUID, filter *domain.DocumentFilter) (bool, string) {
+	permList, err := h.permRepo.FindByUserID(userID)
+	if err != nil {
+		return false, "erro interno"
+	}
+
+	var allowedTypes []domain.DocumentType
+	for _, p := range permList {
+		if p.Level == domain.LevelRead || p.Level == domain.LevelWrite || p.Level == domain.LevelDelete {
+			allowedTypes = append(allowedTypes, p.DocumentType)
+		}
+	}
+
+	if filter.Type != nil {
+		hasAccess := false
+		for _, t := range allowedTypes {
+			if t == *filter.Type {
+				hasAccess = true
+				break
+			}
+		}
+		if !hasAccess {
+			return false, "permissão insuficiente para visualizar documentos"
+		}
+	} else {
+		if len(allowedTypes) == 0 {
+			return false, "permissão insuficiente para visualizar documentos"
+		}
+		filter.AllowedTypes = allowedTypes
+	}
+
+	return true, ""
 }
 
 func (h *DocumentHandler) handleServiceError(c *gin.Context, err error) {

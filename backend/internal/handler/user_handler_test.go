@@ -276,3 +276,51 @@ func TestHardDeleteUser_Handler_204(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, w.Code)
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/v1/users/:id/permissions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestGetPermissions_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+
+	perms := []domain.UserPermission{
+		{UserID: u.ID, DocumentType: domain.TypeNotice, Level: domain.LevelRead},
+	}
+
+	svc.On("GetByID", u.ID).Return(&u, nil)
+	svc.On("GetPermissions", u.ID).Return(perms, nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s/permissions", u.ID)
+	w := doRequest(setupUserRouter(svc), http.MethodGet, path, nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUT /api/v1/users/:id/permissions
+// ═══════════════════════════════════════════════════════════════════════════════
+
+func TestUpdatePermissions_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+
+	input := domain.UpdateUserPermissionsInput{
+		Permissions: []domain.UpdateUserPermissionItem{
+			{DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+		},
+	}
+
+	perms := []domain.UserPermission{
+		{UserID: u.ID, DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+	}
+
+	svc.On("GetByID", u.ID).Return(&u, nil)
+	svc.On("UpdatePermissions", u.ID, input).Return(perms, nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s/permissions", u.ID)
+	w := doRequest(setupUserRouter(svc), http.MethodPut, path, input)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}

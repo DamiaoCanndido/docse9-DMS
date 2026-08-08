@@ -332,7 +332,7 @@ func (h *UserHandler) UpdatePermissions(c *gin.Context) {
 		return
 	}
 
-	var input domain.UpdateUserPermissionInput
+	var input domain.UpdateUserPermissionsInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		response.BadRequest(c, err.Error())
 		return
