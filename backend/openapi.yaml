@@ -703,7 +703,7 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: ownerId
+        - name: creatorId
           in: query
           required: false
           schema:
@@ -757,7 +757,7 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: ownerId
+        - name: creatorId
           in: query
           required: false
           schema:
@@ -1148,7 +1148,7 @@ components:
           type: string
         fileKey:
           type: string
-        ownerId:
+        creatorId:
           type: string
           format: uuid
         municipalityId:
@@ -1199,7 +1199,7 @@ components:
 
     CreateDocumentInput:
       type: object
-      required: [type, description, ownerId, municipalityId]
+      required: [type, description]
       properties:
         type:
           type: string
@@ -1209,7 +1209,7 @@ components:
           type: string
           minLength: 3
           example: "Edital de licitação para contratação de serviços de TI."
-        ownerId:
+        creatorId:
           type: string
           format: uuid
           example: "770e8400-e29b-41d4-a716-446655440002"

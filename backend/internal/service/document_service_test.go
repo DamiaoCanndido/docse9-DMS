@@ -32,7 +32,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeNotice,
 		Description:    "Ofício de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 	}
 
@@ -50,7 +50,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 		Type:           domain.TypeNotice,
 		Order:          6,
 		Description:    "Ofício de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 	}
 	docRepo.On("FindByID", mock.Anything).Return(expectedDoc, nil)
@@ -62,7 +62,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	assert.Equal(t, domain.TypeNotice, result.Type)
 	assert.Equal(t, 6, result.Order)
 	assert.Equal(t, "Ofício de teste", result.Description)
-	assert.Equal(t, user.ID, result.OwnerID)
+	assert.Equal(t, user.ID, result.CreatorID)
 
 	munRepo.AssertExpectations(t)
 	userRepo.AssertExpectations(t)
@@ -78,7 +78,7 @@ func TestCreateDocument_Success_Law(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeLaw,
 		Description:    "Lei de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 	}
 
@@ -95,7 +95,7 @@ func TestCreateDocument_Success_Law(t *testing.T) {
 		Type:           domain.TypeLaw,
 		Order:          13,
 		Description:    "Lei de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 	}
 	docRepo.On("FindByID", mock.Anything).Return(expectedDoc, nil)
@@ -126,7 +126,7 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeContract,
 		Description:    "Contrato de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 		Duration:       &duration,
 		ContractType:   &cType,
@@ -147,7 +147,7 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 		Type:           domain.TypeContract,
 		Order:          1,
 		Description:    "Contrato de teste",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 		Duration:       &duration,
 		ContractType:   &cType,
@@ -180,7 +180,7 @@ func TestCreateDocument_MissingContractFields(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeContract,
 		Description:    "Contrato incompleto",
-		OwnerID:        user.ID,
+		CreatorID:      user.ID,
 		MunicipalityID: mun.ID,
 	}
 
@@ -198,7 +198,7 @@ func TestCreateDocument_MunicipalityNotFound(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeNotice,
 		Description:    "Documento sem municipio",
-		OwnerID:        uuid.New(),
+		CreatorID:      uuid.New(),
 		MunicipalityID: uuid.New(),
 	}
 
@@ -216,12 +216,12 @@ func TestCreateDocument_UserNotFound(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeNotice,
 		Description:    "Documento sem autor",
-		OwnerID:        uuid.New(),
+		CreatorID:      uuid.New(),
 		MunicipalityID: mun.ID,
 	}
 
 	munRepo.On("FindByID", mun.ID).Return(&mun, nil)
-	userRepo.On("FindByID", input.OwnerID).Return((*domain.User)(nil), nil)
+	userRepo.On("FindByID", input.CreatorID).Return((*domain.User)(nil), nil)
 
 	_, err := svc.Create(input)
 

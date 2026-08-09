@@ -94,7 +94,7 @@ func (s *DocumentRepositorySuite) TestCreateAndFindByID() {
 		Order:          1,
 		Description:    "Oficio de Teste",
 		FileKey:        "file-key-123",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 	}
 
@@ -106,7 +106,7 @@ func (s *DocumentRepositorySuite) TestCreateAndFindByID() {
 	s.Require().NotNil(found)
 	s.Equal(doc.Description, found.Description)
 	s.Equal(doc.FileKey, found.FileKey)
-	s.Equal(doc.OwnerID, found.OwnerID)
+	s.Equal(doc.CreatorID, found.CreatorID)
 	s.Equal(doc.MunicipalityID, found.MunicipalityID)
 	s.Equal(doc.Order, found.Order)
 }
@@ -119,7 +119,7 @@ func (s *DocumentRepositorySuite) TestGetLastOrder() {
 		Type:           domain.TypeNotice,
 		Order:          5,
 		Description:    "Oficio do ano passado",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		CreatedAt:      time.Date(lastYear, 5, 10, 10, 0, 0, 0, time.UTC),
 	}
@@ -132,7 +132,7 @@ func (s *DocumentRepositorySuite) TestGetLastOrder() {
 		Type:           domain.TypeNotice,
 		Order:          1,
 		Description:    "Oficio 1",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		CreatedAt:      time.Date(currentYear, 1, 15, 10, 0, 0, 0, time.UTC),
 	}
@@ -143,7 +143,7 @@ func (s *DocumentRepositorySuite) TestGetLastOrder() {
 		Type:           domain.TypeNotice,
 		Order:          2,
 		Description:    "Oficio 2",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		CreatedAt:      time.Date(currentYear, 2, 20, 10, 0, 0, 0, time.UTC),
 	}
@@ -155,7 +155,7 @@ func (s *DocumentRepositorySuite) TestGetLastOrder() {
 		Type:           domain.TypeLaw,
 		Order:          10,
 		Description:    "Lei 1",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		CreatedAt:      time.Date(lastYear, 1, 1, 10, 0, 0, 0, time.UTC),
 	}
@@ -183,7 +183,7 @@ func (s *DocumentRepositorySuite) TestFindAll_Filters() {
 		Type:           domain.TypeNotice,
 		Order:          1,
 		Description:    "Oficio Importante",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		CreatedAt:      time.Now(),
 	}
@@ -199,7 +199,7 @@ func (s *DocumentRepositorySuite) TestFindAll_Filters() {
 		Type:           domain.TypeContract,
 		Order:          1,
 		Description:    "Contrato de Aluguel",
-		OwnerID:        s.user.ID,
+		CreatorID:      s.user.ID,
 		MunicipalityID: s.mun.ID,
 		Duration:       &duration,
 		ContractType:   &cType,

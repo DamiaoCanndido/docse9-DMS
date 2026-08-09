@@ -46,12 +46,12 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		return nil, ErrMunicipalityNotFound
 	}
 
-	// 3. Verificar se o autor (owner) existe e está ativo
-	owner, err := s.userRepo.FindByID(input.OwnerID)
+	// 3. Verificar se o autor (creator) existe e está ativo
+	creator, err := s.userRepo.FindByID(input.CreatorID)
 	if err != nil {
 		return nil, err
 	}
-	if owner == nil {
+	if creator == nil {
 		return nil, domain.ErrUserNotFound
 	}
 
@@ -99,7 +99,7 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		Order:          nextOrder,
 		Description:    strings.TrimSpace(input.Description),
 		FileKey:        "", // em branco por padrão
-		OwnerID:        input.OwnerID,
+		CreatorID:      input.CreatorID,
 		MunicipalityID: input.MunicipalityID,
 		Duration:       duration,
 		ContractType:   contractType,

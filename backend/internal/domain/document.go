@@ -43,8 +43,8 @@ type Document struct {
 	Order          int            `gorm:"type:integer;not null"                          json:"order"`
 	Description    string         `gorm:"type:text;not null"                              json:"description"`
 	FileKey        string         `gorm:"type:varchar(255);not null;default:''"          json:"fileKey"`
-	OwnerID        uuid.UUID      `gorm:"type:uuid;not null;index"                       json:"ownerId"`
-	Owner          User           `gorm:"foreignKey:OwnerID"                             json:"owner,omitempty"`
+	CreatorID      uuid.UUID      `gorm:"type:uuid;not null;index"                       json:"creatorId"`
+	CreatedBy      User           `gorm:"foreignKey:CreatorID"                           json:"createdBy,omitempty"`
 	MunicipalityID uuid.UUID      `gorm:"type:uuid;not null;index"                       json:"municipalityId"`
 	Municipality   Municipality   `gorm:"foreignKey:MunicipalityID"                      json:"municipality,omitempty"`
 
@@ -67,7 +67,7 @@ type DocumentFilter struct {
 	Type           *DocumentType  `json:"type"           form:"type"`
 	AllowedTypes   []DocumentType `json:"-"`
 	MunicipalityID *uuid.UUID     `json:"municipalityId" form:"municipalityId"`
-	OwnerID        *uuid.UUID     `json:"ownerId"        form:"ownerId"`
+	CreatorID      *uuid.UUID     `json:"creatorId"      form:"creatorId"`
 	Search         string         `json:"search"         form:"search"` // Busca textual na descrição
 	Year           *int           `json:"year"           form:"year"`   // Ano do documento ou contrato
 	ContractType   *ContractType  `json:"contractType"   form:"contractType"`
@@ -76,8 +76,8 @@ type DocumentFilter struct {
 type CreateDocumentInput struct {
 	Type           DocumentType  `json:"type"           binding:"required,oneof=NOTICE DECREE ORDINANCE LAW CONTRACT"`
 	Description    string        `json:"description"    binding:"required,min=3"`
-	OwnerID        uuid.UUID     `json:"ownerId"        binding:"required"`
-	MunicipalityID uuid.UUID     `json:"municipalityId" binding:"required"`
+	CreatorID      uuid.UUID     `json:"creatorId"`
+	MunicipalityID uuid.UUID     `json:"municipalityId"`
 
 	// Campos exclusivos para Contrato (devem ser validados no Service/Handler)
 	Duration     *int          `json:"duration"     binding:"omitempty,gt=0"`

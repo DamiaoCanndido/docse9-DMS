@@ -36,7 +36,7 @@ func (r *documentRepository) FindAll(filter domain.DocumentFilter, page, pageSiz
 		return nil, 0, err
 	}
 
-	if err := query.Preload("Owner").Preload("Municipality").
+	if err := query.Preload("CreatedBy").Preload("Municipality").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(pageSize).
@@ -64,7 +64,7 @@ func (r *documentRepository) FindDeleted(filter domain.DocumentFilter, page, pag
 		return nil, 0, err
 	}
 
-	if err := query.Preload("Owner").Preload("Municipality").
+	if err := query.Preload("CreatedBy").Preload("Municipality").
 		Order("deleted_at DESC").
 		Offset(offset).
 		Limit(pageSize).
@@ -77,7 +77,7 @@ func (r *documentRepository) FindDeleted(filter domain.DocumentFilter, page, pag
 
 func (r *documentRepository) FindByID(id uuid.UUID) (*domain.Document, error) {
 	var d domain.Document
-	err := r.db.Preload("Owner").Preload("Municipality").First(&d, "id = ?", id).Error
+	err := r.db.Preload("CreatedBy").Preload("Municipality").First(&d, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -86,7 +86,7 @@ func (r *documentRepository) FindByID(id uuid.UUID) (*domain.Document, error) {
 
 func (r *documentRepository) FindByIDUnscoped(id uuid.UUID) (*domain.Document, error) {
 	var d domain.Document
-	err := r.db.Unscoped().Preload("Owner").Preload("Municipality").First(&d, "id = ?", id).Error
+	err := r.db.Unscoped().Preload("CreatedBy").Preload("Municipality").First(&d, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
@@ -137,8 +137,8 @@ func applyFilters(query *gorm.DB, filter domain.DocumentFilter) *gorm.DB {
 	if filter.MunicipalityID != nil {
 		query = query.Where("municipality_id = ?", *filter.MunicipalityID)
 	}
-	if filter.OwnerID != nil {
-		query = query.Where("owner_id = ?", *filter.OwnerID)
+	if filter.CreatorID != nil {
+		query = query.Where("creator_id = ?", *filter.CreatorID)
 	}
 	if filter.ContractType != nil {
 		query = query.Where("contract_type = ?", *filter.ContractType)

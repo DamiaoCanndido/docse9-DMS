@@ -56,25 +56,12 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// MOD pode criar qualquer documento em seu município
-	if actorRole == domain.RoleMod {
-		if input.MunicipalityID != claims.MunicipalityID {
-			response.Forbidden(c, "permissão insuficiente para criar documentos em outro município")
-			return
-		}
-	}
+	// Preenche automaticamente o autor e o município com base nas claims
+	input.CreatorID = claims.UserID
+	input.MunicipalityID = claims.MunicipalityID
 
 	// COMMON requer permissão WRITE ou DELETE para o tipo de documento
 	if actorRole == domain.RoleCommon {
-		if input.MunicipalityID != claims.MunicipalityID {
-			response.Forbidden(c, "permissão insuficiente para criar documentos em outro município")
-			return
-		}
-		if input.OwnerID != claims.UserID {
-			response.Forbidden(c, "permissão insuficiente para criar documentos em nome de outro usuário")
-			return
-		}
-
 		permList, err := h.permRepo.FindByUserID(claims.UserID)
 		if err != nil {
 			response.InternalError(c)
@@ -401,7 +388,7 @@ func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, acti
 				response.Forbidden(c, "permissão insuficiente para atualizar documentos")
 				return false
 			}
-			if doc.OwnerID != claims.UserID {
+			if doc.CreatorID != claims.UserID {
 				response.Forbidden(c, "permissão insuficiente para atualizar documentos de outro usuário")
 				return false
 			}
@@ -410,7 +397,7 @@ func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, acti
 				response.Forbidden(c, "permissão insuficiente para deletar documentos")
 				return false
 			}
-			if doc.OwnerID != claims.UserID {
+			if doc.CreatorID != claims.UserID {
 				response.Forbidden(c, "permissão insuficiente para deletar documentos de outro usuário")
 				return false
 			}

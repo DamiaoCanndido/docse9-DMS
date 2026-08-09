@@ -37,7 +37,7 @@ func TestCreateDocument_Handler_201(t *testing.T) {
 	input := domain.CreateDocumentInput{
 		Type:           domain.TypeNotice,
 		Description:    "Oficio de Teste",
-		OwnerID:        userID,
+		CreatorID:      userID,
 		MunicipalityID: munID,
 	}
 
@@ -46,7 +46,7 @@ func TestCreateDocument_Handler_201(t *testing.T) {
 		Type:           domain.TypeNotice,
 		Order:          1,
 		Description:    "Oficio de Teste",
-		OwnerID:        userID,
+		CreatorID:      userID,
 		MunicipalityID: munID,
 	}
 
@@ -72,18 +72,24 @@ func TestCreateDocument_Handler_201(t *testing.T) {
 	permRepo.AssertExpectations(t)
 }
 
-func TestCreateDocument_Handler_403_ForbiddenTenant(t *testing.T) {
+func TestCreateDocument_Handler_403_ForbiddenPermission(t *testing.T) {
 	svc := new(handlerMocks.DocumentService)
 	permRepo := new(handlerMocks.UserPermissionRepository)
 	munID := uuid.New()
 	userID := uuid.New()
 
 	input := domain.CreateDocumentInput{
-		Type:           domain.TypeNotice,
-		Description:    "Oficio de Teste",
-		OwnerID:        userID,
-		MunicipalityID: uuid.New(), // Outro municipio!
+		Type:        domain.TypeNotice,
+		Description: "Oficio de Teste",
 	}
+
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelRead, // Apenas READ! Não WRITE/DELETE!
+		},
+	}, nil)
 
 	claims := &security.UserClaims{
 		UserID:         userID,
@@ -95,6 +101,7 @@ func TestCreateDocument_Handler_403_ForbiddenTenant(t *testing.T) {
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	svc.AssertNotCalled(t, "Create")
+	permRepo.AssertExpectations(t)
 }
 
 func TestGetDocumentByID_Handler_200(t *testing.T) {
@@ -109,7 +116,7 @@ func TestGetDocumentByID_Handler_200(t *testing.T) {
 		Type:           domain.TypeNotice,
 		Order:          1,
 		Description:    "Oficio de Teste",
-		OwnerID:        userID,
+		CreatorID:      userID,
 		MunicipalityID: munID,
 	}
 
@@ -147,7 +154,7 @@ func TestGetDocumentByID_Handler_403_ForbiddenTenant(t *testing.T) {
 		Type:           domain.TypeNotice,
 		Order:          1,
 		Description:    "Oficio de Teste",
-		OwnerID:        userID,
+		CreatorID:      userID,
 		MunicipalityID: uuid.New(), // Outro municipio!
 	}
 
