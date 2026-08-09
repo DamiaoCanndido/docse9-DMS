@@ -56,6 +56,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.Use(middleware.CORSMiddleware())
 
 	// Health-check
 	r.GET("/health", func(c *gin.Context) {
