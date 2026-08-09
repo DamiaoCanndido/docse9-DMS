@@ -162,19 +162,76 @@ func (s *DocumentRepositorySuite) TestGetLastOrder() {
 	s.Require().NoError(s.db.Create(law).Error)
 
 	// Testar cálculo da ordem para ano atual
-	orderNow, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeNotice, &currentYear)
+	orderNow, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeNotice, nil, &currentYear)
 	s.Require().NoError(err)
 	s.Equal(2, orderNow)
 
 	// Testar cálculo da ordem para o ano passado
-	orderPast, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeNotice, &lastYear)
+	orderPast, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeNotice, nil, &lastYear)
 	s.Require().NoError(err)
 	s.Equal(5, orderPast)
 
 	// Testar cálculo da lei (sem ano)
-	orderLaw, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeLaw, nil)
+	orderLaw, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeLaw, nil, nil)
 	s.Require().NoError(err)
 	s.Equal(10, orderLaw)
+}
+
+func (s *DocumentRepositorySuite) TestGetLastOrder_ContractTypes() {
+	currentYear := time.Now().Year()
+
+	cService := domain.ContractService
+	cPublicInterest := domain.ContractPublicInterest
+	cBidding := domain.ContractBidding
+
+	duration := 12
+	val := 1000.0
+	startIn := time.Now()
+
+	// 1. Criar contrato de serviço com ordem 3
+	docService := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeContract,
+		Order:          3,
+		Description:    "Serviço",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		Duration:       &duration,
+		ContractType:   &cService,
+		Value:          &val,
+		StartIn:        &startIn,
+		CreatedAt:      time.Date(currentYear, 1, 15, 10, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.db.Create(docService).Error)
+
+	// 2. Criar contrato de licitação com ordem 5
+	docBidding := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeContract,
+		Order:          5,
+		Description:    "Licitação",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		Duration:       &duration,
+		ContractType:   &cBidding,
+		Value:          &val,
+		StartIn:        &startIn,
+		CreatedAt:      time.Date(currentYear, 1, 15, 10, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.db.Create(docBidding).Error)
+
+	// 3. Obter última ordem para cada tipo de contrato no ano atual
+	orderService, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeContract, &cService, &currentYear)
+	s.Require().NoError(err)
+	s.Equal(3, orderService)
+
+	orderBidding, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeContract, &cBidding, &currentYear)
+	s.Require().NoError(err)
+	s.Equal(5, orderBidding)
+
+	orderPI, err := s.repo.GetLastOrder(s.mun.ID, domain.TypeContract, &cPublicInterest, &currentYear)
+	s.Require().NoError(err)
+	s.Equal(0, orderPI) // nenhum criado
 }
 
 func (s *DocumentRepositorySuite) TestFindAll_Filters() {

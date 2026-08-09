@@ -114,7 +114,7 @@ type DocumentRepository interface {
 
 	// GetLastOrder retorna o maior order para um tipo de documento em um município.
 	// Se year for nil, ignora o ano (usado para LAWS).
-	GetLastOrder(municipalityID uuid.UUID, docType DocumentType, year *int) (int, error)
+	GetLastOrder(municipalityID uuid.UUID, docType DocumentType, contractType *ContractType, year *int) (int, error)
 }
 
 // ──────────────────────────────────────────────

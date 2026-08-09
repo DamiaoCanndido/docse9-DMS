@@ -41,7 +41,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	
 	// Para NOTICE, o ano atual deve ser passado no cálculo da ordem
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeNotice, &currentYear).Return(5, nil)
+	docRepo.On("GetLastOrder", mun.ID, domain.TypeNotice, (*domain.ContractType)(nil), &currentYear).Return(5, nil)
 	
 	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
 
@@ -86,7 +86,7 @@ func TestCreateDocument_Success_Law(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	// Para LAW, o ano deve ser nil (ordem nunca reseta)
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeLaw, (*int)(nil)).Return(12, nil)
+	docRepo.On("GetLastOrder", mun.ID, domain.TypeLaw, (*domain.ContractType)(nil), (*int)(nil)).Return(12, nil)
 	
 	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
 
@@ -138,7 +138,7 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &currentYear).Return(0, nil)
+	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cType, &currentYear).Return(0, nil)
 	
 	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
 
@@ -165,6 +165,63 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 	assert.Equal(t, &duration, result.Duration)
 	assert.Equal(t, &cType, result.ContractType)
 	assert.Equal(t, &val, result.Value)
+
+	munRepo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
+	docRepo.AssertExpectations(t)
+}
+
+func TestCreateDocument_ContractTypes_IndependentSequences(t *testing.T) {
+	svc, docRepo, userRepo, munRepo := newDocumentService(t)
+
+	mun := testhelper.MakePassagem()
+	user := testhelper.MakeUserCommon(mun.ID)
+
+	duration := 12
+	val := 15000.50
+	startIn := time.Now()
+
+	// 1. Contrato tipo Bidding
+	cBidding := domain.ContractBidding
+	inputBidding := domain.CreateDocumentInput{
+		Type:           domain.TypeContract,
+		Description:    "Contrato Licitação",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+		Duration:       &duration,
+		ContractType:   &cBidding,
+		Value:          &val,
+		StartIn:        &startIn,
+	}
+
+	munRepo.On("FindByID", mun.ID).Return(&mun, nil)
+	userRepo.On("FindByID", user.ID).Return(&user, nil)
+
+	currentYear := time.Now().Year()
+	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cBidding, &currentYear).Return(10, nil)
+
+	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+
+	expectedDoc := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeContract,
+		Order:          11,
+		Description:    "Contrato Licitação",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+		Duration:       &duration,
+		ContractType:   &cBidding,
+		Value:          &val,
+		StartIn:        &startIn,
+	}
+	docRepo.On("FindByID", mock.Anything).Return(expectedDoc, nil)
+
+	result, err := svc.Create(inputBidding)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 11, result.Order)
+	assert.Equal(t, &cBidding, result.ContractType)
 
 	munRepo.AssertExpectations(t)
 	userRepo.AssertExpectations(t)

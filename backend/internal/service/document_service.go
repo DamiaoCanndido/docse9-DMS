@@ -86,7 +86,7 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		year = &currentYear
 	}
 
-	lastOrder, err := s.docRepo.GetLastOrder(input.MunicipalityID, input.Type, year)
+	lastOrder, err := s.docRepo.GetLastOrder(input.MunicipalityID, input.Type, contractType, year)
 	if err != nil {
 		return nil, err
 	}

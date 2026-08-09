@@ -112,11 +112,15 @@ func (r *documentRepository) HardDelete(id uuid.UUID) error {
 	return r.db.Unscoped().Delete(&domain.Document{}, "id = ?", id).Error
 }
 
-func (r *documentRepository) GetLastOrder(municipalityID uuid.UUID, docType domain.DocumentType, year *int) (int, error) {
+func (r *documentRepository) GetLastOrder(municipalityID uuid.UUID, docType domain.DocumentType, contractType *domain.ContractType, year *int) (int, error) {
 	var lastOrder int
 	query := r.db.Unscoped().Model(&domain.Document{}).
 		Select("COALESCE(MAX(documents.order), 0)").
 		Where("municipality_id = ? AND type = ?", municipalityID, docType)
+
+	if docType == domain.TypeContract && contractType != nil {
+		query = query.Where("contract_type = ?", *contractType)
+	}
 
 	if year != nil {
 		query = query.Where("EXTRACT(YEAR FROM created_at) = ?", *year)

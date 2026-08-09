@@ -70,7 +70,7 @@ func (m *DocumentRepository) HardDelete(id uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *DocumentRepository) GetLastOrder(municipalityID uuid.UUID, docType domain.DocumentType, year *int) (int, error) {
-	args := m.Called(municipalityID, docType, year)
+func (m *DocumentRepository) GetLastOrder(municipalityID uuid.UUID, docType domain.DocumentType, contractType *domain.ContractType, year *int) (int, error) {
+	args := m.Called(municipalityID, docType, contractType, year)
 	return args.Int(0), args.Error(1)
 }
