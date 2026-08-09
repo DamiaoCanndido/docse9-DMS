@@ -477,7 +477,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                $ref: '#/components/schemas/UserWithPasswordResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
@@ -500,6 +500,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedUsersResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /users/me/change-password:
+    post:
+      summary: Alterar senha do usuário autenticado
+      operationId: changePassword
+      tags: [users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordInput'
+      responses:
+        '200':
+          description: Senha alterada com sucesso. Retorna novo token JWT e dados do usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Não autenticado ou senha atual incorreta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1036,6 +1067,8 @@ components:
         role:
           type: string
           enum: [ADMIN, MOD, COMMON]
+        mustChangePassword:
+          type: boolean
         municipalityId:
           type: string
           format: uuid
@@ -1059,6 +1092,21 @@ components:
         data:
           $ref: '#/components/schemas/User'
 
+    UserWithPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            randomPassword:
+              type: string
+              example: "aB3@c1D2e3F4"
+
     PaginatedUsersResponse:
       type: object
       properties:
@@ -1074,7 +1122,7 @@ components:
 
     CreateUserInput:
       type: object
-      required: [username, email, password, confirmPassword, role, municipalityId]
+      required: [username, email, role, municipalityId]
       properties:
         username:
           type: string
@@ -1086,16 +1134,6 @@ components:
           format: email
           maxLength: 255
           example: "john@example.com"
-        password:
-          type: string
-          minLength: 6
-          maxLength: 255
-          example: "secret123"
-        confirmPassword:
-          type: string
-          minLength: 6
-          maxLength: 255
-          example: "secret123"
         role:
           type: string
           enum: [ADMIN, MOD, COMMON]
@@ -1132,6 +1170,29 @@ components:
           type: string
           format: uuid
           example: "550e8400-e29b-41d4-a716-446655440000"
+        resetPassword:
+          type: boolean
+          example: true
+
+    ChangePasswordInput:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "aB3@c1D2e3F4"
+        newPassword:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "newPassword123"
+        confirmPassword:
+          type: string
+          minLength: 6
+          maxLength: 255
+          example: "newPassword123"
 
     Document:
       type: object

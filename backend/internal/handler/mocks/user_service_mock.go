@@ -11,12 +11,12 @@ type UserService struct {
 	mock.Mock
 }
 
-func (m *UserService) Create(input domain.CreateUserInput) (*domain.User, error) {
+func (m *UserService) Create(input domain.CreateUserInput) (*domain.User, string, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.String(1), args.Error(2)
 	}
-	return args.Get(0).(*domain.User), args.Error(1)
+	return args.Get(0).(*domain.User), args.String(1), args.Error(2)
 }
 
 func (m *UserService) GetAll(page, pageSize int) ([]domain.User, int64, error) {
@@ -45,12 +45,12 @@ func (m *UserService) GetByIDUnscoped(id uuid.UUID) (*domain.User, error) {
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
-func (m *UserService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domain.User, error) {
+func (m *UserService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domain.User, string, error) {
 	args := m.Called(id, input)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.String(1), args.Error(2)
 	}
-	return args.Get(0).(*domain.User), args.Error(1)
+	return args.Get(0).(*domain.User), args.String(1), args.Error(2)
 }
 
 func (m *UserService) Delete(id uuid.UUID) error {
@@ -85,4 +85,12 @@ func (m *UserService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUse
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]domain.UserPermission), args.Error(1)
+}
+
+func (m *UserService) ChangePassword(userID uuid.UUID, input domain.ChangePasswordInput) (*domain.User, error) {
+	args := m.Called(userID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
 }

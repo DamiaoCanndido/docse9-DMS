@@ -36,6 +36,16 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Injeta as informações do usuário autenticado no contexto
 		c.Set("user", claims)
+
+		// Se o usuário precisa trocar a senha, impede outros acessos
+		if claims.MustChangePassword {
+			if !(c.Request.Method == "POST" && strings.HasSuffix(c.Request.URL.Path, "/users/me/change-password")) {
+				response.Forbidden(c, "troca de senha obrigatória")
+				c.Abort()
+				return
+			}
+		}
+
 		c.Next()
 	}
 }

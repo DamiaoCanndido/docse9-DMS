@@ -16,6 +16,7 @@ export interface User {
   role: Role;
   municipalityId: string;
   municipality?: Municipality;
+  mustChangePassword?: boolean;
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;

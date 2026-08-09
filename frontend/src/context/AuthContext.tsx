@@ -3,13 +3,14 @@
 import React, { createContext, useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '../types';
-import { loginUser, logoutUser } from '@/app/api/auth';
+import { loginUser, logoutUser, changePassword } from '@/app/api/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  changePassword: (form: { currentPassword: string; newPassword: string; confirmPassword: string }) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -49,6 +50,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; initialUser?: U
     }
   };
 
+  const changePasswordAction = async (form: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    setLoading(true);
+    try {
+      const res = await changePassword(form);
+      if (!res.success) {
+        throw new Error(res.error);
+      }
+      setUser(res.user);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -56,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; initialUser?: U
         loading,
         login,
         logout,
+        changePassword: changePasswordAction,
         isAuthenticated: !!user,
       }}
     >

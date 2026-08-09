@@ -86,7 +86,7 @@ func TestAuthMiddleware_Success(t *testing.T) {
 	r := setupTestRouter()
 	userID := uuid.New()
 	munID := uuid.New()
-	token, err := security.GenerateToken(userID, "testuser", "COMMON", munID, time.Hour)
+	token, err := security.GenerateToken(userID, "testuser", "COMMON", munID, false, time.Hour)
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/protected", nil)
@@ -102,7 +102,7 @@ func TestRequireRole_AdminAccessingAdminRoute(t *testing.T) {
 	r := setupTestRouter()
 	userID := uuid.New()
 	munID := uuid.New()
-	token, err := security.GenerateToken(userID, "adminuser", "ADMIN", munID, time.Hour)
+	token, err := security.GenerateToken(userID, "adminuser", "ADMIN", munID, false, time.Hour)
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/protected/admin", nil)
@@ -117,7 +117,7 @@ func TestRequireRole_CommonUserAccessingAdminRoute(t *testing.T) {
 	r := setupTestRouter()
 	userID := uuid.New()
 	munID := uuid.New()
-	token, err := security.GenerateToken(userID, "commonuser", "COMMON", munID, time.Hour)
+	token, err := security.GenerateToken(userID, "commonuser", "COMMON", munID, false, time.Hour)
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/protected/admin", nil)
@@ -126,4 +126,39 @@ func TestRequireRole_CommonUserAccessingAdminRoute(t *testing.T) {
 	w := executeRequest(r, req)
 
 	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestAuthMiddleware_MustChangePassword_Blocked(t *testing.T) {
+	r := setupTestRouter()
+	userID := uuid.New()
+	munID := uuid.New()
+	token, err := security.GenerateToken(userID, "testuser", "COMMON", munID, true, time.Hour)
+	assert.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := executeRequest(r, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), `"error":"troca de senha obrigatória"`)
+}
+
+func TestAuthMiddleware_MustChangePassword_AllowedChangePassword(t *testing.T) {
+	r := setupTestRouter()
+	r.POST("/api/v1/users/me/change-password", middleware.AuthMiddleware(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	userID := uuid.New()
+	munID := uuid.New()
+	token, err := security.GenerateToken(userID, "testuser", "COMMON", munID, true, time.Hour)
+	assert.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/users/me/change-password", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := executeRequest(r, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }

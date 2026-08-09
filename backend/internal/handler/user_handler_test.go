@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 // setupUserRouter monta o Gin com o handler e o mock de service injetado.
@@ -44,13 +45,11 @@ func TestCreateUser_Handler_201(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:        u.Username,
 		Email:           u.Email,
-		Password:        "password_123",
-		ConfirmPassword: "password_123",
 		Role:            u.Role,
 		MunicipalityID:  u.MunicipalityID,
 	}
 
-	svc.On("Create", input).Return(&u, nil)
+	svc.On("Create", input).Return(&u, "randomPassword123", nil)
 
 	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users", input)
 
@@ -59,7 +58,8 @@ func TestCreateUser_Handler_201(t *testing.T) {
 	var resp map[string]any
 	parseBody(t, w, &resp)
 	assert.True(t, resp["success"].(bool))
-	assert.Equal(t, u.Username, resp["data"].(map[string]any)["username"])
+	assert.Equal(t, u.Username, resp["data"].(map[string]any)["user"].(map[string]any)["username"])
+	assert.Equal(t, "randomPassword123", resp["data"].(map[string]any)["randomPassword"])
 	svc.AssertExpectations(t)
 }
 
@@ -68,8 +68,6 @@ func TestCreateUser_Handler_400_Validation(t *testing.T) {
 	// input sem username obrigatório
 	input := domain.CreateUserInput{
 		Email:           "invalid@example.com",
-		Password:        "password_123",
-		ConfirmPassword: "password_123",
 		Role:            domain.RoleCommon,
 		MunicipalityID:  testhelper.MunPassagemID,
 	}
@@ -86,13 +84,11 @@ func TestCreateUser_Handler_409_EmailConflict(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:        u.Username,
 		Email:           u.Email,
-		Password:        "password_123",
-		ConfirmPassword: "password_123",
 		Role:            u.Role,
 		MunicipalityID:  u.MunicipalityID,
 	}
 
-	svc.On("Create", input).Return(nil, domain.ErrEmailAlreadyExists)
+	svc.On("Create", input).Return(nil, "", domain.ErrEmailAlreadyExists)
 
 	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users", input)
 
@@ -105,13 +101,11 @@ func TestCreateUser_Handler_400_MunicipalityNotFound(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:        u.Username,
 		Email:           u.Email,
-		Password:        "password_123",
-		ConfirmPassword: "password_123",
 		Role:            u.Role,
 		MunicipalityID:  u.MunicipalityID,
 	}
 
-	svc.On("Create", input).Return(nil, service.ErrMunicipalityNotFound)
+	svc.On("Create", input).Return(nil, "", service.ErrMunicipalityNotFound)
 
 	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users", input)
 
@@ -214,7 +208,7 @@ func TestUpdateUser_Handler_200(t *testing.T) {
 	updated.Email = newEmail
 
 	svc.On("GetByID", u.ID).Return(&u, nil)
-	svc.On("Update", u.ID, input).Return(&updated, nil)
+	svc.On("Update", u.ID, input).Return(&updated, "", nil)
 
 	path := fmt.Sprintf("/api/v1/users/%s", u.ID)
 	w := doRequest(setupUserRouter(svc), http.MethodPatch, path, input)
@@ -321,6 +315,23 @@ func TestUpdatePermissions_Handler_200(t *testing.T) {
 
 	path := fmt.Sprintf("/api/v1/users/%s/permissions", u.ID)
 	w := doRequest(setupUserRouter(svc), http.MethodPut, path, input)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestChangePassword_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "oldpassword123",
+		NewPassword:     "newpassword123",
+		ConfirmPassword: "newpassword123",
+	}
+
+	svc.On("ChangePassword", mock.Anything, input).Return(&u, nil)
+
+	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users/me/change-password", input)
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }

@@ -27,7 +27,7 @@ func NewUserService(
 	}
 }
 
-func (s *userService) Create(input domain.CreateUserInput) (*domain.User, error) {
+func (s *userService) Create(input domain.CreateUserInput) (*domain.User, string, error) {
 	// 1. Validar e normalizar email e username
 	email := strings.ToLower(strings.TrimSpace(input.Email))
 	username := strings.TrimSpace(input.Username)
@@ -35,50 +35,62 @@ func (s *userService) Create(input domain.CreateUserInput) (*domain.User, error)
 	// 2. Verificar se o e-mail já existe
 	emailExists, err := s.userRepo.ExistsByEmail(email, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if emailExists {
-		return nil, domain.ErrEmailAlreadyExists
+		return nil, "", domain.ErrEmailAlreadyExists
 	}
 
 	// 3. Verificar se o username já existe
 	usernameExists, err := s.userRepo.ExistsByUsername(username, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if usernameExists {
-		return nil, domain.ErrUsernameAlreadyExists
+		return nil, "", domain.ErrUsernameAlreadyExists
 	}
 
 	// 4. Verificar se o município existe e está ativo
 	mun, err := s.municipalityRepo.FindByID(input.MunicipalityID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if mun == nil {
-		return nil, ErrMunicipalityNotFound
+		return nil, "", ErrMunicipalityNotFound
 	}
 
-	hashedPassword, err := security.HashPassword(input.Password)
+	// Gerar senha aleatória
+	rawPassword, err := security.GenerateRandomPassword(12)
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+
+	hashedPassword, err := security.HashPassword(rawPassword)
+	if err != nil {
+		return nil, "", err
 	}
 
 	// 5. Criar a entidade User
 	u := &domain.User{
-		ID:             uuid.New(),
-		Username:       username,
-		Email:          email,
-		Password:       hashedPassword,
-		Role:           input.Role,
-		MunicipalityID: input.MunicipalityID,
+		ID:                 uuid.New(),
+		Username:           username,
+		Email:              email,
+		Password:           hashedPassword,
+		Role:               input.Role,
+		MustChangePassword: true,
+		MunicipalityID:     input.MunicipalityID,
 	}
 
 	if err := s.userRepo.Create(u); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return s.userRepo.FindByID(u.ID)
+	createdUser, err := s.userRepo.FindByID(u.ID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return createdUser, rawPassword, nil
 }
 
 func (s *userService) GetAll(page, pageSize int) ([]domain.User, int64, error) {
@@ -111,14 +123,14 @@ func (s *userService) GetByIDUnscoped(id uuid.UUID) (*domain.User, error) {
 	return u, nil
 }
 
-func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domain.User, error) {
+func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domain.User, string, error) {
 	// 1. Verificar se o usuário existe
 	u, err := s.userRepo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if u == nil {
-		return nil, domain.ErrUserNotFound
+		return nil, "", domain.ErrUserNotFound
 	}
 
 	// 2. Atualizar username se fornecido
@@ -126,10 +138,10 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 		username := strings.TrimSpace(*input.Username)
 		exists, err := s.userRepo.ExistsByUsername(username, &id)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if exists {
-			return nil, domain.ErrUsernameAlreadyExists
+			return nil, "", domain.ErrUsernameAlreadyExists
 		}
 		u.Username = username
 	}
@@ -139,21 +151,36 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 		email := strings.ToLower(strings.TrimSpace(*input.Email))
 		exists, err := s.userRepo.ExistsByEmail(email, &id)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if exists {
-			return nil, domain.ErrEmailAlreadyExists
+			return nil, "", domain.ErrEmailAlreadyExists
 		}
 		u.Email = email
 	}
 
-	// 4. Atualizar senha se fornecida
-	if input.Password != nil {
-		hashedPassword, err := security.HashPassword(*input.Password)
+	var rawPassword string
+	// 4. Atualizar senha se fornecida ou gerar senha aleatória se solicitado
+	if input.ResetPassword != nil && *input.ResetPassword {
+		var err error
+		rawPassword, err = security.GenerateRandomPassword(12)
 		if err != nil {
-			return nil, err
+			return nil, "", err
+		}
+
+		hashedPassword, err := security.HashPassword(rawPassword)
+		if err != nil {
+			return nil, "", err
 		}
 		u.Password = hashedPassword
+		u.MustChangePassword = true
+	} else if input.Password != nil {
+		hashedPassword, err := security.HashPassword(*input.Password)
+		if err != nil {
+			return nil, "", err
+		}
+		u.Password = hashedPassword
+		u.MustChangePassword = true
 	}
 
 	// 5. Atualizar role se fornecida
@@ -165,10 +192,10 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 	if input.MunicipalityID != nil {
 		mun, err := s.municipalityRepo.FindByID(*input.MunicipalityID)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if mun == nil {
-			return nil, ErrMunicipalityNotFound
+			return nil, "", ErrMunicipalityNotFound
 		}
 		u.MunicipalityID = *input.MunicipalityID
 	}
@@ -179,10 +206,15 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 	}
 
 	if err := s.userRepo.Update(u); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return s.userRepo.FindByID(id)
+	updatedUser, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return updatedUser, rawPassword, nil
 }
 
 func (s *userService) Delete(id uuid.UUID) error {
@@ -296,4 +328,32 @@ func (s *userService) UpdatePermissions(userID uuid.UUID, input domain.UpdateUse
 	}
 
 	return s.GetPermissions(userID)
+}
+
+func (s *userService) ChangePassword(userID uuid.UUID, input domain.ChangePasswordInput) (*domain.User, error) {
+	u, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, domain.ErrUserNotFound
+	}
+
+	if !security.CheckPasswordHash(input.CurrentPassword, u.Password) {
+		return nil, domain.ErrIncorrectCurrentPassword
+	}
+
+	hashedPassword, err := security.HashPassword(input.NewPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Password = hashedPassword
+	u.MustChangePassword = false
+
+	if err := s.userRepo.Update(u); err != nil {
+		return nil, err
+	}
+
+	return s.userRepo.FindByID(userID)
 }

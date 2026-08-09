@@ -10,9 +10,10 @@ import (
 
 // Erros de domínio da entidade User.
 var (
-	ErrEmailAlreadyExists    = errors.New("já existe um usuário com este e-mail")
-	ErrUsernameAlreadyExists = errors.New("já existe um usuário com este nome de usuário")
-	ErrUserNotFound          = errors.New("usuário não encontrado")
+	ErrEmailAlreadyExists       = errors.New("já existe um usuário com este e-mail")
+	ErrUsernameAlreadyExists    = errors.New("já existe um usuário com este nome de usuário")
+	ErrUserNotFound             = errors.New("usuário não encontrado")
+	ErrIncorrectCurrentPassword  = errors.New("senha atual incorreta")
 )
 
 type Role string
@@ -25,17 +26,18 @@ const (
 
 // User representa um usuário do sistema.
 type User struct {
-	ID             uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Username       string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"username"`
-	Email          string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"email"`
-	Password       string         `gorm:"type:varchar(255);not null"                     json:"-"`
-	Role           Role           `gorm:"type:varchar(50);not null;default:'COMMON'"      json:"role"`
-	MunicipalityID uuid.UUID      `gorm:"type:uuid;not null"                             json:"municipalityId"`
-	Municipality   Municipality   `gorm:"foreignKey:MunicipalityID"                      json:"municipality,omitempty"`
-	LastLogin      *time.Time     `gorm:"type:timestamp"                                 json:"lastLogin,omitempty"`
-	CreatedAt      time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt      time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
-	DeletedAt      gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
+	ID                 uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Username           string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"username"`
+	Email              string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"email"`
+	Password           string         `gorm:"type:varchar(255);not null"                     json:"-"`
+	Role               Role           `gorm:"type:varchar(50);not null;default:'COMMON'"      json:"role"`
+	MustChangePassword bool           `gorm:"type:boolean;not null;default:true"              json:"mustChangePassword"`
+	MunicipalityID     uuid.UUID      `gorm:"type:uuid;not null"                             json:"municipalityId"`
+	Municipality       Municipality   `gorm:"foreignKey:MunicipalityID"                      json:"municipality,omitempty"`
+	LastLogin          *time.Time     `gorm:"type:timestamp"                                 json:"lastLogin,omitempty"`
+	CreatedAt          time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
+	UpdatedAt          time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	DeletedAt          gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 
 // ──────────────────────────────────────────────
@@ -43,12 +45,10 @@ type User struct {
 // ──────────────────────────────────────────────
 
 type CreateUserInput struct {
-	Username        string    `json:"username"        binding:"required,min=3,max=255"`
-	Email           string    `json:"email"           binding:"required,email,max=255"`
-	Password        string    `json:"password"        binding:"required,min=6,max=255"`
-	ConfirmPassword string    `json:"confirmPassword" binding:"required,eqfield=Password"`
-	Role            Role      `json:"role"            binding:"required,oneof=ADMIN MOD COMMON"`
-	MunicipalityID  uuid.UUID `json:"municipalityId"  binding:"required"`
+	Username       string    `json:"username"        binding:"required,min=3,max=255"`
+	Email          string    `json:"email"           binding:"required,email,max=255"`
+	Role           Role      `json:"role"            binding:"required,oneof=ADMIN MOD COMMON"`
+	MunicipalityID uuid.UUID `json:"municipalityId"  binding:"required"`
 }
 
 type UpdateUserInput struct {
@@ -58,6 +58,13 @@ type UpdateUserInput struct {
 	Role           *Role      `json:"role"           binding:"omitempty,oneof=ADMIN MOD COMMON"`
 	MunicipalityID *uuid.UUID `json:"municipalityId" binding:"omitempty"`
 	LastLogin      *time.Time `json:"lastLogin"      binding:"omitempty"`
+	ResetPassword  *bool      `json:"resetPassword"  binding:"omitempty"`
+}
+
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"currentPassword" binding:"required,min=6,max=255"`
+	NewPassword     string `json:"newPassword"     binding:"required,min=6,max=255"`
+	ConfirmPassword string `json:"confirmPassword" binding:"required,eqfield=NewPassword"`
 }
 
 // ──────────────────────────────────────────────
@@ -85,15 +92,16 @@ type UserRepository interface {
 // ──────────────────────────────────────────────
 
 type UserService interface {
-	Create(input CreateUserInput) (*User, error)
+	Create(input CreateUserInput) (*User, string, error)
 	GetAll(page, pageSize int) ([]User, int64, error)
 	GetDeleted(page, pageSize int) ([]User, int64, error)
 	GetByID(id uuid.UUID) (*User, error)
 	GetByIDUnscoped(id uuid.UUID) (*User, error)
-	Update(id uuid.UUID, input UpdateUserInput) (*User, error)
+	Update(id uuid.UUID, input UpdateUserInput) (*User, string, error)
 	Delete(id uuid.UUID) error
 	Restore(id uuid.UUID) (*User, error)
 	HardDelete(id uuid.UUID) error
 	GetPermissions(userID uuid.UUID) ([]UserPermission, error)
 	UpdatePermissions(userID uuid.UUID, input UpdateUserPermissionsInput) ([]UserPermission, error)
+	ChangePassword(userID uuid.UUID, input ChangePasswordInput) (*User, error)
 }

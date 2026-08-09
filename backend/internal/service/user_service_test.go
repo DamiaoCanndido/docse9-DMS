@@ -8,6 +8,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service/mocks"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/testhelper"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -34,8 +35,6 @@ func TestCreateUser_Success(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:        "new_user",
 		Email:           "new@example.com",
-		Password:        "secret123",
-		ConfirmPassword: "secret123",
 		Role:            domain.RoleCommon,
 		MunicipalityID:  mun.ID,
 	}
@@ -54,9 +53,10 @@ func TestCreateUser_Success(t *testing.T) {
 		Municipality:   mun,
 	}, nil)
 
-	result, err := svc.Create(input)
+	result, rawPassword, err := svc.Create(input)
 
 	require.NoError(t, err)
+	assert.NotEmpty(t, rawPassword)
 	assert.Equal(t, "new_user", result.Username)
 	assert.Equal(t, "new@example.com", result.Email)
 	assert.Equal(t, domain.RoleCommon, result.Role)
@@ -73,14 +73,13 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:       "new_user",
 		Email:          "existing@example.com",
-		Password:       "secret123",
 		Role:           domain.RoleCommon,
 		MunicipalityID: mun.ID,
 	}
 
 	userRepo.On("ExistsByEmail", "existing@example.com", (*uuid.UUID)(nil)).Return(true, nil)
 
-	_, err := svc.Create(input)
+	_, _, err := svc.Create(input)
 
 	assert.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
 	userRepo.AssertNotCalled(t, "ExistsByUsername")
@@ -94,7 +93,6 @@ func TestCreateUser_UsernameAlreadyExists(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:       "existing_user",
 		Email:          "new@example.com",
-		Password:       "secret123",
 		Role:           domain.RoleCommon,
 		MunicipalityID: mun.ID,
 	}
@@ -102,7 +100,7 @@ func TestCreateUser_UsernameAlreadyExists(t *testing.T) {
 	userRepo.On("ExistsByEmail", "new@example.com", (*uuid.UUID)(nil)).Return(false, nil)
 	userRepo.On("ExistsByUsername", "existing_user", (*uuid.UUID)(nil)).Return(true, nil)
 
-	_, err := svc.Create(input)
+	_, _, err := svc.Create(input)
 
 	assert.ErrorIs(t, err, domain.ErrUsernameAlreadyExists)
 	munRepo.AssertNotCalled(t, "FindByID")
@@ -114,7 +112,6 @@ func TestCreateUser_MunicipalityNotFound(t *testing.T) {
 	input := domain.CreateUserInput{
 		Username:       "new_user",
 		Email:          "new@example.com",
-		Password:       "secret123",
 		Role:           domain.RoleCommon,
 		MunicipalityID: testhelper.NonExistentID,
 	}
@@ -123,7 +120,7 @@ func TestCreateUser_MunicipalityNotFound(t *testing.T) {
 	userRepo.On("ExistsByUsername", "new_user", (*uuid.UUID)(nil)).Return(false, nil)
 	munRepo.On("FindByID", testhelper.NonExistentID).Return(nil, nil)
 
-	_, err := svc.Create(input)
+	_, _, err := svc.Create(input)
 
 	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
 	userRepo.AssertNotCalled(t, "Create")
@@ -235,9 +232,10 @@ func TestUpdateUser_PartialSuccess(t *testing.T) {
 		LastLogin:      &lastLogin,
 	}, nil).Once()
 
-	result, err := svc.Update(u.ID, input)
+	result, rawPassword, err := svc.Update(u.ID, input)
 
 	require.NoError(t, err)
+	assert.Empty(t, rawPassword)
 	assert.Equal(t, "updated_name", result.Username)
 	assert.Equal(t, "updated@example.com", result.Email)
 	assert.Equal(t, domain.RoleAdmin, result.Role)
@@ -253,7 +251,7 @@ func TestUpdateUser_NotFound(t *testing.T) {
 
 	userRepo.On("FindByID", testhelper.NonExistentID).Return(nil, nil)
 
-	_, err := svc.Update(testhelper.NonExistentID, input)
+	_, _, err := svc.Update(testhelper.NonExistentID, input)
 
 	assert.ErrorIs(t, err, domain.ErrUserNotFound)
 	userRepo.AssertNotCalled(t, "Update")
@@ -269,7 +267,7 @@ func TestUpdateUser_UsernameConflict(t *testing.T) {
 	userRepo.On("FindByID", u.ID).Return(&u, nil)
 	userRepo.On("ExistsByUsername", "taken_name", &u.ID).Return(true, nil)
 
-	_, err := svc.Update(u.ID, input)
+	_, _, err := svc.Update(u.ID, input)
 
 	assert.ErrorIs(t, err, domain.ErrUsernameAlreadyExists)
 	userRepo.AssertNotCalled(t, "Update")
@@ -285,7 +283,7 @@ func TestUpdateUser_EmailConflict(t *testing.T) {
 	userRepo.On("FindByID", u.ID).Return(&u, nil)
 	userRepo.On("ExistsByEmail", "taken@example.com", &u.ID).Return(true, nil)
 
-	_, err := svc.Update(u.ID, input)
+	_, _, err := svc.Update(u.ID, input)
 
 	assert.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
 	userRepo.AssertNotCalled(t, "Update")
@@ -301,7 +299,7 @@ func TestUpdateUser_MunicipalityNotFound(t *testing.T) {
 	userRepo.On("FindByID", u.ID).Return(&u, nil)
 	munRepo.On("FindByID", newMunID).Return(nil, nil)
 
-	_, err := svc.Update(u.ID, input)
+	_, _, err := svc.Update(u.ID, input)
 
 	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
 	userRepo.AssertNotCalled(t, "Update")
@@ -475,4 +473,45 @@ func TestUpdatePermissions_Success(t *testing.T) {
 	}
 	require.NotNil(t, noticePerm)
 	assert.Equal(t, domain.LevelWrite, noticePerm.Level)
+}
+
+func TestChangePassword_Success(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+	// Setup user with a hashed password for "secret123"
+	hashed, _ := security.HashPassword("secret123")
+	u.Password = hashed
+
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "secret123",
+		NewPassword:     "newsecret456",
+		ConfirmPassword: "newsecret456",
+	}
+
+	userRepo.On("FindByID", u.ID).Return(&u, nil)
+	userRepo.On("Update", mock.AnythingOfType("*domain.User")).Return(nil)
+
+	_, err := svc.ChangePassword(u.ID, input)
+	assert.NoError(t, err)
+}
+
+func TestChangePassword_IncorrectCurrentPassword(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+	hashed, _ := security.HashPassword("secret123")
+	u.Password = hashed
+
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "wrongpassword",
+		NewPassword:     "newsecret456",
+		ConfirmPassword: "newsecret456",
+	}
+
+	userRepo.On("FindByID", u.ID).Return(&u, nil)
+
+	_, err := svc.ChangePassword(u.ID, input)
+	assert.ErrorIs(t, err, domain.ErrIncorrectCurrentPassword)
+	userRepo.AssertNotCalled(t, "Update")
 }

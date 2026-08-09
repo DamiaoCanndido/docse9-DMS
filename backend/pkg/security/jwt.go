@@ -22,20 +22,22 @@ func init() {
 
 // UserClaims representa as claims customizadas do token JWT.
 type UserClaims struct {
-	UserID         uuid.UUID `json:"user_id"`
-	Username       string    `json:"username"`
-	Role           string    `json:"role"`
-	MunicipalityID uuid.UUID `json:"municipality_id"`
+	UserID             uuid.UUID `json:"user_id"`
+	Username           string    `json:"username"`
+	Role               string    `json:"role"`
+	MunicipalityID     uuid.UUID `json:"municipality_id"`
+	MustChangePassword bool      `json:"must_change_password"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken gera um token JWT assinado para um determinado usuário.
-func GenerateToken(userID uuid.UUID, username, role string, municipalityID uuid.UUID, duration time.Duration) (string, error) {
+func GenerateToken(userID uuid.UUID, username, role string, municipalityID uuid.UUID, mustChangePassword bool, duration time.Duration) (string, error) {
 	claims := UserClaims{
-		UserID:         userID,
-		Username:       username,
-		Role:           role,
-		MunicipalityID: municipalityID,
+		UserID:             userID,
+		Username:           username,
+		Role:               role,
+		MunicipalityID:     municipalityID,
+		MustChangePassword: mustChangePassword,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

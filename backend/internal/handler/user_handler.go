@@ -2,11 +2,13 @@ package handler
 
 import (
 	"errors"
+	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/middleware"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +22,8 @@ func NewUserHandler(svc domain.UserService) *UserHandler {
 
 // RegisterRoutes registra todas as rotas do recurso User.
 func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	rg.POST("/users/me/change-password", h.ChangePassword)
+
 	g := rg.Group("/users")
 	g.Use(middleware.RequireRole(domain.RoleAdmin, domain.RoleMod))
 	{
@@ -69,13 +73,16 @@ func (h *UserHandler) Create(c *gin.Context) {
 		}
 	}
 
-	u, err := h.svc.Create(input)
+	u, randomPassword, err := h.svc.Create(input)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	response.Created(c, u)
+	response.Created(c, gin.H{
+		"user":           u,
+		"randomPassword": randomPassword,
+	})
 }
 
 // GetAll lista todos os usuários ativos (paginado)
@@ -204,13 +211,20 @@ func (h *UserHandler) Update(c *gin.Context) {
 		}
 	}
 
-	updated, err := h.svc.Update(id, input)
+	updated, randomPassword, err := h.svc.Update(id, input)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
-	response.OK(c, updated)
+	if randomPassword != "" {
+		response.OK(c, gin.H{
+			"user":           updated,
+			"randomPassword": randomPassword,
+		})
+	} else {
+		response.OK(c, updated)
+	}
 }
 
 // Delete remove um usuário (soft delete)
@@ -347,6 +361,38 @@ func (h *UserHandler) UpdatePermissions(c *gin.Context) {
 	response.OK(c, p)
 }
 
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	claims := getClaims(c)
+	if claims == nil {
+		response.Unauthorized(c, "usuário não autenticado")
+		return
+	}
+
+	var input domain.ChangePasswordInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	u, err := h.svc.ChangePassword(claims.UserID, input)
+	if err != nil {
+		h.handleServiceError(c, err)
+		return
+	}
+
+	// Gerar novo Token JWT com MustChangePassword = false
+	token, err := security.GenerateToken(u.ID, u.Username, string(u.Role), u.MunicipalityID, false, 24*time.Hour)
+	if err != nil {
+		response.InternalError(c)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"token": token,
+		"user":  u,
+	})
+}
+
 func (h *UserHandler) checkAccess(c *gin.Context, targetUser *domain.User) bool {
 	claims := getClaims(c)
 	if claims == nil {
@@ -379,6 +425,8 @@ func (h *UserHandler) handleServiceError(c *gin.Context, err error) {
 		response.Conflict(c, err.Error())
 	case errors.Is(err, domain.ErrUsernameAlreadyExists):
 		response.Conflict(c, err.Error())
+	case errors.Is(err, domain.ErrIncorrectCurrentPassword):
+		response.BadRequest(c, err.Error())
 	case errors.Is(err, service.ErrMunicipalityNotFound):
 		response.BadRequest(c, err.Error())
 	default:

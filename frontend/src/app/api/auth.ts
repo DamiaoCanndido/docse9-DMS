@@ -96,3 +96,42 @@ export async function logoutUser() {
     throw new Error('Falha ao deslogar o usuário.');
   }
 }
+
+export async function changePassword(form: { currentPassword: string; newPassword: string; confirmPassword: string }) {
+  try {
+    const response = await apiServer.post<{ success: boolean; data: { token: string; user: User } }>('/users/me/change-password', form);
+
+    const data = response.data.data;
+    if (!data || !data.token) {
+      return { success: false, error: 'Resposta inválida do servidor.' };
+    }
+
+    const cookieStore = await cookies();
+    
+    // Update token cookie
+    cookieStore.set('token', data.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 1 day
+      path: '/',
+    });
+
+    // Update user cookie
+    cookieStore.set('user', JSON.stringify(data.user), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 1 day
+      path: '/',
+    });
+
+    return { success: true, user: parseStringify(data.user) };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const msg = error.response?.data?.error || 'Senha atual incorreta ou dados inválidos.';
+      return { success: false, error: msg };
+    }
+    return { success: false, error: 'Falha na conexão com o servidor de API.' };
+  }
+}
