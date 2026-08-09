@@ -78,7 +78,7 @@ func (s *userService) Create(input domain.CreateUserInput) (*domain.User, error)
 		return nil, err
 	}
 
-	return u, nil
+	return s.userRepo.FindByID(u.ID)
 }
 
 func (s *userService) GetAll(page, pageSize int) ([]domain.User, int64, error) {
@@ -178,12 +178,11 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 		u.LastLogin = input.LastLogin
 	}
 
-	// 8. Salvar no repositório
 	if err := s.userRepo.Update(u); err != nil {
 		return nil, err
 	}
 
-	return u, nil
+	return s.userRepo.FindByID(id)
 }
 
 func (s *userService) Delete(id uuid.UUID) error {

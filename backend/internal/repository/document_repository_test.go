@@ -109,6 +109,8 @@ func (s *DocumentRepositorySuite) TestCreateAndFindByID() {
 	s.Equal(doc.CreatorID, found.CreatorID)
 	s.Equal(doc.MunicipalityID, found.MunicipalityID)
 	s.Equal(doc.Order, found.Order)
+	s.Equal(s.user.Username, found.CreatedBy.Username)
+	s.Equal(s.mun.Name, found.CreatedBy.Municipality.Name)
 }
 
 func (s *DocumentRepositorySuite) TestGetLastOrder() {

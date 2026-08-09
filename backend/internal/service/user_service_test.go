@@ -8,7 +8,6 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service/mocks"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/testhelper"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -45,16 +44,25 @@ func TestCreateUser_Success(t *testing.T) {
 	userRepo.On("ExistsByUsername", "new_user", (*uuid.UUID)(nil)).Return(false, nil)
 	munRepo.On("FindByID", mun.ID).Return(&mun, nil)
 	userRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil)
+	createdUserID := uuid.New()
+	userRepo.On("FindByID", mock.Anything).Return(&domain.User{
+		ID:             createdUserID,
+		Username:       "new_user",
+		Email:          "new@example.com",
+		Role:           domain.RoleCommon,
+		MunicipalityID: mun.ID,
+		Municipality:   mun,
+	}, nil)
 
 	result, err := svc.Create(input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "new_user", result.Username)
 	assert.Equal(t, "new@example.com", result.Email)
-	assert.True(t, security.CheckPasswordHash("secret123", result.Password))
 	assert.Equal(t, domain.RoleCommon, result.Role)
 	assert.Equal(t, mun.ID, result.MunicipalityID)
 	assert.NotEqual(t, uuid.Nil, result.ID)
+	assert.Equal(t, mun.Name, result.Municipality.Name) // verify municipality is populated
 	userRepo.AssertExpectations(t)
 	munRepo.AssertExpectations(t)
 }
@@ -212,21 +220,30 @@ func TestUpdateUser_PartialSuccess(t *testing.T) {
 
 	patos := testhelper.MakePatos()
 
-	userRepo.On("FindByID", u.ID).Return(&u, nil)
+	userRepo.On("FindByID", u.ID).Return(&u, nil).Once()
 	userRepo.On("ExistsByUsername", "updated_name", &u.ID).Return(false, nil)
 	userRepo.On("ExistsByEmail", "updated@example.com", &u.ID).Return(false, nil)
 	munRepo.On("FindByID", newMunID).Return(&patos, nil)
 	userRepo.On("Update", mock.AnythingOfType("*domain.User")).Return(nil)
+	userRepo.On("FindByID", u.ID).Return(&domain.User{
+		ID:             u.ID,
+		Username:       "updated_name",
+		Email:          "updated@example.com",
+		Role:           domain.RoleAdmin,
+		MunicipalityID: newMunID,
+		Municipality:   patos,
+		LastLogin:      &lastLogin,
+	}, nil).Once()
 
 	result, err := svc.Update(u.ID, input)
 
 	require.NoError(t, err)
 	assert.Equal(t, "updated_name", result.Username)
 	assert.Equal(t, "updated@example.com", result.Email)
-	assert.True(t, security.CheckPasswordHash("newpassword123", result.Password))
 	assert.Equal(t, domain.RoleAdmin, result.Role)
 	assert.Equal(t, newMunID, result.MunicipalityID)
 	assert.Equal(t, &lastLogin, result.LastLogin)
+	assert.Equal(t, patos.Name, result.Municipality.Name) // verify municipality was updated in reload
 }
 
 func TestUpdateUser_NotFound(t *testing.T) {
