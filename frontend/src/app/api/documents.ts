@@ -126,3 +126,49 @@ export async function restoreDocument({ id, path }: { id: string; path: string }
     throw error;
   }
 }
+
+export async function getDocumentsTrash(page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
+  try {
+    const headers = await getAuthHeader();
+    const response = await apiServer.get<{
+      success: boolean;
+      data: Document[];
+      pagination: {
+        page: number;
+        pageSize: number;
+        total: number;
+        totalPages: number;
+      };
+    }>('/documents/trash', {
+      headers,
+      params: { page, pageSize },
+    });
+    
+    const body = response.data;
+    return {
+      data: parseStringify(body.data || []),
+      total: body.pagination?.total || 0,
+      page: body.pagination?.page || 1,
+      pageSize: body.pagination?.pageSize || 10,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
+export async function hardDeleteDocument({ id, path }: { id: string; path: string }): Promise<void> {
+  try {
+    const headers = await getAuthHeader();
+    await apiServer.delete(`/documents/${id}/hard`, { headers });
+    revalidatePath(path);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+

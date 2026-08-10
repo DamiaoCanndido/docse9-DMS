@@ -1,8 +1,9 @@
 import React from 'react';
-import { getDocuments } from '@/app/api/documents';
+import { getDocuments, getDocumentsTrash } from '@/app/api/documents';
 import { getMe } from '@/app/api/auth';
 import { DocumentsContent } from '@/components/DocumentsContent';
 import { DocumentType, ContractType } from '@/types';
+import { redirect } from 'next/navigation';
 
 interface PageProps {
   searchParams: Promise<{
@@ -10,27 +11,38 @@ interface PageProps {
     type?: string;
     contractType?: string;
     page?: string;
+    trash?: string;
   }>;
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  // Resolve params (necessário no Next.js 15+)
+  // Resolve params
   const params = await searchParams;
   const search = params.search || '';
   const type = (params.type as DocumentType) || undefined;
   const contractType = (params.contractType as ContractType) || undefined;
   const page = Number(params.page) || 1;
+  const viewTrash = params.trash === 'true';
 
-  // Busca do usuário logado e dados de documentos executadas de forma paralela no servidor (SSR)
-  const [user, documentsData] = await Promise.all([
-    getMe(),
-    getDocuments({ search, type, contractType }, page, 10),
-  ]);
+  const user = await getMe();
+
+  // Redireciona admins para a tela de municípios, pois eles não gerenciam documentos
+  if (user.role === 'ADMIN') {
+    return redirect('/dashboard/municipalities');
+  }
+
+  // Busca os documentos (ativos ou excluídos na lixeira)
+  const documentsData = viewTrash
+    ? await getDocumentsTrash(page, 10)
+    : await getDocuments({ search, type, contractType }, page, 10);
 
   return (
     <DocumentsContent
       initialData={documentsData}
       currentUser={user}
+      viewTrash={viewTrash}
     />
   );
 }
+
+

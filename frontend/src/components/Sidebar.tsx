@@ -2,12 +2,21 @@
 
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { FileText, LogOut, Building2, User } from 'lucide-react';
+import { FileText, LogOut, Building2, User, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from './ui/Button';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+// Cria um componente Link animável para evitar aninhar tags <a> e gerar erros de hidratação
+const MotionLink = motion(Link);
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const isAdmin = user?.role === 'ADMIN';
+  const isMod = user?.role === 'MOD';
 
   return (
     <aside className="w-68 bg-zinc-950/80 border-r border-zinc-800/80 backdrop-blur-xl flex flex-col justify-between hidden md:flex shrink-0">
@@ -25,16 +34,52 @@ export const Sidebar: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="flex flex-col gap-2">
-          <motion.a
+          <MotionLink
             whileHover={{ x: 4 }}
-            href="#"
-            className="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 transition-all shadow-md shadow-violet-500/5"
+            href="/"
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              pathname === '/'
+                ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
+                : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <FileText className="w-5 h-5 text-violet-400" />
+            <FileText className={`w-5 h-5 ${pathname === '/' ? 'text-violet-400' : 'text-zinc-500'}`} />
             Documentos Oficiais
-          </motion.a>
+          </MotionLink>
+
+          {isAdmin && (
+            <MotionLink
+              whileHover={{ x: 4 }}
+              href="/dashboard/municipalities"
+              className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                pathname.startsWith('/dashboard/municipalities')
+                  ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
+                  : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Building2 className={`w-5 h-5 ${pathname.startsWith('/dashboard/municipalities') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              Municípios
+            </MotionLink>
+          )}
+
+          {(isAdmin || isMod) && (
+            <MotionLink
+              whileHover={{ x: 4 }}
+              href="/dashboard/users"
+              className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                pathname.startsWith('/dashboard/users')
+                  ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
+                  : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Users className={`w-5 h-5 ${pathname.startsWith('/dashboard/users') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              Usuários
+            </MotionLink>
+          )}
         </nav>
       </div>
+
+
 
       {/* User Info & Logout */}
       <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-5">
