@@ -4,8 +4,9 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
 import { Document, DocumentType, ContractType, User, PaginatedResponse, UserPermission, PermissionLevel } from '@/types';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   createDocument,
   updateDocument,
@@ -22,7 +23,7 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   DollarSign, 
   Clock,
   Sparkles,
@@ -30,9 +31,40 @@ import {
   Plus,
   Edit2,
   RotateCcw,
-  Trash
+  Trash,
+  MoreHorizontal
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 interface DocumentsContentProps {
   initialData: PaginatedResponse<Document>;
@@ -97,6 +129,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Date parsing for shadcn Calendar
+  const dateValue = startIn ? new Date(startIn) : undefined;
+
   // Permissions helpers
   const canCreate = (t: DocumentType) => {
     if (currentUser.role === 'MOD') return true;
@@ -131,10 +166,10 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
   const docTypesList: { value: DocumentType; label: string }[] = [
     { value: 'NOTICE', label: 'Ofício (Notice)' },
-    { value: 'DECREE', label: 'Decreto (Decree)' },
-    { value: 'ORDINANCE', label: 'Portaria (Ordinance)' },
-    { value: 'LAW', label: 'Lei (Law)' },
-    { value: 'CONTRACT', label: 'Contrato (Contract)' },
+    { value: 'DECREE', label: 'Decreto (Decreto)' },
+    { value: 'ORDINANCE', label: 'Portaria (Portaria)' },
+    { value: 'LAW', label: 'Lei (Lei)' },
+    { value: 'CONTRACT', label: 'Contrato (Contrato)' },
   ];
 
   // Filters
@@ -185,7 +220,6 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
   // Modals actions
   const openCreateModal = () => {
-    // Encontra o primeiro tipo de documento que o usuário tem permissão para criar
     const allowedType = docTypesList.find((t) => canCreate(t.value));
     setType(allowedType ? allowedType.value : 'NOTICE');
     setEditingDocument(null);
@@ -205,7 +239,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     setContractType(doc.contractType || 'service');
     setValue(doc.value ? doc.value.toString() : '');
     setDuration(doc.duration ? doc.duration.toString() : '');
-    setStartIn(doc.startIn ? new Date(doc.startIn).toISOString().split('T')[0] : '');
+    setStartIn(doc.startIn ? new Date(doc.startIn).toISOString() : '');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -353,7 +387,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
           {!viewTrash && hasAnyWritePermission && (
             <Button
-              variant="primary"
+              variant="default"
               className="flex items-center gap-2 font-semibold px-5 rounded-xl h-11"
               onClick={openCreateModal}
             >
@@ -527,52 +561,59 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                       </td>
                       <td className="px-6 py-4.5 text-right text-zinc-500 text-xs font-medium">
                         <div className="flex items-center justify-end gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-zinc-600" />
+                          <CalendarIcon className="w-3.5 h-3.5 text-zinc-600" />
                           {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
                         </div>
                       </td>
                       <td className="px-6 py-4.5 text-center">
-                        <div className="flex items-center justify-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                          {showEdit && (
-                            <button
-                              onClick={() => openEditModal(doc)}
-                              className="p-1.5 text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-all"
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4.5 h-4.5" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger render={
+                            <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                              <MoreHorizontal className="w-4.5 h-4.5" />
                             </button>
-                          )}
-                          {showDelete && (
-                            <button
-                              onClick={() => handleDelete(doc.id)}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                              title="Mover para Lixeira"
-                            >
-                              <Trash2 className="w-4.5 h-4.5" />
-                            </button>
-                          )}
-                          {showRestore && (
-                            <button
-                              onClick={() => handleRestore(doc.id)}
-                              className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                              title="Restaurar"
-                            >
-                              <RotateCcw className="w-4.5 h-4.5" />
-                            </button>
-                          )}
-                          {showHardDelete && (
-                            <button
-                              onClick={() => handleHardDelete(doc.id)}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                              title="Excluir Permanentemente"
-                            >
-                              <Trash className="w-4.5 h-4.5" />
-                            </button>
-                          )}
-                          {!showEdit && !showDelete && !showRestore && !showHardDelete && (
-                            <span className="text-zinc-600 italic text-xs">Sem ações</span>
-                          )}
-                        </div>
+                          } />
+                          <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[170px]">
+                            {showEdit && (
+                              <DropdownMenuItem
+                                onClick={() => openEditModal(doc)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                                Editar
+                              </DropdownMenuItem>
+                            )}
+                            {showDelete && (
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(doc.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Mover para Lixeira
+                              </DropdownMenuItem>
+                            )}
+                            {showRestore && (
+                              <DropdownMenuItem
+                                onClick={() => handleRestore(doc.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                              >
+                                <RotateCcw className="w-4.5 h-4.5" />
+                                Restaurar
+                              </DropdownMenuItem>
+                            )}
+                            {showHardDelete && (
+                              <DropdownMenuItem
+                                onClick={() => handleHardDelete(doc.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                              >
+                                <Trash className="w-4.5 h-4.5" />
+                                Excluir Definitivamente
+                              </DropdownMenuItem>
+                            )}
+                            {!showEdit && !showDelete && !showRestore && !showHardDelete && (
+                              <span className="p-2 text-xs text-zinc-500 italic block text-center">Sem permissões</span>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );
@@ -615,169 +656,173 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         )}
       </div>
 
-      {/* Create/Edit Document Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
-            />
+      {/* Create/Edit Document Modal via shadcn/ui Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-xl rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white">
+              {editingDocument ? 'Editar Documento' : 'Novo Documento Oficial'}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">
+              {editingDocument
+                ? 'Modifique os metadados do documento selecionado.'
+                : 'Cadastre um novo documento oficial no isolamento do seu município.'}
+            </DialogDescription>
+          </DialogHeader>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-xl bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-900 rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <h2 className="text-xl font-bold text-white mb-6">
-                {editingDocument ? 'Editar Documento' : 'Novo Documento Oficial'}
-              </h2>
-
-              <form onSubmit={handleSave} className="flex flex-col gap-5">
-                {/* Type selection - read-only on edit */}
-                <div className="w-full flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-zinc-400">Tipo de Documento</label>
-                  {editingDocument ? (
-                    <div className="w-full bg-zinc-900/50 border border-zinc-850 px-3.5 py-2.5 rounded-lg text-sm text-zinc-400 font-semibold uppercase">
-                      {type}
-                    </div>
-                  ) : (
-                    <select
-                      className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:border-violet-500 cursor-pointer"
-                      value={type}
-                      onChange={(e) => setType(e.target.value as DocumentType)}
-                    >
-                      {docTypesList.map((t) => {
-                        const allowed = canCreate(t.value);
-                        return (
-                          <option key={t.value} value={t.value} disabled={!allowed}>
-                            {t.label} {!allowed ? '(Sem permissão)' : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  )}
+          <form onSubmit={handleSave} className="flex flex-col gap-5 mt-4">
+            {/* Type selection - read-only on edit */}
+            <div className="w-full flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-zinc-400">Tipo de Documento</label>
+              {editingDocument ? (
+                <div className="w-full bg-zinc-900/50 border border-zinc-850 px-3.5 py-2.5 rounded-lg text-sm text-zinc-400 font-semibold uppercase">
+                  {type}
                 </div>
+              ) : (
+                <Select value={type} onValueChange={(val) => setType(val as DocumentType)}>
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                    {docTypesList.map((t) => {
+                      const allowed = canCreate(t.value);
+                      return (
+                        <SelectItem key={t.value} value={t.value} disabled={!allowed}>
+                          {t.label} {!allowed ? '(Sem permissão)' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
-                {/* Description textarea */}
-                <div className="w-full flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-zinc-400">Descrição / Ementa</label>
-                  <textarea
-                    className="w-full h-28 bg-zinc-900 border border-border text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 placeholder-zinc-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    placeholder="Descreva o conteúdo do documento ou sua ementa oficial..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+            {/* Description textarea */}
+            <div className="w-full flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-zinc-400">Descrição / Ementa</label>
+              <textarea
+                className="w-full h-28 bg-zinc-900 border border-border text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 placeholder-zinc-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                placeholder="Descreva o conteúdo do documento ou sua ementa oficial..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Specific fields for CONTRACT */}
+            {type === 'CONTRACT' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="border border-zinc-900/80 rounded-xl p-4 bg-zinc-950/20 flex flex-col gap-4"
+              >
+                <h3 className="text-xs font-bold text-violet-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                  <FileCheck className="w-4 h-4" />
+                  Detalhes do Contrato
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  {/* Contract Type */}
+                  <div className="w-full flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                      Tipo de Contrato
+                    </label>
+                    <Select value={contractType} onValueChange={(val) => setContractType(val as ContractType)}>
+                      <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-xs h-10">
+                        <SelectValue placeholder="Selecione o tipo de contrato" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                        <SelectItem value="service">Prestação de Serviço</SelectItem>
+                        <SelectItem value="bidding">Licitação</SelectItem>
+                        <SelectItem value="publicinterest">Interesse Público</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Value */}
+                  <Input
+                    label="Valor do Contrato (R$)"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    className="text-xs py-2 h-10"
                     required
                   />
-                </div>
 
-                {/* Specific fields for CONTRACT */}
-                {type === 'CONTRACT' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="border border-zinc-900/80 rounded-xl p-4 bg-zinc-950/20 flex flex-col gap-4"
-                  >
-                    <h3 className="text-xs font-bold text-violet-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                      <FileCheck className="w-4 h-4" />
-                      Detalhes do Contrato
-                    </h3>
+                  {/* Duration */}
+                  <Input
+                    label="Duração (em meses)"
+                    type="number"
+                    placeholder="Ex: 12"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="text-xs py-2 h-10"
+                    required
+                  />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Contract Type */}
-                      <div className="w-full flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                          Tipo de Contrato
-                        </label>
-                        <select
-                          className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3 py-2 rounded-lg text-xs transition-all focus:outline-none focus:border-violet-500 cursor-pointer"
-                          value={contractType}
-                          onChange={(e) => setContractType(e.target.value as ContractType)}
+                  {/* Start Date via Popover + Calendar (DatePicker) */}
+                  <div className="w-full flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                      Data de Início
+                    </label>
+                    <Popover>
+                      <PopoverTrigger render={
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-zinc-900 border-zinc-850 text-zinc-300 text-xs h-10 rounded-lg",
+                            !startIn && "text-zinc-500"
+                          )}
                         >
-                          <option value="service">Prestação de Serviço</option>
-                          <option value="bidding">Licitação</option>
-                          <option value="publicinterest">Interesse Público</option>
-                        </select>
-                      </div>
-
-                      {/* Value */}
-                      <Input
-                        label="Valor do Contrato (R$)"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        className="text-xs py-2"
-                        required
-                      />
-
-                      {/* Duration */}
-                      <Input
-                        label="Duração (em meses)"
-                        type="number"
-                        placeholder="Ex: 12"
-                        value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        className="text-xs py-2"
-                        required
-                      />
-
-                      {/* Start Date */}
-                      <Input
-                        label="Data de Início"
-                        type="date"
-                        value={startIn}
-                        onChange={(e) => setStartIn(e.target.value)}
-                        className="text-xs py-2"
-                        required
-                      />
-                    </div>
-                  </motion.div>
-                )}
-
-                {formError && (
-                  <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
-                    {formError}
-                  </span>
-                )}
-
-                <div className="flex items-center justify-end gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-zinc-800 text-zinc-300 rounded-xl"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="rounded-xl font-bold px-6"
-                    isLoading={isSaving}
-                  >
-                    Salvar
-                  </Button>
+                          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-500" />
+                          {dateValue ? format(dateValue, "PPP", { locale: ptBR }) : <span>Selecione a data</span>}
+                        </Button>
+                      } />
+                      <PopoverContent className="w-auto p-0 bg-zinc-950 border-zinc-800" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateValue}
+                          onSelect={(date) => setStartIn(date ? date.toISOString() : '')}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            )}
+
+            {formError && (
+              <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                {formError}
+              </span>
+            )}
+
+            <DialogFooter className="mt-4 gap-2 flex flex-row justify-end">
+              <DialogClose render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-zinc-800 text-zinc-300 rounded-xl"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+              } />
+              <Button
+                type="submit"
+                variant="default"
+                className="rounded-xl font-bold px-6"
+                isLoading={isSaving}
+              >
+                Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

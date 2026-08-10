@@ -4,6 +4,10 @@ import { ForceChangePassword } from '@/components/ForceChangePassword';
 import { getUserOrNull } from './api/auth';
 import './globals.css';
 import { Toaster } from 'sonner';
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: 'docSe9 DMS - Gerenciamento de Documentos',
@@ -18,7 +22,7 @@ export default async function RootLayout({
   const user = await getUserOrNull();
 
   return (
-    <html lang="pt-BR" className="dark" style={{ colorScheme: 'dark' }}>
+    <html lang="pt-BR" className={cn("dark", "font-sans", geist.variable)} style={{ colorScheme: 'dark' }}>
       <body className="antialiased bg-black text-zinc-100 min-h-screen">
         <AuthProvider initialUser={user}>
           {children}

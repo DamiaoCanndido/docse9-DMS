@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; initialUser?: U
       if (!res.success) {
         throw new Error(res.error);
       }
-      setUser(res.user);
+      setUser(res.user || null);
     } finally {
       setLoading(false);
     }

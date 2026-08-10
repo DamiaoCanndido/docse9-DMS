@@ -4,8 +4,8 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
 import { User, Municipality, Role, PaginatedResponse, UserPermission, DocumentType, PermissionLevel } from '@/types';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   createUser,
   updateUser,
@@ -32,8 +32,30 @@ import {
   Building2,
   Mail,
   UserCheck,
+  MoreHorizontal,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface UsersContentProps {
   initialData: PaginatedResponse<User>;
@@ -164,7 +186,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
     setSelectedUser(user);
     setUsername(user.username);
     setEmail(user.email);
-    setPassword(''); // Opcional ao editar
+    setPassword('');
     setRole(user.role);
     setMunicipalityId(user.municipalityId);
     setFormError('');
@@ -360,7 +382,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
           {!viewTrash && (
             <Button
-              variant="primary"
+              variant="default"
               className="flex items-center gap-2 font-semibold px-5 rounded-xl h-11"
               onClick={openCreateModal}
             >
@@ -537,54 +559,61 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                       )}
                     </td>
                     <td className="px-6 py-4.5 text-center">
-                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                        {viewTrash ? (
-                          <>
-                            <button
-                              onClick={() => handleRestoreUser(usr.id)}
-                              className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                              title="Restaurar"
-                            >
-                              <RotateCcw className="w-4.5 h-4.5" />
-                            </button>
-                            <button
-                              onClick={() => handleHardDeleteUser(usr.id)}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                              title="Excluir Permanentemente"
-                            >
-                              <Trash className="w-4.5 h-4.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {usr.role === 'COMMON' && (
-                              <button
-                                onClick={() => openPermissionsModal(usr)}
-                                className="p-1.5 text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all"
-                                title="Gerenciar Permissões"
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={
+                          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                            <MoreHorizontal className="w-4.5 h-4.5" />
+                          </button>
+                        } />
+                        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[170px]">
+                          {viewTrash ? (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleRestoreUser(usr.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
                               >
-                                <Shield className="w-4.5 h-4.5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => openEditModal(usr)}
-                              className="p-1.5 text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-all"
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4.5 h-4.5" />
-                            </button>
-                            {usr.id !== currentUser.id && (
-                              <button
-                                onClick={() => handleDeleteUser(usr.id)}
-                                className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                                title="Excluir (Lixeira)"
+                                <RotateCcw className="w-4.5 h-4.5" />
+                                Restaurar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleHardDeleteUser(usr.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
                               >
-                                <Trash2 className="w-4.5 h-4.5" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                                <Trash className="w-4.5 h-4.5" />
+                                Excluir Definitivamente
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              {usr.role === 'COMMON' && (
+                                <DropdownMenuItem
+                                  onClick={() => openPermissionsModal(usr)}
+                                  className="flex items-center gap-2 hover:bg-zinc-900 hover:text-amber-400 cursor-pointer focus:bg-zinc-900 focus:text-amber-400 p-2 text-xs font-medium"
+                                >
+                                  <Shield className="w-4.5 h-4.5" />
+                                  Permissões
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => openEditModal(usr)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                              >
+                                <Edit2 className="w-4.5 h-4.5" />
+                                Editar
+                              </DropdownMenuItem>
+                              {usr.id !== currentUser.id && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteUser(usr.id)}
+                                  className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                >
+                                  <Trash2 className="w-4.5 h-4.5" />
+                                  Mover para Lixeira
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
@@ -626,243 +655,197 @@ export const UsersContent: React.FC<UsersContentProps> = ({
         )}
       </div>
 
-      {/* User Create/Edit Modal */}
-      <AnimatePresence>
-        {isUserModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setIsUserModalOpen(false)}
+      {/* User Create/Edit Modal via shadcn/ui Dialog */}
+      <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white">
+              {selectedUser ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">
+              Configure as credenciais e o escopo de acesso do usuário.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveUser} className="flex flex-col gap-5 mt-4">
+            <Input
+              label="Nome de Usuário (Username)"
+              placeholder="Ex: joao.silva"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
             />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4">
-                <button
-                  onClick={() => setIsUserModalOpen(false)}
-                  className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-900 rounded-lg"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+            <Input
+              label="E-mail"
+              type="email"
+              placeholder="Ex: joao@prefeitura.gov.br"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <Input
+              label={selectedUser ? 'Senha (deixe em branco para não alterar)' : 'Senha de Acesso'}
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required={!selectedUser}
+            />
+
+            {/* Perfil Selection via shadcn/ui Select */}
+            <div className="w-full flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-zinc-400">Perfil de Acesso</label>
+              <Select value={role} onValueChange={(val) => setRole((val as Role) || 'COMMON')}>
+                <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                  <SelectValue placeholder="Selecione o perfil" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                  {isAdmin && <SelectItem value="ADMIN">Administrador Global</SelectItem>}
+                  <SelectItem value="MOD">Moderador Municipal</SelectItem>
+                  <SelectItem value="COMMON">Funcionário Comum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Municipality Selection (ADMIN only) via shadcn/ui Select */}
+            {isAdmin && (
+              <div className="w-full flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
+                <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
+                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                    <SelectValue placeholder="Selecione o município" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                    {municipalities.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name} ({m.uf})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            )}
 
-              <h2 className="text-xl font-bold text-white mb-6">
-                {selectedUser ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
-              </h2>
+            {isMod && (
+              <div className="p-3 bg-zinc-900/50 border border-zinc-850 rounded-xl flex items-center gap-2">
+                <Building2 className="w-4.5 h-4.5 text-zinc-500" />
+                <span className="text-xs text-zinc-400">
+                  Vinculado a: <strong>{currentUser.municipality?.name} ({currentUser.municipality?.uf})</strong>
+                </span>
+              </div>
+            )}
 
-              <form onSubmit={handleSaveUser} className="flex flex-col gap-5">
-                <Input
-                  label="Nome de Usuário (Username)"
-                  placeholder="Ex: joao.silva"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
+            {formError && (
+              <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                {formError}
+              </span>
+            )}
 
-                <Input
-                  label="E-mail"
-                  type="email"
-                  placeholder="Ex: joao@prefeitura.gov.br"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+            <DialogFooter className="mt-4 gap-2 flex flex-row justify-end">
+              <DialogClose render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-zinc-800 text-zinc-300 rounded-xl"
+                  onClick={() => setIsUserModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+              } />
+              <Button
+                type="submit"
+                variant="default"
+                className="rounded-xl font-bold px-6"
+                isLoading={isSaving}
+              >
+                Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-                <Input
-                  label={selectedUser ? 'Senha (deixe em branco para não alterar)' : 'Senha de Acesso'}
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required={!selectedUser}
-                />
+      {/* User Permissions Modal via shadcn/ui Dialog */}
+      <Dialog open={isPermModalOpen} onOpenChange={setIsPermModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-2xl rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Shield className="w-5 h-5 text-amber-500" />
+              Permissões do Usuário: {selectedUser?.username}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">
+              Configure o nível de permissão que o funcionário comum terá para cada tipo de documento oficial.
+            </DialogDescription>
+          </DialogHeader>
 
-                {/* Perfil Selection */}
-                <div className="w-full flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-zinc-400">Perfil de Acesso</label>
-                  <select
-                    className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:border-violet-500 cursor-pointer"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as Role)}
-                  >
-                    {/* Se for MOD, só pode cadastrar MOD ou COMMON. Se for ADMIN, pode criar qualquer papel */}
-                    {isAdmin && <option value="ADMIN">Administrador Global</option>}
-                    <option value="MOD">Moderador Municipal</option>
-                    <option value="COMMON">Funcionário Comum</option>
-                  </select>
+          {isLoadingPerms ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
+              <span className="text-zinc-500 text-xs">Carregando permissões...</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6 mt-4">
+              <div className="border border-zinc-900 rounded-xl overflow-hidden divide-y divide-zinc-900 bg-zinc-950/20">
+                <div className="grid grid-cols-2 md:grid-cols-5 p-3.5 bg-zinc-950 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  <div className="col-span-2">Tipo de Documento</div>
+                  <div className="col-span-3">Nível de Acesso</div>
                 </div>
 
-                {/* Municipality Selection (ADMIN only) */}
-                {isAdmin && (
-                  <div className="w-full flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
-                    <select
-                      className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:border-violet-500 cursor-pointer"
-                      value={municipalityId}
-                      onChange={(e) => setMunicipalityId(e.target.value)}
-                    >
-                      {municipalities.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.uf})
-                        </option>
+                {docTypesList.map((type) => (
+                  <div
+                    key={type.value}
+                    className="grid grid-cols-2 md:grid-cols-5 p-3.5 items-center gap-4 hover:bg-zinc-900/5 transition-colors"
+                  >
+                    <div className="col-span-2 font-semibold text-zinc-200">
+                      {type.label}
+                    </div>
+                    <div className="col-span-3 flex items-center gap-1.5 md:gap-3 flex-wrap">
+                      {permLevels.map((lvl) => (
+                        <button
+                          key={lvl.value}
+                          type="button"
+                          onClick={() => handlePermissionChange(type.value, lvl.value)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            permissions[type.value] === lvl.value
+                              ? 'bg-amber-500/10 border border-amber-500/35 text-amber-400'
+                              : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                          }`}
+                        >
+                          {lvl.label}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
-                )}
+                ))}
+              </div>
 
-                {isMod && (
-                  <div className="p-3 bg-zinc-900/50 border border-zinc-850 rounded-xl flex items-center gap-2">
-                    <Building2 className="w-4.5 h-4.5 text-zinc-500" />
-                    <span className="text-xs text-zinc-400">
-                      Vinculado a: <strong>{currentUser.municipality?.name} ({currentUser.municipality?.uf})</strong>
-                    </span>
-                  </div>
-                )}
-
-                {formError && (
-                  <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
-                    {formError}
-                  </span>
-                )}
-
-                <div className="flex items-center justify-end gap-3 mt-4">
+              <DialogFooter className="gap-2 flex flex-row justify-end">
+                <DialogClose render={
                   <Button
                     type="button"
                     variant="outline"
                     className="border-zinc-800 text-zinc-300 rounded-xl"
-                    onClick={() => setIsUserModalOpen(false)}
+                    onClick={() => setIsPermModalOpen(false)}
                   >
                     Cancelar
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="rounded-xl font-bold px-6"
-                    isLoading={isSaving}
-                  >
-                    Salvar
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* User Permissions Modal */}
-      <AnimatePresence>
-        {isPermModalOpen && selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setIsPermModalOpen(false)}
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4">
-                <button
-                  onClick={() => setIsPermModalOpen(false)}
-                  className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-900 rounded-lg"
+                } />
+                <Button
+                  type="button"
+                  variant="default"
+                  className="rounded-xl font-bold bg-amber-500/20 border border-amber-500/35 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300 shadow-md shadow-amber-500/5 px-6"
+                  onClick={handleSavePermissions}
+                  isLoading={isSavingPerms}
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
-                  <Shield className="w-4.5 h-4.5" />
-                  Controle de Acesso RBAC
-                </div>
-                <h2 className="text-xl font-bold text-white">
-                  Permissões do Usuário: {selectedUser.username}
-                </h2>
-                <p className="text-zinc-500 text-xs mt-1">
-                  Configure o nível de permissão que o funcionário comum terá para cada tipo de documento oficial.
-                </p>
-              </div>
-
-              {isLoadingPerms ? (
-                <div className="py-12 flex flex-col items-center justify-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
-                  <span className="text-zinc-500 text-xs">Carregando permissões...</span>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-6">
-                  {/* Grid of permissions */}
-                  <div className="border border-zinc-900 rounded-xl overflow-hidden divide-y divide-zinc-900 bg-zinc-950/20">
-                    <div className="grid grid-cols-2 md:grid-cols-5 p-3.5 bg-zinc-950 text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                      <div className="col-span-2">Tipo de Documento</div>
-                      <div className="col-span-3">Nível de Acesso</div>
-                    </div>
-
-                    {docTypesList.map((type) => (
-                      <div
-                        key={type.value}
-                        className="grid grid-cols-2 md:grid-cols-5 p-3.5 items-center gap-4 hover:bg-zinc-900/5 transition-colors"
-                      >
-                        <div className="col-span-2 font-semibold text-zinc-200">
-                          {type.label}
-                        </div>
-                        <div className="col-span-3 flex items-center gap-1.5 md:gap-3 flex-wrap">
-                          {permLevels.map((lvl) => (
-                            <button
-                              key={lvl.value}
-                              type="button"
-                              onClick={() => handlePermissionChange(type.value, lvl.value)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                                permissions[type.value] === lvl.value
-                                  ? 'bg-amber-500/10 border border-amber-500/35 text-amber-400'
-                                  : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300'
-                              }`}
-                            >
-                              {lvl.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-zinc-800 text-zinc-300 rounded-xl"
-                      onClick={() => setIsPermModalOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      className="rounded-xl font-bold bg-amber-500/20 border border-amber-500/35 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300 shadow-md shadow-amber-500/5 px-6"
-                      onClick={handleSavePermissions}
-                      isLoading={isSavingPerms}
-                    >
-                      Salvar Permissões
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  Salvar Permissões
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

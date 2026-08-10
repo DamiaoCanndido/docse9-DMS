@@ -4,7 +4,7 @@ import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { FileText, LogOut, Building2, User, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Button } from './ui/Button';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 

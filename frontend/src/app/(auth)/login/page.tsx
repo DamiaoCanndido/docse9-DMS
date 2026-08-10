@@ -6,8 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'O usuário deve ter pelo menos 3 caracteres'),

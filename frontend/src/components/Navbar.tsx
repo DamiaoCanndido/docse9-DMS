@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { LogOut } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Button } from '@/components/ui/button';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();

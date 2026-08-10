@@ -6,8 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 

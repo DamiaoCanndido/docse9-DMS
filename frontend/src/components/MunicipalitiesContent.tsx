@@ -3,8 +3,8 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Municipality, PaginatedResponse, User } from '@/types';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   createMunicipality,
   updateMunicipality,
@@ -25,9 +25,23 @@ import {
   Globe,
   Calendar,
   Sparkles,
-  X,
+  MoreHorizontal,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface MunicipalitiesContentProps {
   initialData: PaginatedResponse<Municipality>;
@@ -205,7 +219,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
 
           {!viewTrash && (
             <Button
-              variant="primary"
+              variant="default"
               className="flex items-center gap-2 font-semibold px-5 rounded-xl h-11"
               onClick={openCreateModal}
             >
@@ -283,43 +297,50 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                       </div>
                     </td>
                     <td className="px-6 py-4.5 text-center">
-                      <div className="flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                        {viewTrash ? (
-                          <>
-                            <button
-                              onClick={() => handleRestore(mun.id)}
-                              className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                              title="Restaurar"
-                            >
-                              <RotateCcw className="w-4.5 h-4.5" />
-                            </button>
-                            <button
-                              onClick={() => handleHardDelete(mun.id)}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                              title="Excluir Permanentemente"
-                            >
-                              <Trash className="w-4.5 h-4.5" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => openEditModal(mun)}
-                              className="p-1.5 text-zinc-400 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-all"
-                              title="Editar"
-                            >
-                              <Edit2 className="w-4.5 h-4.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(mun.id)}
-                              className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                              title="Excluir (Lixeira)"
-                            >
-                              <Trash2 className="w-4.5 h-4.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={
+                          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                            <MoreHorizontal className="w-4.5 h-4.5" />
+                          </button>
+                        } />
+                        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[160px]">
+                          {viewTrash ? (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => handleRestore(mun.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                              >
+                                <RotateCcw className="w-4 h-4" />
+                                Restaurar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleHardDelete(mun.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                              >
+                                <Trash className="w-4 h-4" />
+                                Excluir Permanentemente
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => openEditModal(mun)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(mun.id)}
+                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Mover para Lixeira
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
@@ -361,92 +382,75 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
         )}
       </div>
 
-      {/* Create/Edit Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={closeModal}
+      {/* Create/Edit Modal via shadcn/ui Dialog */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white">
+              {editingMunicipality ? 'Editar Município' : 'Cadastrar Novo Município'}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-500 text-xs mt-1">
+              {editingMunicipality
+                ? 'Atualize as informações do município selecionado.'
+                : 'Insira os dados da prefeitura para adicioná-la ao sistema.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSave} className="flex flex-col gap-5 mt-4">
+            <Input
+              label="Nome do Município"
+              placeholder="Ex: Passagem"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
             />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-lg bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl p-6 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-4">
-                <button
+            <Input
+              label="Estado (UF)"
+              placeholder="Ex: PB"
+              maxLength={2}
+              value={uf}
+              onChange={(e) => setUf(e.target.value)}
+              className="uppercase"
+              required
+            />
+
+            <Input
+              label="URL da Imagem do Brasão (opcional)"
+              placeholder="Ex: https://..."
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
+
+            {formError && (
+              <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                {formError}
+              </span>
+            )}
+
+            <DialogFooter className="mt-4 gap-2 flex flex-row justify-end">
+              <DialogClose render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-zinc-800 text-zinc-300 rounded-xl"
                   onClick={closeModal}
-                  className="text-zinc-500 hover:text-white transition-colors p-1 hover:bg-zinc-900 rounded-lg"
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <h2 className="text-xl font-bold text-white mb-6">
-                {editingMunicipality ? 'Editar Município' : 'Cadastrar Novo Município'}
-              </h2>
-
-              <form onSubmit={handleSave} className="flex flex-col gap-5">
-                <Input
-                  label="Nome do Município"
-                  placeholder="Ex: Passagem"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-
-                <Input
-                  label="Estado (UF)"
-                  placeholder="Ex: PB"
-                  maxLength={2}
-                  value={uf}
-                  onChange={(e) => setUf(e.target.value)}
-                  className="uppercase"
-                  required
-                />
-
-                <Input
-                  label="URL da Imagem do Brasão (opcional)"
-                  placeholder="Ex: https://..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-
-                {formError && (
-                  <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
-                    {formError}
-                  </span>
-                )}
-
-                <div className="flex items-center justify-end gap-3 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-zinc-800 text-zinc-300 rounded-xl"
-                    onClick={closeModal}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    className="rounded-xl font-bold px-6"
-                    isLoading={isSaving}
-                  >
-                    Salvar
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  Cancelar
+                </Button>
+              } />
+              <Button
+                type="submit"
+                variant="default"
+                className="rounded-xl font-bold px-6"
+                isLoading={isSaving}
+              >
+                Salvar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
