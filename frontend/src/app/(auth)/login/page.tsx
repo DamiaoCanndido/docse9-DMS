@@ -60,7 +60,7 @@ export default function LoginPage() {
       <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
 
       {/* Login Card */}
-      <div className="w-full max-w-md bg-zinc-950/40 border border-zinc-800/80 backdrop-blur-xl rounded-2xl p-8 shadow-2xl relative">
+      <div className="w-full max-w-md bg-zinc-950/40 border border-zinc-800/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-2xl relative">
         <div className="flex flex-col items-center gap-2 mb-8">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30 text-white font-bold text-xl">
             D

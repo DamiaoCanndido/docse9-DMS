@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 // Cria um componente Link animável para evitar aninhar tags <a> e gerar erros de hidratação
-const MotionLink = motion(Link);
+const MotionLink = motion.create(Link);
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();

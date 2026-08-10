@@ -208,10 +208,10 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
           <Button
             variant="outline"
-            className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-4.5 rounded-xl h-11"
+            className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-4.5 rounded-xl h-11 flex-1 sm:flex-none"
             onClick={handleToggleTrash}
           >
             {viewTrash ? 'Ver Ativos' : 'Ver Lixeira'}
@@ -220,7 +220,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
           {!viewTrash && (
             <Button
               variant="default"
-              className="flex items-center gap-2 font-semibold px-5 rounded-xl h-11"
+              className="flex items-center gap-2 font-semibold px-5 rounded-xl h-11 flex-1 sm:flex-none"
               onClick={openCreateModal}
             >
               <Plus className="w-4.5 h-4.5" />
@@ -254,7 +254,9 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Desktop Table View */}
+            <div className="overflow-x-auto hidden md:block">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-zinc-900 bg-zinc-950/70 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
@@ -347,7 +349,88 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
               </tbody>
             </table>
           </div>
-        )}
+
+          {/* Mobile Card List View */}
+          <div className="flex flex-col divide-y divide-zinc-900 md:hidden">
+            {initialData.data.map((mun) => (
+              <div key={mun.id} className="p-5 flex items-center justify-between gap-4 hover:bg-zinc-900/10 transition-colors group">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  {mun.imageUrl ? (
+                    <img
+                      src={mun.imageUrl}
+                      alt={mun.name}
+                      className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-white group-hover:text-violet-400 transition-colors truncate">
+                      {mun.name}
+                    </span>
+                    <span className="text-xs text-zinc-500 font-medium mt-0.5 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-zinc-600" />
+                      {mun.uf}
+                    </span>
+                    <span className="text-[10px] text-zinc-600 font-medium mt-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-zinc-700" />
+                      {new Date(mun.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger render={
+                      <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer border border-zinc-800 bg-zinc-950">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    } />
+                    <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[160px]">
+                      {viewTrash ? (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => handleRestore(mun.id)}
+                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            Restaurar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleHardDelete(mun.id)}
+                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                          >
+                            <Trash className="w-4 h-4" />
+                            Excluir Permanentemente
+                          </DropdownMenuItem>
+                        </>
+                      ) : (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => openEditModal(mun)}
+                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(mun.id)}
+                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Mover para Lixeira
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)}
 
         {/* Pagination */}
         {initialData.total > initialData.pageSize && (

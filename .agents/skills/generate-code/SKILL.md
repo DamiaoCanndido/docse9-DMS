@@ -40,11 +40,12 @@ Defines how the Full Stack Engineer agent turns a spec (from `@pm`) into working
 - Errors are wrapped with context (`fmt.Errorf("...: %w", err)`), not swallowed
 - New/changed endpoints get an OpenAPI 3.0 entry
 
-**Frontend (Next.js + React + TypeScript + tailwindcss v4):**
+**Frontend (Next.js + React + TypeScript + tailwindcss v4 + ZOD):**
 - Validate forms with Zod + React Hook Form; never rely on client-only validation for anything security- or data-integrity-relevant
 - Debounce user input before triggering search/filter requests
 - Sync filter/search state to URL params so views are shareable/bookmarkable
 - Prefer typed API clients over ad-hoc `fetch` calls scattered across components, use axios lib.
+- Prioritize responsive design (mobile-first) and accessibility (WCAG 2.1 AA)
 
 ## Guidelines
 
