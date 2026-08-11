@@ -105,18 +105,27 @@ export async function getUserByID(id: string): Promise<User> {
   }
 }
 
+export interface CreateUserResponse {
+  user: User;
+  randomPassword?: string;
+}
+
 export async function createUser({
   input,
   path,
 }: {
   input: { username: string; email: string; password?: string; role: string; municipalityId: string };
   path: string;
-}): Promise<User> {
+}): Promise<CreateUserResponse> {
   try {
     const headers = await getAuthHeader();
-    const response = await apiServer.post<{ success: boolean; data: User }>('/users', input, { headers });
+    const response = await apiServer.post<{ success: boolean; data: User | CreateUserResponse }>('/users', input, { headers });
     revalidatePath(path);
-    return parseStringify(response.data.data);
+    const data = parseStringify(response.data.data);
+    if (data && typeof data === 'object' && 'user' in data) {
+      return data as CreateUserResponse;
+    }
+    return { user: data as User };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       return redirect('/login');
@@ -133,10 +142,14 @@ export async function updateUser({
   id: string;
   input: { username?: string; email?: string; password?: string; role?: string; municipalityId?: string };
   path: string;
-}): Promise<User> {
+}): Promise<{ user: User; randomPassword?: string }> {
   try {
     const headers = await getAuthHeader();
-    const response = await apiServer.patch<{ success: boolean; data: User }>(`/users/${id}`, input, { headers });
+    const response = await apiServer.patch<{ success: boolean; data: User | { user: User; randomPassword?: string } }>(
+      `/users/${id}`,
+      input,
+      { headers }
+    );
     
     // Se o usuário atualizou a própria senha, desloga e redireciona
     if (input.password && input.password.trim() !== '') {
@@ -148,7 +161,11 @@ export async function updateUser({
     }
 
     revalidatePath(path);
-    return parseStringify(response.data.data);
+    const data = parseStringify(response.data.data);
+    if (data && typeof data === 'object' && 'user' in data) {
+      return data as { user: User; randomPassword?: string };
+    }
+    return { user: data as User };
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       return redirect('/login');

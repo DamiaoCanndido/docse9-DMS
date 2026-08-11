@@ -34,6 +34,12 @@ import {
   Mail,
   UserCheck,
   MoreHorizontal,
+  Copy,
+  Check,
+  Key,
+  Eye,
+  EyeOff,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Dialog,
@@ -98,6 +104,16 @@ export const UsersContent: React.FC<UsersContentProps> = ({
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isPermModalOpen, setIsPermModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // Success modal state for user creation (random password copy)
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [createdUserCredentials, setCreatedUserCredentials] = useState<{
+    username: string;
+    email: string;
+    randomPassword?: string;
+  } | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // User form states
   const [username, setUsername] = useState('');
@@ -200,10 +216,6 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       setFormError('Nome de usuário e e-mail são obrigatórios.');
       return;
     }
-    if (!selectedUser && !password.trim()) {
-      setFormError('A senha é obrigatória para novos usuários.');
-      return;
-    }
 
     setIsSaving(true);
     setFormError('');
@@ -222,20 +234,31 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           path: pathname,
         });
         toast.success('Usuário atualizado com sucesso!');
+        setIsUserModalOpen(false);
       } else {
-        await createUser({
+        const res = await createUser({
           input: {
             username,
             email,
-            password,
             role,
             municipalityId: isAdmin ? municipalityId : currentUser.municipalityId,
           },
           path: pathname,
         });
         toast.success('Usuário criado com sucesso!');
+        setIsUserModalOpen(false);
+
+        if (res.randomPassword) {
+          setCreatedUserCredentials({
+            username: res.user?.username || username,
+            email: res.user?.email || email,
+            randomPassword: res.randomPassword,
+          });
+          setCopiedPassword(false);
+          setShowPassword(false);
+          setIsSuccessModalOpen(true);
+        }
       }
-      setIsUserModalOpen(false);
     } catch (err: any) {
       if (isRedirectError(err)) {
         throw err;
@@ -245,6 +268,14 @@ export const UsersContent: React.FC<UsersContentProps> = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCopyPassword = () => {
+    if (!createdUserCredentials?.randomPassword) return;
+    navigator.clipboard.writeText(createdUserCredentials.randomPassword);
+    setCopiedPassword(true);
+    toast.success('Senha copiada para a área de transferência!');
+    setTimeout(() => setCopiedPassword(false), 3000);
   };
 
   const handleDeleteUser = async (id: string) => {
@@ -689,14 +720,22 @@ export const UsersContent: React.FC<UsersContentProps> = ({
               required
             />
 
-            <Input
-              label={selectedUser ? 'Senha (deixe em branco para não alterar)' : 'Senha de Acesso'}
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required={!selectedUser}
-            />
+            {selectedUser ? (
+              <Input
+                label="Senha (deixe em branco para não alterar)"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            ) : (
+              <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-start gap-3 text-xs text-violet-300">
+                <Key className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                <span>
+                  Uma <strong>senha temporária aleatória</strong> será gerada automaticamente pelo sistema após a criação. Você poderá visualizá-la e copiá-la na tela seguinte.
+                </span>
+              </div>
+            )}
 
             {/* Perfil Selection via shadcn/ui Select */}
             <div className="w-full flex flex-col gap-1.5">
@@ -706,9 +745,9 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                   <SelectValue placeholder="Selecione o perfil" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                  {isAdmin && <SelectItem value="ADMIN">Administrador Global</SelectItem>}
-                  <SelectItem value="MOD">Moderador Municipal</SelectItem>
-                  <SelectItem value="COMMON">Funcionário Comum</SelectItem>
+                  {isAdmin && <SelectItem value="ADMIN" label="Administrador Global">Administrador Global</SelectItem>}
+                  <SelectItem value="MOD" label="Moderador Municipal">Moderador Municipal</SelectItem>
+                  <SelectItem value="COMMON" label="Funcionário Comum">Funcionário Comum</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -717,13 +756,13 @@ export const UsersContent: React.FC<UsersContentProps> = ({
             {isAdmin && (
               <div className="w-full flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
-                <Select value={selectedUser?.municipality?.name} onValueChange={(val) => setMunicipalityId(val || '')}>
+                <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
                     <SelectValue placeholder="Selecione o município" />
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
                     {municipalities.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
+                      <SelectItem key={m.id} value={m.id} label={`${m.name} (${m.uf})`}>
                         {m.name} ({m.uf})
                       </SelectItem>
                     ))}
@@ -848,6 +887,97 @@ export const UsersContent: React.FC<UsersContentProps> = ({
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Modal after Creating User */}
+      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-400" />
+              Usuário Criado com Sucesso!
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-1">
+              Copie a senha temporária abaixo para enviar ao usuário.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 mt-3">
+            <div className="p-3.5 bg-zinc-900/60 border border-zinc-800 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-500 font-medium">Nome de Usuário:</span>
+                <span className="font-bold text-white">{createdUserCredentials?.username}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-500 font-medium">E-mail:</span>
+                <span className="font-medium text-zinc-300">{createdUserCredentials?.email}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5" />
+                Senha Temporária Gerada
+              </label>
+
+              <div className="relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  readOnly
+                  value={createdUserCredentials?.randomPassword || ''}
+                  className="w-full bg-zinc-900 border border-amber-500/40 text-amber-300 font-mono text-base px-4 py-3 rounded-xl pr-24 focus:outline-none focus:border-amber-500 select-all"
+                />
+                <div className="absolute right-2 flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                    title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg flex items-center gap-1.5 cursor-pointer"
+                    onClick={handleCopyPassword}
+                  >
+                    {copiedPassword ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copiar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>Atenção:</strong> Por motivos de segurança, esta senha temporária não será exibida novamente. Certifique-se de copiá-la e enviá-la para o usuário agora.
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 flex justify-end">
+            <Button
+              type="button"
+              variant="default"
+              className="rounded-xl font-bold px-6"
+              onClick={() => setIsSuccessModalOpen(false)}
+            >
+              Concluído
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
