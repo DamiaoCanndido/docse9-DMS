@@ -50,14 +50,14 @@ export const Sidebar: React.FC = () => {
           {isAdmin && (
             <MotionLink
               whileHover={{ x: 4 }}
-              href="/dashboard/municipalities"
+              href="/municipalities"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                pathname.startsWith('/dashboard/municipalities')
+                pathname.startsWith('/municipalities')
                   ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
                   : 'border border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Building2 className={`w-5 h-5 ${pathname.startsWith('/dashboard/municipalities') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              <Building2 className={`w-5 h-5 ${pathname.startsWith('/municipalities') ? 'text-violet-400' : 'text-zinc-500'}`} />
               Municípios
             </MotionLink>
           )}
@@ -65,14 +65,14 @@ export const Sidebar: React.FC = () => {
           {(isAdmin || isMod) && (
             <MotionLink
               whileHover={{ x: 4 }}
-              href="/dashboard/users"
+              href="/users"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                pathname.startsWith('/dashboard/users')
+                pathname.startsWith('/users')
                   ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
                   : 'border border-transparent text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Users className={`w-5 h-5 ${pathname.startsWith('/dashboard/users') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-violet-400' : 'text-zinc-500'}`} />
               Usuários
             </MotionLink>
           )}

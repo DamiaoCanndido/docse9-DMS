@@ -195,7 +195,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	actorRole := domain.Role(claims.Role)
-	if actorRole == domain.RoleMod {
+	switch actorRole {
+	case domain.RoleMod:
 		if input.MunicipalityID != nil && *input.MunicipalityID != claims.MunicipalityID {
 			response.Forbidden(c, "permissão insuficiente para alterar o município do usuário")
 			return
@@ -204,7 +205,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 			response.Forbidden(c, "permissão insuficiente para definir a role como administrador")
 			return
 		}
-	} else if actorRole == domain.RoleAdmin {
+	case domain.RoleAdmin:
 		if input.Role != nil && *input.Role == domain.RoleAdmin {
 			response.Forbidden(c, "permissão insuficiente para definir a role como administrador")
 			return

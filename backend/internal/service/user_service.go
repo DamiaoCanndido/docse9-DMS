@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
@@ -133,30 +134,36 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 		return nil, "", domain.ErrUserNotFound
 	}
 
-	// 2. Atualizar username se fornecido
+	// 2. Atualizar username se fornecido e alterado
 	if input.Username != nil {
 		username := strings.TrimSpace(*input.Username)
-		exists, err := s.userRepo.ExistsByUsername(username, &id)
-		if err != nil {
-			return nil, "", err
+		fmt.Println(username)
+		fmt.Println(u.Username)
+		if username != u.Username {
+			exists, err := s.userRepo.ExistsByUsername(username, &id)
+			if err != nil {
+				return nil, "", err
+			}
+			if exists {
+				return nil, "", domain.ErrUsernameAlreadyExists
+			}
+			u.Username = username
 		}
-		if exists {
-			return nil, "", domain.ErrUsernameAlreadyExists
-		}
-		u.Username = username
 	}
 
-	// 3. Atualizar e-mail se fornecido
+	// 3. Atualizar e-mail se fornecido e alterado
 	if input.Email != nil {
 		email := strings.ToLower(strings.TrimSpace(*input.Email))
-		exists, err := s.userRepo.ExistsByEmail(email, &id)
-		if err != nil {
-			return nil, "", err
+		if email != u.Email {
+			exists, err := s.userRepo.ExistsByEmail(email, &id)
+			if err != nil {
+				return nil, "", err
+			}
+			if exists {
+				return nil, "", domain.ErrEmailAlreadyExists
+			}
+			u.Email = email
 		}
-		if exists {
-			return nil, "", domain.ErrEmailAlreadyExists
-		}
-		u.Email = email
 	}
 
 	var rawPassword string
