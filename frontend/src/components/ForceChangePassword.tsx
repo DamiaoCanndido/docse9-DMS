@@ -133,7 +133,15 @@ export const ForceChangePassword: React.FC = () => {
               {...register('confirmPassword')}
             />
 
-            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <div className="flex flex-col gap-3 mt-4">
+              <Button
+                type="submit"
+                className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 flex items-center justify-center gap-2"
+                isLoading={isLoading}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Atualizar Senha
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -143,14 +151,6 @@ export const ForceChangePassword: React.FC = () => {
               >
                 <LogOut className="w-4 h-4" />
                 Sair
-              </Button>
-              <Button
-                type="submit"
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 flex items-center justify-center gap-2"
-                isLoading={isLoading}
-              >
-                <RefreshCw className="w-4 h-4" />
-                Atualizar Senha
               </Button>
             </div>
           </form>

@@ -717,7 +717,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
             {isAdmin && (
               <div className="w-full flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
-                <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
+                <Select value={selectedUser?.municipality?.name} onValueChange={(val) => setMunicipalityId(val || '')}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
                     <SelectValue placeholder="Selecione o município" />
                   </SelectTrigger>
