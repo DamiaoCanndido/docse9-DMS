@@ -5,7 +5,7 @@ description: start cycle
 
 # Start Cycle
 
-**Type:** Workflow (orchestrates `@pm`, `@engeneer`, `@qa`, `@devops`)
+**Type:** Workflow (orchestrates `@pm`, `@engeneer`, `@qa`, `@security`, `@devops`)
 
 ## Purpose
 
@@ -19,7 +19,7 @@ Defines the standard end-to-end cycle for taking a request from idea to producti
 
 - `<idea>` — a short description of the request, problem, or feature idea to run through the cycle (free text, one line or a short paragraph).
 - Running this command starts the cycle at **Phase 1**, passing `<idea>` to `@pm` as the raw input for the `write_spec` skill.
-- The cycle then proceeds automatically through Phases 2–4 unless a feedback loop sends it backward or the process is explicitly paused.
+- The cycle then proceeds automatically through Phases 2–5 unless a feedback loop sends it backward or the process is explicitly paused.
 
 **Example:**
 
@@ -33,6 +33,7 @@ Defines the standard end-to-end cycle for taking a request from idea to producti
 @pm (write_spec)
    → @engeneer (generate_code)
    → @qa (audit_code)
+   → @security (audit_security)
    → @devops (deploy_app)
    → Released
 ```
@@ -75,19 +76,35 @@ Defines the standard end-to-end cycle for taking a request from idea to producti
 
 **Runs:** `@qa` executes the `audit_code` skill.
 
-**Output:** Either a sign-off (ready to ship) or one or more filed bug reports.
+**Output:** Either a sign-off (ready for security review) or one or more filed bug reports.
 
-**Exit condition:** All blocking issues resolved; acceptance criteria from the spec are verified as met.
+**Exit condition:** All blocking functional and quality issues resolved; acceptance criteria from the spec are verified as met.
 
-**Handoff to:** `@devops`
+**Handoff to:** `@security`
 
 **Feedback loop:** Blocking bugs send the cycle back to Phase 2 (`@engeneer`). If the issue is actually a spec gap (behavior undefined), send it back to Phase 1 (`@pm`) instead of guessing.
 
 ---
 
-## Phase 4 — Ship (`@devops` → `deploy_app`)
+## Phase 4 — Security Audit (`@security` → `audit_security`)
 
 **Trigger:** `@qa` sign-off from Phase 3.
+
+**Runs:** `@security` executes the `audit_security` skill.
+
+**Output:** Security audit sign-off, threat model review, dependency vulnerability check, and LGPD/compliance verification.
+
+**Exit condition:** All Critical and High severity security vulnerabilities resolved; auth/authz rules, secrets policies, and data protection requirements verified.
+
+**Handoff to:** `@devops`
+
+**Feedback loop:** Security vulnerabilities or non-compliance findings send the cycle back to Phase 2 (`@engeneer`). If a security flaw exposes an unaddressed architectural or spec gap, return to Phase 1 (`@pm`).
+
+---
+
+## Phase 5 — Ship (`@devops` → `deploy_app`)
+
+**Trigger:** `@security` sign-off from Phase 4.
 
 **Runs:** `@devops` executes the `deploy_app` skill.
 
@@ -107,7 +124,8 @@ Defines the standard end-to-end cycle for taking a request from idea to producti
 - [ ] Phase 1 — Spec approved by @pm (link)
 - [ ] Phase 2 — Code implemented by @engeneer (link/PR)
 - [ ] Phase 3 — Verified by @qa (sign-off or bugs filed)
-- [ ] Phase 4 — Deployed by @devops (link/release)
+- [ ] Phase 4 — Security audited by @security (sign-off or security findings)
+- [ ] Phase 5 — Deployed by @devops (link/release)
 
 **Current phase:**
 **Blocked on:**
@@ -118,5 +136,5 @@ Defines the standard end-to-end cycle for taking a request from idea to producti
 
 - Each phase has exactly one owner agent at a time — no phase starts before the previous one's exit condition is met.
 - Feedback loops go backward only as far as necessary — a code bug doesn't need to restart the spec, but a spec gap does need to restart there.
-- Skipping a phase (e.g., deploying without `@qa` sign-off) is only acceptable for pre-agreed emergency fixes, and must be documented as such in the Cycle Tracker.
+- Skipping a phase (e.g., deploying without `@qa` or `@security` sign-off) is only acceptable for pre-agreed emergency fixes, and must be documented as such in the Cycle Tracker.
 - The cycle can run for a small fix in minutes or a large feature over days — the sequence doesn't change, only the depth of each phase.
