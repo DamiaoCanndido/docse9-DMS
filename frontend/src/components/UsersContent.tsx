@@ -16,6 +16,7 @@ import {
   updateUserPermissions,
 } from '@/app/api/users';
 import { toast } from 'sonner';
+import { isRedirectError } from '@/lib/utils';
 import {
   Users,
   Plus,
@@ -193,7 +194,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
     setIsUserModalOpen(true);
   };
 
-  const handleSaveUser = async (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!username.trim() || !email.trim()) {
       setFormError('Nome de usuário e e-mail são obrigatórios.');
@@ -236,6 +237,9 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       }
       setIsUserModalOpen(false);
     } catch (err: any) {
+      if (isRedirectError(err)) {
+        throw err;
+      }
       setFormError(err.response?.data?.error || 'Erro ao salvar usuário.');
       toast.error('Ocorreu um erro.');
     } finally {

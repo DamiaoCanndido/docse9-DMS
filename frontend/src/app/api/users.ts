@@ -1,7 +1,7 @@
 'use server';
 
 import { apiServer } from '@/lib/axios';
-import { getToken } from './auth';
+import { getToken, getUserOrNull, logoutUser } from './auth';
 import { parseStringify } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -137,6 +137,16 @@ export async function updateUser({
   try {
     const headers = await getAuthHeader();
     const response = await apiServer.patch<{ success: boolean; data: User }>(`/users/${id}`, input, { headers });
+    
+    // Se o usuário atualizou a própria senha, desloga e redireciona
+    if (input.password && input.password.trim() !== '') {
+      const currentUser = await getUserOrNull();
+      if (currentUser && currentUser.id === id) {
+        await logoutUser();
+        return redirect('/login');
+      }
+    }
+
     revalidatePath(path);
     return parseStringify(response.data.data);
   } catch (error) {

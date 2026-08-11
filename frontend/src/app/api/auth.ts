@@ -99,7 +99,18 @@ export async function logoutUser() {
 
 export async function changePassword(form: { currentPassword: string; newPassword: string; confirmPassword: string }) {
   try {
-    const response = await apiServer.post<{ success: boolean; data: { token: string; user: User } }>('/users/me/change-password', form);
+    const token = await getToken();
+    if (!token) {
+      return { success: false, error: 'Usuário não autenticado.' };
+    }
+
+    const response = await apiServer.post<{ success: boolean; data: { token: string; user: User } }>(
+      '/users/me/change-password',
+      form,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     const data = response.data.data;
     if (!data || !data.token) {

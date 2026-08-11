@@ -16,6 +16,7 @@ import {
 } from '@/app/api/documents';
 import { getUserPermissions } from '@/app/api/users';
 import { toast } from 'sonner';
+import { isRedirectError } from '@/lib/utils';
 import { 
   FileText, 
   Trash2, 
@@ -244,7 +245,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     setIsModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!description.trim()) {
       setFormError('A descrição do documento é obrigatória.');
@@ -311,6 +312,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       }
       setIsModalOpen(false);
     } catch (err: any) {
+      if (isRedirectError(err)) {
+        throw err;
+      }
       setFormError(err.response?.data?.error || 'Erro ao salvar o documento.');
       toast.error('Ocorreu um erro.');
     } finally {

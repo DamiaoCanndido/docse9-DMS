@@ -7,3 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 export const parseStringify = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
+export function isRedirectError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const digest = (error as { digest?: string }).digest;
+  return typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT');
+}

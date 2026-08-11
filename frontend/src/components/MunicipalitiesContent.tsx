@@ -13,6 +13,7 @@ import {
   hardDeleteMunicipality,
 } from '@/app/api/municipalities';
 import { toast } from 'sonner';
+import { isRedirectError } from '@/lib/utils';
 import {
   Building2,
   Plus,
@@ -115,7 +116,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
     setEditingMunicipality(null);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim() || !uf.trim()) {
       setFormError('Nome e UF são obrigatórios.');
@@ -146,6 +147,9 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
       }
       closeModal();
     } catch (err: any) {
+      if (isRedirectError(err)) {
+        throw err;
+      }
       setFormError(err.response?.data?.error || 'Erro ao salvar município.');
       toast.error('Ocorreu um erro.');
     } finally {
