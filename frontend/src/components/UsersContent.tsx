@@ -758,7 +758,14 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
                 <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
-                    <SelectValue placeholder="Selecione o município" />
+                    <SelectValue placeholder="Selecione o município">
+                      {municipalityId
+                        ? (() => {
+                            const m = municipalities.find((m) => m.id === municipalityId);
+                            return m ? `${m.name} (${m.uf})` : municipalityId;
+                          })()
+                        : null}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
                     {municipalities.map((m) => (

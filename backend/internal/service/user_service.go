@@ -205,6 +205,7 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 			return nil, "", ErrMunicipalityNotFound
 		}
 		u.MunicipalityID = *input.MunicipalityID
+		u.Municipality = *mun
 	}
 
 	// 7. Atualizar last login se fornecido

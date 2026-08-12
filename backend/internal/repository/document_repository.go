@@ -94,7 +94,7 @@ func (r *documentRepository) FindByIDUnscoped(id uuid.UUID) (*domain.Document, e
 }
 
 func (r *documentRepository) Update(d *domain.Document) error {
-	return r.db.Save(d).Error
+	return r.db.Omit("CreatedBy", "Municipality").Save(d).Error
 }
 
 func (r *documentRepository) Delete(id uuid.UUID) error {

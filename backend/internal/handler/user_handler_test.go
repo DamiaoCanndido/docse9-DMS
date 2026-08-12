@@ -220,6 +220,31 @@ func TestUpdateUser_Handler_200(t *testing.T) {
 	assert.Equal(t, newEmail, resp["data"].(map[string]any)["email"])
 }
 
+func TestUpdateUser_Municipality_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+	newMunID := testhelper.MunPatosID
+	patos := testhelper.MakePatos()
+
+	input := domain.UpdateUserInput{MunicipalityID: &newMunID}
+
+	updated := u
+	updated.MunicipalityID = newMunID
+	updated.Municipality = patos
+
+	svc.On("GetByID", u.ID).Return(&u, nil)
+	svc.On("Update", u.ID, input).Return(&updated, "", nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s", u.ID)
+	w := doRequest(setupUserRouter(svc), http.MethodPatch, path, input)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	parseBody(t, w, &resp)
+	assert.Equal(t, newMunID.String(), resp["data"].(map[string]any)["municipalityId"])
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // DELETE /api/v1/users/:id
 // ═══════════════════════════════════════════════════════════════════════════════

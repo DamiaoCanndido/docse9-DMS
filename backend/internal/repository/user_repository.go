@@ -117,7 +117,7 @@ func (r *userRepository) FindByUsername(username string) (*domain.User, error) {
 
 // Update atualiza as informações de um usuário existente.
 func (r *userRepository) Update(u *domain.User) error {
-	return translateUserPgError(r.db.Save(u).Error)
+	return translateUserPgError(r.db.Omit("Municipality").Save(u).Error)
 }
 
 // Delete remove um usuário de forma lógica (soft delete) pelo seu ID.
