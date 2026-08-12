@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 interface PageProps {
   searchParams: Promise<{
     page?: string;
+    pageSize?: string;
     trash?: string;
     role?: string;
     municipalityId?: string;
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function UsersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
+  const pageSize = Number(params.pageSize) || 10;
   const viewTrash = params.trash === 'true';
   const roleFilter = params.role || undefined;
   const municipalityIdFilter = params.municipalityId || undefined;
@@ -41,8 +43,8 @@ export default async function UsersPage({ searchParams }: PageProps) {
 
   // Busca lista de usuários
   const usersData = viewTrash 
-    ? await getUsersTrash(page, 10, userFilter)
-    : await getUsers(page, 10, userFilter);
+    ? await getUsersTrash(page, pageSize, userFilter)
+    : await getUsers(page, pageSize, userFilter);
 
   // Busca municípios para o dropdown de criação/filtragem (apenas ADMIN precisa da lista completa)
   const municipalitiesData = user.role === 'ADMIN' 

@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 interface PageProps {
   searchParams: Promise<{
     page?: string;
+    pageSize?: string;
     trash?: string;
   }>;
 }
@@ -14,6 +15,7 @@ interface PageProps {
 export default async function MunicipalitiesPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
+  const pageSize = Number(params.pageSize) || 10;
   const viewTrash = params.trash === 'true';
 
   const user = await getMe();
@@ -25,8 +27,8 @@ export default async function MunicipalitiesPage({ searchParams }: PageProps) {
 
   // Busca dados dependendo se o usuário está visualizando ativos ou excluídos (lixeira)
   const municipalitiesData = viewTrash 
-    ? await getMunicipalitiesTrash(page, 10)
-    : await getMunicipalities(page, 10);
+    ? await getMunicipalitiesTrash(page, pageSize)
+    : await getMunicipalities(page, pageSize);
 
   return (
     <MunicipalitiesContent

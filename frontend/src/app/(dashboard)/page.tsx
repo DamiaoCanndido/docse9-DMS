@@ -11,6 +11,7 @@ interface PageProps {
     type?: string;
     contractType?: string;
     page?: string;
+    pageSize?: string;
     trash?: string;
   }>;
 }
@@ -22,6 +23,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const type = (params.type as DocumentType) || undefined;
   const contractType = (params.contractType as ContractType) || undefined;
   const page = Number(params.page) || 1;
+  const pageSize = Number(params.pageSize) || 10;
   const viewTrash = params.trash === 'true';
 
   const user = await getMe();
@@ -33,8 +35,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   // Busca os documentos (ativos ou excluídos na lixeira)
   const documentsData = viewTrash
-    ? await getDocumentsTrash(page, 10)
-    : await getDocuments({ search, type, contractType }, page, 10);
+    ? await getDocumentsTrash(page, pageSize)
+    : await getDocuments({ search, type, contractType }, page, pageSize);
 
   return (
     <DocumentsContent

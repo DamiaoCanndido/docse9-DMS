@@ -6,6 +6,7 @@ import { useDebounce } from 'use-debounce';
 import { User, Municipality, Role, PaginatedResponse, UserPermission, DocumentType, PermissionLevel } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PaginationBar } from '@/components/ui/PaginationBar';
 import {
   createUser,
   updateUser,
@@ -169,6 +170,15 @@ export const UsersContent: React.FC<UsersContentProps> = ({
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(window.location.search);
     params.set('page', newPage.toString());
+    startTransition(() => {
+      router.replace(`?${params.toString()}`);
+    });
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('pageSize', newPageSize.toString());
+    params.set('page', '1');
     startTransition(() => {
       router.replace(`?${params.toString()}`);
     });
@@ -657,37 +667,16 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           </div>
         )}
 
-        {/* Pagination */}
-        {initialData.total > initialData.pageSize && (
-          <div className="px-6 py-4.5 border-t border-zinc-900 bg-zinc-950/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">
-              Mostrando {initialData.data.length} de {initialData.total} usuários
-            </span>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                className="px-3.5 py-1.5 text-xs h-9 border-zinc-800 text-zinc-400 hover:text-white rounded-xl"
-                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1 || isPending}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Anterior
-              </Button>
-              <span className="text-xs text-zinc-400 font-bold px-3 py-1.5 rounded-lg bg-zinc-900">
-                Página {currentPage}
-              </span>
-              <Button
-                variant="outline"
-                className="px-3.5 py-1.5 text-xs h-9 border-zinc-800 text-zinc-400 hover:text-white rounded-xl"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage * initialData.pageSize >= initialData.total || isPending}
-              >
-                Próxima
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Pagination bar */}
+        <PaginationBar
+          currentPage={initialData.page}
+          pageSize={initialData.pageSize}
+          total={initialData.total}
+          itemLabel="usuários"
+          isPending={isPending}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
 
       {/* User Create/Edit Modal via shadcn/ui Dialog */}
