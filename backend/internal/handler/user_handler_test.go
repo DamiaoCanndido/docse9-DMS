@@ -123,7 +123,7 @@ func TestGetAllUsers_Handler_200(t *testing.T) {
 		testhelper.MakeUserCommon(testhelper.MunPassagemID),
 	}
 
-	svc.On("GetAll", 1, 20).Return(users, int64(2), nil)
+	svc.On("GetAll", domain.UserFilter{}, 1, 20).Return(users, int64(2), nil)
 
 	w := doRequest(setupUserRouter(svc), http.MethodGet, "/api/v1/users", nil)
 
@@ -137,6 +137,20 @@ func TestGetAllUsers_Handler_200(t *testing.T) {
 	assert.Len(t, data, 2)
 }
 
+func TestGetAllUsers_Handler_WithMunicipalityFilter(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	emptyUsers := []domain.User{}
+	munID := uuid.New()
+	filter := domain.UserFilter{MunicipalityIDRaw: munID.String(), MunicipalityID: &munID}
+
+	svc.On("GetAll", filter, 1, 20).Return(emptyUsers, int64(0), nil)
+
+	url := fmt.Sprintf("/api/v1/users?municipalityId=%s", munID.String())
+	w := doRequest(setupUserRouter(svc), http.MethodGet, url, nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // GET /api/v1/users/trash
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -147,7 +161,7 @@ func TestGetDeletedUsers_Handler_200(t *testing.T) {
 		testhelper.MakeUserCommon(testhelper.MunPassagemID),
 	}
 
-	svc.On("GetDeleted", 1, 20).Return(users, int64(1), nil)
+	svc.On("GetDeleted", domain.UserFilter{}, 1, 20).Return(users, int64(1), nil)
 
 	w := doRequest(setupUserRouter(svc), http.MethodGet, "/api/v1/users/trash", nil)
 

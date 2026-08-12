@@ -94,12 +94,12 @@ func (s *userService) Create(input domain.CreateUserInput) (*domain.User, string
 	return createdUser, rawPassword, nil
 }
 
-func (s *userService) GetAll(page, pageSize int) ([]domain.User, int64, error) {
-	return s.userRepo.FindAll(page, pageSize)
+func (s *userService) GetAll(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	return s.userRepo.FindAll(filter, page, pageSize)
 }
 
-func (s *userService) GetDeleted(page, pageSize int) ([]domain.User, int64, error) {
-	return s.userRepo.FindDeleted(page, pageSize)
+func (s *userService) GetDeleted(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	return s.userRepo.FindDeleted(filter, page, pageSize)
 }
 
 func (s *userService) GetByID(id uuid.UUID) (*domain.User, error) {

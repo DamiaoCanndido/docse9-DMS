@@ -162,10 +162,11 @@ func TestGetAllUsers_Success(t *testing.T) {
 	svc, userRepo, _ := newUserService(t)
 	mun := testhelper.MakePassagem()
 	users := []domain.User{testhelper.MakeUserCommon(mun.ID), testhelper.MakeUserAdmin(mun.ID)}
+	filter := domain.UserFilter{}
 
-	userRepo.On("FindAll", 1, 10).Return(users, int64(2), nil)
+	userRepo.On("FindAll", filter, 1, 10).Return(users, int64(2), nil)
 
-	result, total, err := svc.GetAll(1, 10)
+	result, total, err := svc.GetAll(filter, 1, 10)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
@@ -180,10 +181,11 @@ func TestGetDeletedUsers_Success(t *testing.T) {
 	svc, userRepo, _ := newUserService(t)
 	mun := testhelper.MakePassagem()
 	users := []domain.User{testhelper.MakeUserCommon(mun.ID)}
+	filter := domain.UserFilter{}
 
-	userRepo.On("FindDeleted", 1, 10).Return(users, int64(1), nil)
+	userRepo.On("FindDeleted", filter, 1, 10).Return(users, int64(1), nil)
 
-	result, total, err := svc.GetDeleted(1, 10)
+	result, total, err := svc.GetDeleted(filter, 1, 10)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 1)

@@ -85,7 +85,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 	})
 }
 
-// GetAll lista todos os usuários ativos (paginado)
+// GetAll lista todos os usuários ativos (paginado, filtrado)
 func (h *UserHandler) GetAll(c *gin.Context) {
 	claims := getClaims(c)
 	if claims == nil {
@@ -93,26 +93,32 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		return
 	}
 
+	var filter domain.UserFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := filter.Process(); err != nil {
+		response.BadRequest(c, "ID de município inválido")
+		return
+	}
+
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleMod {
+		filter.MunicipalityID = &claims.MunicipalityID
+		adminRole := domain.RoleAdmin
+		filter.ExcludeRole = &adminRole
+	}
+
 	page, pageSize := parsePagination(c)
 
-	users, _, err := h.svc.GetAll(page, pageSize)
+	users, total, err := h.svc.GetAll(filter, page, pageSize)
 	if err != nil {
 		response.InternalError(c)
 		return
 	}
 
-	actorRole := domain.Role(claims.Role)
-	var filtered []domain.User
-	for _, u := range users {
-		if actorRole == domain.RoleAdmin {
-			filtered = append(filtered, u)
-		}
-		if actorRole == domain.RoleMod && u.Role != domain.RoleAdmin && u.MunicipalityID == claims.MunicipalityID {
-			filtered = append(filtered, u)
-		}
-	}
-
-	response.Paginated(c, filtered, int64(len(filtered)), page, pageSize)
+	response.Paginated(c, users, total, page, pageSize)
 }
 
 // GetDeleted lista os usuários deletados (lixeira)
@@ -123,26 +129,32 @@ func (h *UserHandler) GetDeleted(c *gin.Context) {
 		return
 	}
 
+	var filter domain.UserFilter
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := filter.Process(); err != nil {
+		response.BadRequest(c, "ID de município inválido")
+		return
+	}
+
+	actorRole := domain.Role(claims.Role)
+	if actorRole == domain.RoleMod {
+		filter.MunicipalityID = &claims.MunicipalityID
+		adminRole := domain.RoleAdmin
+		filter.ExcludeRole = &adminRole
+	}
+
 	page, pageSize := parsePagination(c)
 
-	users, _, err := h.svc.GetDeleted(page, pageSize)
+	users, total, err := h.svc.GetDeleted(filter, page, pageSize)
 	if err != nil {
 		response.InternalError(c)
 		return
 	}
 
-	actorRole := domain.Role(claims.Role)
-	var filtered []domain.User
-	for _, u := range users {
-		if actorRole == domain.RoleAdmin {
-			filtered = append(filtered, u)
-		}
-		if actorRole == domain.RoleMod && u.Role != domain.RoleAdmin && u.MunicipalityID == claims.MunicipalityID {
-			filtered = append(filtered, u)
-		}
-	}
-
-	response.Paginated(c, filtered, int64(len(filtered)), page, pageSize)
+	response.Paginated(c, users, total, page, pageSize)
 }
 
 // GetByID busca um usuário por ID

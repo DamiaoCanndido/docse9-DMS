@@ -16,13 +16,13 @@ func (m *UserRepository) Create(u *domain.User) error {
 	return args.Error(0)
 }
 
-func (m *UserRepository) FindAll(page, pageSize int) ([]domain.User, int64, error) {
-	args := m.Called(page, pageSize)
+func (m *UserRepository) FindAll(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	args := m.Called(filter, page, pageSize)
 	return args.Get(0).([]domain.User), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *UserRepository) FindDeleted(page, pageSize int) ([]domain.User, int64, error) {
-	args := m.Called(page, pageSize)
+func (m *UserRepository) FindDeleted(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	args := m.Called(filter, page, pageSize)
 	return args.Get(0).([]domain.User), args.Get(1).(int64), args.Error(2)
 }
 

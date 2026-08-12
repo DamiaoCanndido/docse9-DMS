@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,9 +41,27 @@ type User struct {
 	DeletedAt          gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 
-// ──────────────────────────────────────────────
-// DTOs
-// ──────────────────────────────────────────────
+type UserFilter struct {
+	MunicipalityIDRaw string     `json:"-"              form:"municipalityId"`
+	MunicipalityID    *uuid.UUID `json:"municipalityId" form:"-"`
+	Role              *Role      `json:"role"           form:"role"`
+	ExcludeRole       *Role      `json:"-"`
+	Search            string     `json:"search"         form:"search"` // Busca por username ou email
+}
+
+func (f *UserFilter) Process() error {
+	if f.MunicipalityIDRaw != "" && f.MunicipalityID == nil {
+		raw := strings.Trim(f.MunicipalityIDRaw, " \"[]")
+		if raw != "" {
+			parsed, err := uuid.Parse(raw)
+			if err != nil {
+				return err
+			}
+			f.MunicipalityID = &parsed
+		}
+	}
+	return nil
+}
 
 type CreateUserInput struct {
 	Username       string    `json:"username"        binding:"required,min=3,max=255"`
@@ -73,8 +92,8 @@ type ChangePasswordInput struct {
 
 type UserRepository interface {
 	Create(u *User) error
-	FindAll(page, pageSize int) ([]User, int64, error)
-	FindDeleted(page, pageSize int) ([]User, int64, error)
+	FindAll(filter UserFilter, page, pageSize int) ([]User, int64, error)
+	FindDeleted(filter UserFilter, page, pageSize int) ([]User, int64, error)
 	FindByID(id uuid.UUID) (*User, error)
 	FindByIDUnscoped(id uuid.UUID) (*User, error)
 	FindByEmail(email string) (*User, error)
@@ -93,8 +112,8 @@ type UserRepository interface {
 
 type UserService interface {
 	Create(input CreateUserInput) (*User, string, error)
-	GetAll(page, pageSize int) ([]User, int64, error)
-	GetDeleted(page, pageSize int) ([]User, int64, error)
+	GetAll(filter UserFilter, page, pageSize int) ([]User, int64, error)
+	GetDeleted(filter UserFilter, page, pageSize int) ([]User, int64, error)
 	GetByID(id uuid.UUID) (*User, error)
 	GetByIDUnscoped(id uuid.UUID) (*User, error)
 	Update(id uuid.UUID, input UpdateUserInput) (*User, string, error)

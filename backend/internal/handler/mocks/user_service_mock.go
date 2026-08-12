@@ -19,13 +19,13 @@ func (m *UserService) Create(input domain.CreateUserInput) (*domain.User, string
 	return args.Get(0).(*domain.User), args.String(1), args.Error(2)
 }
 
-func (m *UserService) GetAll(page, pageSize int) ([]domain.User, int64, error) {
-	args := m.Called(page, pageSize)
+func (m *UserService) GetAll(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	args := m.Called(filter, page, pageSize)
 	return args.Get(0).([]domain.User), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *UserService) GetDeleted(page, pageSize int) ([]domain.User, int64, error) {
-	args := m.Called(page, pageSize)
+func (m *UserService) GetDeleted(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
+	args := m.Called(filter, page, pageSize)
 	return args.Get(0).([]domain.User), args.Get(1).(int64), args.Error(2)
 }
 

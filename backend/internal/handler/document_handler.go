@@ -108,6 +108,10 @@ func (h *DocumentHandler) GetAll(c *gin.Context) {
 		response.BadRequest(c, err.Error())
 		return
 	}
+	if err := filter.Process(); err != nil {
+		response.BadRequest(c, "ID de filtro inválido")
+		return
+	}
 
 	if actorRole == domain.RoleCommon {
 		ok, msg := h.buildAllowedTypesFilter(claims.UserID, &filter)
@@ -152,6 +156,10 @@ func (h *DocumentHandler) GetDeleted(c *gin.Context) {
 	var filter domain.DocumentFilter
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		response.BadRequest(c, err.Error())
+		return
+	}
+	if err := filter.Process(); err != nil {
+		response.BadRequest(c, "ID de filtro inválido")
 		return
 	}
 

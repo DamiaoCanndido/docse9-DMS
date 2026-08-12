@@ -25,19 +25,21 @@ func (r *userRepository) Create(u *domain.User) error {
 }
 
 // FindAll retorna todos os usuários ativos paginados.
-func (r *userRepository) FindAll(page, pageSize int) ([]domain.User, int64, error) {
+func (r *userRepository) FindAll(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
 	var (
 		users []domain.User
 		total int64
 	)
 
 	offset := (page - 1) * pageSize
+	query := r.db.Model(&domain.User{})
+	query = applyUserFilters(query, filter)
 
-	if err := r.db.Model(&domain.User{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	if err := r.db.Preload("Municipality").
+	if err := query.Preload("Municipality").
 		Order("username ASC").
 		Offset(offset).
 		Limit(pageSize).
@@ -49,7 +51,7 @@ func (r *userRepository) FindAll(page, pageSize int) ([]domain.User, int64, erro
 }
 
 // FindDeleted retorna os usuários deletados de forma lógica (soft delete), paginados.
-func (r *userRepository) FindDeleted(page, pageSize int) ([]domain.User, int64, error) {
+func (r *userRepository) FindDeleted(filter domain.UserFilter, page, pageSize int) ([]domain.User, int64, error) {
 	var (
 		users []domain.User
 		total int64
@@ -59,6 +61,7 @@ func (r *userRepository) FindDeleted(page, pageSize int) ([]domain.User, int64, 
 	query := r.db.Unscoped().
 		Model(&domain.User{}).
 		Where("deleted_at IS NOT NULL")
+	query = applyUserFilters(query, filter)
 
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -73,6 +76,23 @@ func (r *userRepository) FindDeleted(page, pageSize int) ([]domain.User, int64, 
 	}
 
 	return users, total, nil
+}
+
+func applyUserFilters(query *gorm.DB, filter domain.UserFilter) *gorm.DB {
+	if filter.MunicipalityID != nil {
+		query = query.Where("municipality_id = ?", *filter.MunicipalityID)
+	}
+	if filter.Role != nil {
+		query = query.Where("role = ?", *filter.Role)
+	}
+	if filter.ExcludeRole != nil {
+		query = query.Where("role != ?", *filter.ExcludeRole)
+	}
+	if filter.Search != "" {
+		searchTerm := "%" + filter.Search + "%"
+		query = query.Where("(LOWER(username) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?))", searchTerm, searchTerm)
+	}
+	return query
 }
 
 // FindByID busca um usuário ativo pelo seu ID.

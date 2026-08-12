@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,13 +65,39 @@ type Document struct {
 // ──────────────────────────────────────────────
 
 type DocumentFilter struct {
-	Type           *DocumentType  `json:"type"           form:"type"`
-	AllowedTypes   []DocumentType `json:"-"`
-	MunicipalityID *uuid.UUID     `json:"municipalityId" form:"municipalityId"`
-	CreatorID      *uuid.UUID     `json:"creatorId"      form:"creatorId"`
-	Search         string         `json:"search"         form:"search"` // Busca textual na descrição
-	Year           *int           `json:"year"           form:"year"`   // Ano do documento ou contrato
-	ContractType   *ContractType  `json:"contractType"   form:"contractType"`
+	Type              *DocumentType  `json:"type"           form:"type"`
+	AllowedTypes      []DocumentType `json:"-"`
+	MunicipalityIDRaw string         `json:"-"              form:"municipalityId"`
+	MunicipalityID    *uuid.UUID     `json:"municipalityId" form:"-"`
+	CreatorIDRaw      string         `json:"-"              form:"creatorId"`
+	CreatorID         *uuid.UUID     `json:"creatorId"      form:"-"`
+	Search            string         `json:"search"         form:"search"` // Busca textual na descrição
+	Year              *int           `json:"year"           form:"year"`   // Ano do documento ou contrato
+	ContractType      *ContractType  `json:"contractType"   form:"contractType"`
+}
+
+func (f *DocumentFilter) Process() error {
+	if f.MunicipalityIDRaw != "" && f.MunicipalityID == nil {
+		raw := strings.Trim(f.MunicipalityIDRaw, " \"[]")
+		if raw != "" {
+			parsed, err := uuid.Parse(raw)
+			if err != nil {
+				return err
+			}
+			f.MunicipalityID = &parsed
+		}
+	}
+	if f.CreatorIDRaw != "" && f.CreatorID == nil {
+		raw := strings.Trim(f.CreatorIDRaw, " \"[]")
+		if raw != "" {
+			parsed, err := uuid.Parse(raw)
+			if err != nil {
+				return err
+			}
+			f.CreatorID = &parsed
+		}
+	}
+	return nil
 }
 
 type CreateDocumentInput struct {

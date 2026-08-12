@@ -60,9 +60,21 @@ export async function getUsers(
   }
 }
 
-export async function getUsersTrash(page = 1, pageSize = 10): Promise<PaginatedResponse<User>> {
+export async function getUsersTrash(
+  page = 1,
+  pageSize = 10,
+  filter?: { municipalityId?: string; role?: string; search?: string }
+): Promise<PaginatedResponse<User>> {
   try {
     const headers = await getAuthHeader();
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
+
+    if (filter?.municipalityId) params.append('municipalityId', filter.municipalityId);
+    if (filter?.role) params.append('role', filter.role);
+    if (filter?.search) params.append('search', filter.search);
+
     const response = await apiServer.get<{
       success: boolean;
       data: User[];
@@ -74,7 +86,7 @@ export async function getUsersTrash(page = 1, pageSize = 10): Promise<PaginatedR
       };
     }>('/users/trash', {
       headers,
-      params: { page, pageSize },
+      params,
     });
     
     const body = response.data;

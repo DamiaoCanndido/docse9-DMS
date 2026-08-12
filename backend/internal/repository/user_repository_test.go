@@ -147,7 +147,7 @@ func (s *UserRepositorySuite) TestFindAll_Pagination() {
 	s.insertUserCommon() // username: common_user
 
 	// Página 1, 1 item por página
-	result, total, err := s.repo.FindAll(1, 1)
+	result, total, err := s.repo.FindAll(domain.UserFilter{}, 1, 1)
 	s.NoError(err)
 	s.Len(result, 1)
 	s.Equal(int64(2), total)
@@ -155,10 +155,52 @@ func (s *UserRepositorySuite) TestFindAll_Pagination() {
 	s.Equal(s.mun.Name, result[0].Municipality.Name)
 
 	// Página 2
-	result2, _, err := s.repo.FindAll(2, 1)
+	result2, _, err := s.repo.FindAll(domain.UserFilter{}, 2, 1)
 	s.NoError(err)
 	s.Len(result2, 1)
 	s.Equal("common_user", result2[0].Username)
+}
+
+func (s *UserRepositorySuite) TestFindAll_Filtering() {
+	uAdmin := s.insertUserAdmin()   // username: admin_user, role: ADMIN, email: admin@example.com
+	uCommon := s.insertUserCommon() // username: common_user, role: COMMON, email: common@example.com
+
+	// Filter by search (username or email)
+	resSearch, totalSearch, err := s.repo.FindAll(domain.UserFilter{Search: "common"}, 1, 10)
+	s.NoError(err)
+	s.Len(resSearch, 1)
+	s.Equal(int64(1), totalSearch)
+	s.Equal(uCommon.ID, resSearch[0].ID)
+
+	// Filter by role
+	roleAdmin := domain.RoleAdmin
+	resRole, totalRole, err := s.repo.FindAll(domain.UserFilter{Role: &roleAdmin}, 1, 10)
+	s.NoError(err)
+	s.Len(resRole, 1)
+	s.Equal(int64(1), totalRole)
+	s.Equal(uAdmin.ID, resRole[0].ID)
+
+	// Filter by excludeRole
+	resExclude, totalExclude, err := s.repo.FindAll(domain.UserFilter{ExcludeRole: &roleAdmin}, 1, 10)
+	s.NoError(err)
+	s.Len(resExclude, 1)
+	s.Equal(int64(1), totalExclude)
+	s.Equal(uCommon.ID, resExclude[0].ID)
+
+	// Filter by municipalityId
+	munID := s.mun.ID
+	resMun, totalMun, err := s.repo.FindAll(domain.UserFilter{MunicipalityID: &munID}, 1, 10)
+	s.NoError(err)
+	s.Len(resMun, 2)
+	s.Equal(int64(2), totalMun)
+
+	// Filter by a municipalityId that has NO users
+	emptyMunID := uuid.New()
+	resEmpty, totalEmpty, err := s.repo.FindAll(domain.UserFilter{MunicipalityID: &emptyMunID}, 1, 10)
+	s.NoError(err)
+	s.Len(resEmpty, 0)
+	s.Equal(int64(0), totalEmpty)
+	s.NotNil(resEmpty) // Must be empty slice, not crash
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -172,7 +214,7 @@ func (s *UserRepositorySuite) TestFindDeleted_Pagination() {
 	s.NoError(s.repo.Delete(u1.ID))
 	s.NoError(s.repo.Delete(u2.ID))
 
-	result, total, err := s.repo.FindDeleted(1, 1)
+	result, total, err := s.repo.FindDeleted(domain.UserFilter{}, 1, 1)
 	s.NoError(err)
 	s.Len(result, 1)
 	s.Equal(int64(2), total)

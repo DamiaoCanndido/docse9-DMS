@@ -33,14 +33,16 @@ export default async function UsersPage({ searchParams }: PageProps) {
   // Se for MOD, filtra automaticamente apenas os usuários do próprio município
   const finalMunicipalityId = user.role === 'MOD' ? user.municipalityId : municipalityIdFilter;
 
+  const userFilter = {
+    municipalityId: finalMunicipalityId,
+    role: roleFilter,
+    search: searchFilter,
+  };
+
   // Busca lista de usuários
   const usersData = viewTrash 
-    ? await getUsersTrash(page, 10)
-    : await getUsers(page, 10, {
-        municipalityId: finalMunicipalityId,
-        role: roleFilter,
-        search: searchFilter,
-      });
+    ? await getUsersTrash(page, 10, userFilter)
+    : await getUsers(page, 10, userFilter);
 
   // Busca municípios para o dropdown de criação/filtragem (apenas ADMIN precisa da lista completa)
   const municipalitiesData = user.role === 'ADMIN' 
