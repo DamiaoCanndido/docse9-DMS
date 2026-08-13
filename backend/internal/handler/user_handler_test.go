@@ -331,6 +331,84 @@ func TestGetPermissions_Handler_200(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func setupUserRouterWithClaims(svc domain.UserService, claims *security.UserClaims) *gin.Engine {
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user", claims)
+		c.Next()
+	})
+	h := handler.NewUserHandler(svc)
+	h.RegisterRoutes(r.Group("/api/v1"))
+	return r
+}
+
+func TestGetPermissions_CommonUser_OwnPermissions_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+
+	claims := &security.UserClaims{
+		UserID:         u.ID,
+		Username:       u.Username,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: u.MunicipalityID,
+	}
+
+	perms := []domain.UserPermission{
+		{UserID: u.ID, DocumentType: domain.TypeNotice, Level: domain.LevelRead},
+	}
+
+	svc.On("GetByID", u.ID).Return(&u, nil)
+	svc.On("GetPermissions", u.ID).Return(perms, nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s/permissions", u.ID)
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, path, nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetPermissions_CommonUser_OtherUserPermissions_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	targetUser := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+	otherUserID := uuid.New()
+
+	claims := &security.UserClaims{
+		UserID:         otherUserID,
+		Username:       "other_user",
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: testhelper.MunPassagemID,
+	}
+
+	svc.On("GetByID", targetUser.ID).Return(&targetUser, nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s/permissions", targetUser.ID)
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, path, nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestUpdatePermissions_CommonUser_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+
+	claims := &security.UserClaims{
+		UserID:         u.ID,
+		Username:       u.Username,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: u.MunicipalityID,
+	}
+
+	input := domain.UpdateUserPermissionsInput{
+		Permissions: []domain.UpdateUserPermissionItem{
+			{DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+		},
+	}
+
+	path := fmt.Sprintf("/api/v1/users/%s/permissions", u.ID)
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPut, path, input)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUT /api/v1/users/:id/permissions
 // ═══════════════════════════════════════════════════════════════════════════════

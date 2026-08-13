@@ -10,6 +10,7 @@ interface PageProps {
     search?: string;
     type?: string;
     contractType?: string;
+    year?: string;
     page?: string;
     pageSize?: string;
     trash?: string;
@@ -20,8 +21,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   // Resolve params
   const params = await searchParams;
   const search = params.search || '';
-  const type = (params.type as DocumentType) || undefined;
+  const type = (params.type as DocumentType) || 'NOTICE';
   const contractType = (params.contractType as ContractType) || undefined;
+  
+  const currentYear = new Date().getFullYear();
+  const yearParam = params.year;
+  const year = yearParam === 'all' ? undefined : (yearParam ? Number(yearParam) : currentYear);
+
   const page = Number(params.page) || 1;
   const pageSize = Number(params.pageSize) || 10;
   const viewTrash = params.trash === 'true';
@@ -30,13 +36,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   // Redireciona admins para a tela de municípios, pois eles não gerenciam documentos
   if (user.role === 'ADMIN') {
-    return redirect('/dashboard/municipalities');
+    return redirect('/municipalities');
   }
 
   // Busca os documentos (ativos ou excluídos na lixeira)
   const documentsData = viewTrash
-    ? await getDocumentsTrash(page, pageSize)
-    : await getDocuments({ search, type, contractType }, page, pageSize);
+    ? await getDocumentsTrash({ search, type, contractType, year }, page, pageSize)
+    : await getDocuments({ search, type, contractType, year }, page, pageSize);
 
   return (
     <DocumentsContent

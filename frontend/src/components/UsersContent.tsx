@@ -382,11 +382,11 @@ export const UsersContent: React.FC<UsersContentProps> = ({
   };
 
   const docTypesList: { value: DocumentType; label: string }[] = [
-    { value: 'NOTICE', label: 'Ofício (Notices)' },
-    { value: 'DECREE', label: 'Decreto (Decrees)' },
-    { value: 'ORDINANCE', label: 'Portaria (Ordinances)' },
-    { value: 'LAW', label: 'Lei (Laws)' },
-    { value: 'CONTRACT', label: 'Contrato (Contracts)' },
+    { value: 'NOTICE', label: 'Ofício' },
+    { value: 'DECREE', label: 'Decreto' },
+    { value: 'ORDINANCE', label: 'Portaria' },
+    { value: 'LAW', label: 'Lei' },
+    { value: 'CONTRACT', label: 'Contrato' },
   ];
 
   const permLevels: { value: PermissionLevel; label: string }[] = [

@@ -23,6 +23,7 @@ func NewUserHandler(svc domain.UserService) *UserHandler {
 // RegisterRoutes registra todas as rotas do recurso User.
 func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/users/me/change-password", h.ChangePassword)
+	rg.GET("/users/:id/permissions", h.GetPermissions)
 
 	g := rg.Group("/users")
 	g.Use(middleware.RequireRole(domain.RoleAdmin, domain.RoleMod))
@@ -36,8 +37,7 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
 
-		// Rotas de permissões do usuário
-		g.GET("/:id/permissions", h.GetPermissions)
+		// Rotas de alteração de permissões do usuário
 		g.PUT("/:id/permissions", h.UpdatePermissions)
 	}
 }
@@ -414,6 +414,14 @@ func (h *UserHandler) checkAccess(c *gin.Context, targetUser *domain.User) bool 
 	}
 
 	actorRole := domain.Role(claims.Role)
+
+	// Se for COMMON, só pode acessar a si próprio
+	if actorRole == domain.RoleCommon {
+		if targetUser.ID != claims.UserID {
+			response.Forbidden(c, "permissão insuficiente para acessar dados de outro usuário")
+			return false
+		}
+	}
 
 	// Se for MOD, não pode gerenciar administradores e só pode gerenciar usuários do mesmo município
 	if actorRole == domain.RoleMod {

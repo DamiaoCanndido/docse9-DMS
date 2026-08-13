@@ -86,6 +86,7 @@ export interface DocumentFilter {
   type?: DocumentType;
   contractType?: ContractType;
   search?: string;
+  year?: number;
   allowedTypes?: DocumentType[];
 }
 

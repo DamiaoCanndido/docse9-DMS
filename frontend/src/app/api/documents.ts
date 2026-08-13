@@ -26,6 +26,7 @@ export async function getDocuments(filter: DocumentFilter, page = 1, pageSize = 
     if (filter.type) params.append('type', filter.type);
     if (filter.contractType) params.append('contractType', filter.contractType);
     if (filter.search) params.append('search', filter.search);
+    if (filter.year) params.append('year', filter.year.toString());
     if (filter.allowedTypes) {
       filter.allowedTypes.forEach(t => params.append('allowedTypes', t));
     }
@@ -52,8 +53,13 @@ export async function getDocuments(filter: DocumentFilter, page = 1, pageSize = 
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return { data: [], total: 0, page: 1, pageSize: 10 };
+      }
     }
     throw error;
   }
@@ -127,9 +133,18 @@ export async function restoreDocument({ id, path }: { id: string; path: string }
   }
 }
 
-export async function getDocumentsTrash(page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
+export async function getDocumentsTrash(filter?: DocumentFilter, page = 1, pageSize = 10): Promise<PaginatedResponse<Document>> {
   try {
     const headers = await getAuthHeader();
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
+
+    if (filter?.type) params.append('type', filter.type);
+    if (filter?.contractType) params.append('contractType', filter.contractType);
+    if (filter?.search) params.append('search', filter.search);
+    if (filter?.year) params.append('year', filter.year.toString());
+
     const response = await apiServer.get<{
       success: boolean;
       data: Document[];
@@ -141,7 +156,7 @@ export async function getDocumentsTrash(page = 1, pageSize = 10): Promise<Pagina
       };
     }>('/documents/trash', {
       headers,
-      params: { page, pageSize },
+      params,
     });
     
     const body = response.data;
@@ -152,8 +167,13 @@ export async function getDocumentsTrash(page = 1, pageSize = 10): Promise<Pagina
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return { data: [], total: 0, page: 1, pageSize: 10 };
+      }
     }
     throw error;
   }

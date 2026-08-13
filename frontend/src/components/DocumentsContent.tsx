@@ -34,7 +34,12 @@ import {
   Edit2,
   RotateCcw,
   Trash,
-  MoreHorizontal
+  MoreHorizontal,
+  Scale,
+  FileSignature,
+  FolderOpen,
+  ShieldAlert,
+  Building2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -90,14 +95,28 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
   // User permissions (for COMMON role)
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
+  const [isLoadedPermissions, setIsLoadedPermissions] = useState(false);
 
   useEffect(() => {
     if (currentUser.role === 'COMMON') {
       getUserPermissions(currentUser.id)
-        .then((perms) => setUserPermissions(perms))
-        .catch((err) => console.error('Erro ao buscar permissões do usuário:', err));
+        .then((perms) => {
+          setUserPermissions(perms);
+          setIsLoadedPermissions(true);
+        })
+        .catch((err) => {
+          console.error('Erro ao buscar permissões do usuário:', err);
+          setIsLoadedPermissions(true);
+        });
+    } else {
+      setIsLoadedPermissions(true);
     }
   }, [currentUser]);
+
+  const hasNoPermissions = 
+    currentUser.role === 'COMMON' && 
+    isLoadedPermissions && 
+    !userPermissions.some((p) => p.level === 'READ' || p.level === 'WRITE' || p.level === 'DELETE');
 
   // Sync debounced search to URL searchParams
   useEffect(() => {
@@ -114,9 +133,19 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   }, [debouncedSearch, router]);
 
   // Read filters from searchParams
-  const docTypeFilter = (searchParams.get('type') as DocumentType) || '';
+  const activeTab = (searchParams.get('type') as DocumentType) || 'NOTICE';
   const contractTypeFilter = (searchParams.get('contractType') as ContractType) || '';
+  const currentYear = new Date().getFullYear();
+  const yearFilter = searchParams.get('year') || currentYear.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
+
+  const availableYears = [
+    currentYear.toString(),
+    (currentYear - 1).toString(),
+    (currentYear - 2).toString(),
+    (currentYear - 3).toString(),
+    'all',
+  ];
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,19 +191,48 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     return false;
   };
 
+  const canViewTab = (t: DocumentType) => {
+    if (currentUser.role === 'MOD') return true;
+    if (currentUser.role === 'COMMON') {
+      if (userPermissions.length === 0) return true;
+      const p = userPermissions.find((perm) => perm.documentType === t);
+      return p && p.level !== 'NONE';
+    }
+    return false;
+  };
+
   const hasAnyWritePermission = 
     currentUser.role === 'MOD' || 
     userPermissions.some((p) => p.level === 'WRITE' || p.level === 'DELETE');
 
-  const docTypesList: { value: DocumentType; label: string }[] = [
-    { value: 'NOTICE', label: 'Ofício (Notice)' },
-    { value: 'DECREE', label: 'Decreto (Decreto)' },
-    { value: 'ORDINANCE', label: 'Portaria (Portaria)' },
-    { value: 'LAW', label: 'Lei (Lei)' },
-    { value: 'CONTRACT', label: 'Contrato (Contrato)' },
+  const docTypesList: { value: DocumentType; label: string; singleLabel: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { value: 'NOTICE', label: 'Ofícios', singleLabel: 'Ofício', icon: FileText },
+    { value: 'DECREE', label: 'Decretos', singleLabel: 'Decreto', icon: FileCheck },
+    { value: 'ORDINANCE', label: 'Portarias', singleLabel: 'Portaria', icon: Clock },
+    { value: 'LAW', label: 'Leis', singleLabel: 'Lei', icon: Scale },
+    { value: 'CONTRACT', label: 'Contratos', singleLabel: 'Contrato', icon: FileSignature },
   ];
 
+  const contractTypeLabels: Record<ContractType, string> = {
+    service: 'Prestação de Serviço',
+    bidding: 'Licitação',
+    publicinterest: 'Interesse Público',
+  };
+
   // Filters
+  const handleTabChange = (newType: DocumentType) => {
+    if (newType === activeTab) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('type', newType);
+    params.set('page', '1');
+    if (newType !== 'CONTRACT') {
+      params.delete('contractType');
+    }
+    startTransition(() => {
+      router.replace(`?${params.toString()}`);
+    });
+  };
+
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(window.location.search);
     if (value) {
@@ -208,6 +266,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const handleClearFilters = () => {
     setSearchVal('');
     const params = new URLSearchParams();
+    params.set('type', activeTab);
+    params.set('year', currentYear.toString());
     if (viewTrash) {
       params.set('trash', 'true');
     }
@@ -231,8 +291,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
   // Modals actions
   const openCreateModal = () => {
-    const allowedType = docTypesList.find((t) => canCreate(t.value));
-    setType(allowedType ? allowedType.value : 'NOTICE');
+    const defaultType = canCreate(activeTab) ? activeTab : (docTypesList.find((t) => canCreate(t.value))?.value || 'NOTICE');
+    setType(defaultType);
     setEditingDocument(null);
     setDescription('');
     setContractType('service');
@@ -368,8 +428,35 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     }
   };
 
+  const activeTabMeta = docTypesList.find(t => t.value === activeTab) || docTypesList[0];
+
+  if (hasNoPermissions) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-2xl mx-auto">
+        <div className="w-20 h-20 rounded-3xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 mb-6 shadow-xl shadow-violet-500/5">
+          <ShieldAlert className="w-10 h-10" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-white tracking-tight">
+          Acesso Pendente de Liberação
+        </h2>
+        <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
+          Olá, <strong className="text-zinc-200">{currentUser.username}</strong>! Sua conta foi registrada com sucesso no sistema, porém você ainda não possui permissões atribuídas para visualizar ou gerenciar documentos oficiais.
+        </p>
+        <div className="mt-6 p-5 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-xs text-zinc-400 text-left flex flex-col gap-2.5 w-full shadow-2xl">
+          <span className="font-semibold text-zinc-300 flex items-center gap-2 text-sm">
+            <Building2 className="w-4 h-4 text-violet-400" />
+            Como solicitar acesso?
+          </span>
+          <p className="leading-relaxed">
+            Entre em contato com um <strong className="text-violet-300">Moderador</strong> ou <strong className="text-violet-300">Administrador</strong> do município de <strong className="text-zinc-200">{currentUser.municipality?.name || 'sua prefeitura'}</strong> para que sejam concedidas as permissões de leitura/escrita nos tipos de documentos desejados (Ofícios, Decretos, Portarias, Leis ou Contratos).
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {/* Welcome banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -384,7 +471,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <p className="text-zinc-400 mt-1.5 text-sm max-w-xl">
             {viewTrash 
               ? 'Visualize, restaure ou delete em definitivo os documentos excluídos de seu município.' 
-              : `Gerencie, pesquise e acesse os decretos, portarias, ofícios e contratos de ${
+              : `Gerencie e pesquise os documentos oficiais de ${
                   currentUser.municipality?.name || 'sua prefeitura'
                 }.`}
           </p>
@@ -412,16 +499,42 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         </div>
       </div>
 
+      {/* Navigation Tabs Bar by Document Type */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-zinc-950/80 border border-zinc-800/90 rounded-2xl overflow-x-auto scrollbar-none shadow-xl">
+        {docTypesList.map((tab) => {
+          const isActive = activeTab === tab.value;
+          const Icon = tab.icon;
+          const allowed = canViewTab(tab.value);
+          if (!allowed) return null;
+
+          return (
+            <button
+              key={tab.value}
+              onClick={() => handleTabChange(tab.value)}
+              className={cn(
+                "flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap select-none relative",
+                isActive
+                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25 font-bold"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
+              )}
+            >
+              <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-zinc-400")} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filter panel */}
       {!viewTrash && (
-        <div className="p-6 bg-zinc-950/60 border border-zinc-800/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-5 shadow-2xl relative overflow-hidden">
+        <div className="p-5 bg-zinc-950/60 border border-zinc-800/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-4 shadow-2xl relative overflow-hidden">
           {/* Glow effect */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/5 blur-3xl rounded-full pointer-events-none" />
 
           <div className="w-full md:flex-1 relative">
             <Input
-              label="Pesquisa rápida"
-              placeholder="Buscar por descrição ou palavra-chave..."
+              label={`Pesquisa em ${activeTabMeta.label}`}
+              placeholder={`Buscar por descrição em ${activeTabMeta.label.toLowerCase()}...`}
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
               className="pl-10"
@@ -437,31 +550,30 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
             )}
           </div>
 
-          {/* Document Type Dropdown */}
-          <div className="w-full md:w-52 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tipo de Documento</label>
+          {/* Year Dropdown */}
+          <div className="w-full md:w-44 flex flex-col gap-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Ano</label>
             <select
               className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer"
-              value={docTypeFilter}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
+              value={yearFilter}
+              onChange={(e) => handleFilterChange('year', e.target.value)}
             >
-              <option value="">Todos</option>
-              <option value="NOTICE">Ofício</option>
-              <option value="DECREE">Decreto</option>
-              <option value="ORDINANCE">Portaria</option>
-              <option value="LAW">Lei</option>
-              <option value="CONTRACT">Contrato</option>
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y === 'all' ? 'Todos os Anos' : y}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Contract Type Dropdown (visible only when type is CONTRACT) */}
+          {/* Contract Type Dropdown (visible ONLY on CONTRACT tab) */}
           <AnimatePresence>
-            {docTypeFilter === 'CONTRACT' && (
+            {activeTab === 'CONTRACT' && (
               <motion.div
                 initial={{ opacity: 0, width: 0, scale: 0.95 }}
                 animate={{ opacity: 1, width: 'auto', scale: 1 }}
                 exit={{ opacity: 0, width: 0, scale: 0.95 }}
-                className="w-full md:w-52 flex flex-col gap-1.5"
+                className="w-full md:w-56 flex flex-col gap-1.5"
               >
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tipo de Contrato</label>
                 <select
@@ -469,7 +581,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                   value={contractTypeFilter}
                   onChange={(e) => handleFilterChange('contractType', e.target.value)}
                 >
-                  <option value="">Todos</option>
+                  <option value="">Todos os Contratos</option>
                   <option value="service">Prestação de Serviço</option>
                   <option value="bidding">Licitação</option>
                   <option value="publicinterest">Interesse Público</option>
@@ -495,19 +607,19 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-400 text-xs font-bold tracking-widest uppercase">Atualizando dados...</span>
+              <span className="text-violet-400 text-xs font-bold tracking-widest uppercase">Carregando {activeTabMeta.label.toLowerCase()}...</span>
             </div>
           </div>
         )}
 
         {initialData.data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900/50 flex items-center justify-center text-zinc-500 mb-5 border border-zinc-800">
-              <FileText className="w-7 h-7 text-zinc-600" />
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-900/60 flex items-center justify-center text-zinc-500 mb-4 border border-zinc-800">
+              <FolderOpen className="w-7 h-7 text-zinc-500" />
             </div>
-            <h3 className="text-xl font-bold text-white">Nenhum documento encontrado</h3>
-            <p className="text-zinc-500 text-sm mt-2 max-w-sm">
-              Tente redefinir seus termos de busca ou mude os filtros aplicados para listar mais registros.
+            <h3 className="text-xl font-bold text-white">Nenhum registro encontrado</h3>
+            <p className="text-zinc-400 text-sm mt-1.5 max-w-sm">
+              Não há {activeTabMeta.label.toLowerCase()} cadastrados{searchVal ? ' com os termos buscados' : ''}.
             </p>
           </div>
         ) : (
@@ -516,10 +628,20 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               <thead>
                 <tr className="border-b border-zinc-900 bg-zinc-950/70 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
                   <th className="px-6 py-4.5">Número</th>
-                  <th className="px-6 py-4.5">Tipo</th>
-                  <th className="px-6 py-4.5">Descrição</th>
-                  <th className="px-6 py-4.5">Detalhes / Tipo</th>
-                  <th className="px-6 py-4.5 text-right">Data de Registro</th>
+                  <th className="px-6 py-4.5">Descrição / Ementa</th>
+                  {activeTab === 'CONTRACT' ? (
+                    <>
+                      <th className="px-6 py-4.5">Tipo de Contrato</th>
+                      <th className="px-6 py-4.5">Valor (R$)</th>
+                      <th className="px-6 py-4.5">Duração</th>
+                      <th className="px-6 py-4.5 text-right">Data de Início</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-6 py-4.5">Criado Por</th>
+                      <th className="px-6 py-4.5 text-right">Data de Registro</th>
+                    </>
+                  )}
                   <th className="px-6 py-4.5 text-center">Ações</th>
                 </tr>
               </thead>
@@ -531,54 +653,49 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                   const showHardDelete = viewTrash && (currentUser.role === 'MOD');
 
                   return (
-                    <tr key={doc.id} className="hover:bg-zinc-900/10 transition-colors group">
+                    <tr key={doc.id} className="hover:bg-zinc-900/20 transition-colors group">
                       <td className="px-6 py-4.5 font-bold text-white group-hover:text-violet-400 transition-colors">
                         #{doc.order}
                       </td>
-                      <td className="px-6 py-4.5">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                          doc.type === 'CONTRACT' 
-                            ? 'bg-violet-500/5 text-violet-400 border-violet-500/20' 
-                            : doc.type === 'LAW'
-                            ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20'
-                            : 'bg-zinc-900/80 text-zinc-400 border-zinc-800'
-                        }`}>
-                          {doc.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4.5 max-w-xs md:max-w-md truncate font-medium">
+                      <td className="px-6 py-4.5 max-w-xs md:max-w-md font-medium">
                         {doc.description}
                       </td>
-                      <td className="px-6 py-4.5 text-xs">
-                        {doc.type === 'CONTRACT' && doc.contractType ? (
-                          <div className="flex flex-col gap-1 text-zinc-400">
-                            <span className="capitalize font-semibold text-zinc-300 flex items-center gap-1.5">
+                      {activeTab === 'CONTRACT' ? (
+                        <>
+                          <td className="px-6 py-4.5 text-xs">
+                            <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
                               <FileCheck className="w-3.5 h-3.5 text-violet-400" />
-                              {doc.contractType}
+                              {doc.contractType ? (contractTypeLabels[doc.contractType] || doc.contractType) : '—'}
                             </span>
-                            {doc.value && (
-                              <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                                <DollarSign className="w-3 h-3" />
-                                {doc.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                              </span>
-                            )}
-                            {doc.duration && (
-                              <span className="flex items-center gap-1 text-zinc-500 font-medium">
-                                <Clock className="w-3 h-3" />
-                                {doc.duration} meses
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-zinc-650">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4.5 text-right text-zinc-500 text-xs font-medium">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <CalendarIcon className="w-3.5 h-3.5 text-zinc-600" />
-                          {new Date(doc.createdAt).toLocaleDateString('pt-BR')}
-                        </div>
-                      </td>
+                          </td>
+                          <td className="px-6 py-4.5 text-xs font-semibold text-emerald-400">
+                            {doc.value ? (
+                              doc.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            ) : '—'}
+                          </td>
+                          <td className="px-6 py-4.5 text-xs text-zinc-400 font-medium">
+                            {doc.duration ? `${doc.duration} meses` : '—'}
+                          </td>
+                          <td className="px-6 py-4.5 text-right text-zinc-400 text-xs font-medium">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              {doc.startIn ? format(new Date(doc.startIn), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '—'}
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-6 py-4.5 text-xs text-zinc-400">
+                            {doc.createdBy?.username || doc.createdBy?.email || 'Sistema'}
+                          </td>
+                          <td className="px-6 py-4.5 text-right text-zinc-400 text-xs font-medium">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              {format(new Date(doc.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                            </div>
+                          </td>
+                        </>
+                      )}
                       <td className="px-6 py-4.5 text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger render={
@@ -668,8 +785,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
             <div className="w-full flex flex-col gap-1.5">
               <label className="text-sm font-medium text-zinc-400">Tipo de Documento</label>
               {editingDocument ? (
-                <div className="w-full bg-zinc-900/50 border border-zinc-850 px-3.5 py-2.5 rounded-lg text-sm text-zinc-400 font-semibold uppercase">
-                  {type}
+                <div className="w-full bg-zinc-900/50 border border-zinc-850 px-3.5 py-2.5 rounded-lg text-sm text-zinc-300 font-semibold">
+                  {docTypesList.find((t) => t.value === type)?.singleLabel || type}
                 </div>
               ) : (
                 <Select value={type} onValueChange={(val) => setType(val as DocumentType)}>
@@ -681,7 +798,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                       const allowed = canCreate(t.value);
                       return (
                         <SelectItem key={t.value} value={t.value} disabled={!allowed}>
-                          {t.label} {!allowed ? '(Sem permissão)' : ''}
+                          {t.singleLabel} {!allowed ? '(Sem permissão)' : ''}
                         </SelectItem>
                       );
                     })}
