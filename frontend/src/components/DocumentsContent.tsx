@@ -139,13 +139,10 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const yearFilter = searchParams.get('year') || currentYear.toString();
   const currentPage = Number(searchParams.get('page')) || 1;
 
-  const availableYears = [
-    currentYear.toString(),
-    (currentYear - 1).toString(),
-    (currentYear - 2).toString(),
-    (currentYear - 3).toString(),
-    'all',
-  ];
+  const availableYears = Array.from(
+    { length: currentYear - 2022 + 1 },
+    (_, i) => (currentYear - i).toString()
+  ).concat('all');
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -789,7 +786,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                   {docTypesList.find((t) => t.value === type)?.singleLabel || type}
                 </div>
               ) : (
-                <Select value={type} onValueChange={(val) => setType(val as DocumentType)}>
+                <Select value={type} onValueChange={(val) => setType(val as DocumentType)} items={{NOTICE: 'Ofício', DECREE: 'Decreto', ORDINANCE: 'Portaria', LAW: 'Lei', CONTRACT: 'Contrato'}}>
                   <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
@@ -837,7 +834,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                     <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                       Tipo de Contrato
                     </label>
-                    <Select value={contractType} onValueChange={(val) => setContractType(val as ContractType)}>
+                    <Select value={contractType} onValueChange={(val) => setContractType(val as ContractType)} items={contractTypeLabels}>
                       <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-xs h-10">
                         <SelectValue placeholder="Selecione o tipo de contrato" />
                       </SelectTrigger>
