@@ -41,8 +41,18 @@ export async function getMunicipalities(page = 1, pageSize = 10): Promise<Pagina
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+        };
+      }
     }
     throw error;
   }
@@ -73,8 +83,18 @@ export async function getMunicipalitiesTrash(page = 1, pageSize = 10): Promise<P
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+        };
+      }
     }
     throw error;
   }

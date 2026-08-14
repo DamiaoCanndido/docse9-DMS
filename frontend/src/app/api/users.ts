@@ -53,8 +53,18 @@ export async function getUsers(
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+        };
+      }
     }
     throw error;
   }
@@ -97,8 +107,18 @@ export async function getUsersTrash(
       pageSize: body.pagination?.pageSize || 10,
     };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return {
+          data: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+        };
+      }
     }
     throw error;
   }

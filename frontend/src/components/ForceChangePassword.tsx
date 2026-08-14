@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +26,7 @@ const changePasswordSchema = z
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export const ForceChangePassword: React.FC = () => {
+  const router = useRouter();
   const { user, changePassword, logout } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +53,7 @@ export const ForceChangePassword: React.FC = () => {
       await changePassword(data);
       toast.success('Senha alterada com sucesso! Acesso liberado.');
       reset();
+      router.refresh();
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
