@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -124,6 +125,154 @@ func TestCreateUser_MunicipalityNotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, service.ErrMunicipalityNotFound)
 	userRepo.AssertNotCalled(t, "Create")
+}
+
+func TestCreateUser_InvalidUsername(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+
+	cases := []struct {
+		name     string
+		username string
+	}{
+		{"spaces in middle", "hello world"},
+		{"uppercase letters", "Hello"},
+		{"special char @", "user@name"},
+		{"special char !", "user!name"},
+		{"space only", " "},
+		{"leading space trimmed still uppercase", " Hello "},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := domain.CreateUserInput{
+				Username:       tc.username,
+				Email:          "new@example.com",
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}
+			_, _, err := svc.Create(input)
+			assert.ErrorIs(t, err, domain.ErrInvalidUsername)
+			userRepo.AssertNotCalled(t, "ExistsByEmail")
+			userRepo.AssertNotCalled(t, "Create")
+		})
+	}
+}
+
+func TestCreateUser_InvalidEmail(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+
+	cases := []struct {
+		name  string
+		email string
+	}{
+		{"missing at and domain", "invalid-email"},
+		{"missing domain", "user@"},
+		{"missing local part", "@example.com"},
+		{"missing top level domain", "user@domain"},
+		{"spaces in email", "user name@example.com"},
+		{"empty email", ""},
+		{"invalid domain prefix dot", "user@.com"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := domain.CreateUserInput{
+				Username:       "valid_user",
+				Email:          tc.email,
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}
+			_, _, err := svc.Create(input)
+			assert.ErrorIs(t, err, domain.ErrInvalidEmail)
+			userRepo.AssertNotCalled(t, "ExistsByEmail")
+			userRepo.AssertNotCalled(t, "Create")
+		})
+	}
+}
+
+func TestCreateUser_ValidEmailFormats(t *testing.T) {
+	svc, userRepo, munRepo := newUserService(t)
+	mun := testhelper.MakePassagem()
+
+	cases := []string{
+		"simple@example.com",
+		"user.name+tag@sub.domain.org",
+		"test_123-abc@domain.com",
+	}
+
+	for _, email := range cases {
+		t.Run(email, func(t *testing.T) {
+			input := domain.CreateUserInput{
+				Username:       "valid_user",
+				Email:          email,
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}
+
+			userRepo.On("ExistsByEmail", strings.ToLower(email), (*uuid.UUID)(nil)).Return(false, nil).Once()
+			userRepo.On("ExistsByUsername", "valid_user", (*uuid.UUID)(nil)).Return(false, nil).Once()
+			munRepo.On("FindByID", mun.ID).Return(&mun, nil).Once()
+			userRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil).Once()
+			userRepo.On("FindByID", mock.Anything).Return(&domain.User{
+				ID:             uuid.New(),
+				Username:       "valid_user",
+				Email:          strings.ToLower(email),
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}, nil).Once()
+
+			result, rawPassword, err := svc.Create(input)
+
+			require.NoError(t, err)
+			assert.NotEmpty(t, rawPassword)
+			assert.Equal(t, strings.ToLower(email), result.Email)
+		})
+	}
+}
+
+func TestCreateUser_ValidUsernameFormats(t *testing.T) {
+	svc, userRepo, munRepo := newUserService(t)
+	mun := testhelper.MakePassagem()
+
+	cases := []string{
+		"valid.user-name_1",
+		"simple",
+		"user123",
+		"a-b-c",
+		"test_user",
+		"u.s.e.r",
+	}
+
+	for _, username := range cases {
+		t.Run(username, func(t *testing.T) {
+			input := domain.CreateUserInput{
+				Username:       username,
+				Email:          username + "@example.com",
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}
+
+			userRepo.On("ExistsByEmail", username+"@example.com", (*uuid.UUID)(nil)).Return(false, nil).Once()
+			userRepo.On("ExistsByUsername", username, (*uuid.UUID)(nil)).Return(false, nil).Once()
+			munRepo.On("FindByID", mun.ID).Return(&mun, nil).Once()
+			userRepo.On("Create", mock.AnythingOfType("*domain.User")).Return(nil).Once()
+			userRepo.On("FindByID", mock.Anything).Return(&domain.User{
+				ID:             uuid.New(),
+				Username:       username,
+				Email:          username + "@example.com",
+				Role:           domain.RoleCommon,
+				MunicipalityID: mun.ID,
+			}, nil).Once()
+
+			result, rawPassword, err := svc.Create(input)
+
+			require.NoError(t, err)
+			assert.NotEmpty(t, rawPassword)
+			assert.Equal(t, username, result.Username)
+		})
+	}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -273,6 +422,64 @@ func TestUpdateUser_UsernameConflict(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrUsernameAlreadyExists)
 	userRepo.AssertNotCalled(t, "Update")
+}
+
+func TestUpdateUser_InvalidUsername(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+
+	cases := []struct {
+		name     string
+		username string
+	}{
+		{"spaces", "has space"},
+		{"uppercase", "HasUpper"},
+		{"special char", "user@name"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			newUsername := tc.username
+			input := domain.UpdateUserInput{Username: &newUsername}
+
+			userRepo.On("FindByID", u.ID).Return(&u, nil).Once()
+
+			_, _, err := svc.Update(u.ID, input)
+
+			assert.ErrorIs(t, err, domain.ErrInvalidUsername)
+			userRepo.AssertNotCalled(t, "Update")
+		})
+	}
+}
+
+func TestUpdateUser_InvalidEmail(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+
+	cases := []struct {
+		name  string
+		email string
+	}{
+		{"missing domain", "invalid-email"},
+		{"spaces in email", "user name@example.com"},
+		{"missing top level domain", "user@domain"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			newEmail := tc.email
+			input := domain.UpdateUserInput{Email: &newEmail}
+
+			userRepo.On("FindByID", u.ID).Return(&u, nil).Once()
+
+			_, _, err := svc.Update(u.ID, input)
+
+			assert.ErrorIs(t, err, domain.ErrInvalidEmail)
+			userRepo.AssertNotCalled(t, "Update")
+		})
+	}
 }
 
 func TestUpdateUser_EmailConflict(t *testing.T) {

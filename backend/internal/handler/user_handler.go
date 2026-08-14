@@ -448,6 +448,10 @@ func (h *UserHandler) handleServiceError(c *gin.Context, err error) {
 		response.Conflict(c, err.Error())
 	case errors.Is(err, domain.ErrIncorrectCurrentPassword):
 		response.BadRequest(c, err.Error())
+	case errors.Is(err, domain.ErrInvalidUsername):
+		response.BadRequest(c, err.Error())
+	case errors.Is(err, domain.ErrInvalidEmail):
+		response.BadRequest(c, err.Error())
 	case errors.Is(err, service.ErrMunicipalityNotFound):
 		response.BadRequest(c, err.Error())
 	default:

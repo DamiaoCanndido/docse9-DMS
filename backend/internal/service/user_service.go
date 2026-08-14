@@ -1,13 +1,19 @@
 package service
 
 import (
-	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/google/uuid"
 )
+
+// validUsername matches only lowercase letters, digits, dot, hyphen, underscore.
+var validUsername = regexp.MustCompile(`^[a-z0-9._-]+$`)
+
+// validEmail matches standard email addresses.
+var validEmail = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$`)
 
 type userService struct {
 	userRepo         domain.UserRepository
@@ -32,6 +38,16 @@ func (s *userService) Create(input domain.CreateUserInput) (*domain.User, string
 	// 1. Validar e normalizar email e username
 	email := strings.ToLower(strings.TrimSpace(input.Email))
 	username := strings.TrimSpace(input.Username)
+
+	// Validar formato do email
+	if !validEmail.MatchString(email) {
+		return nil, "", domain.ErrInvalidEmail
+	}
+
+	// Validar formato do username
+	if !validUsername.MatchString(username) {
+		return nil, "", domain.ErrInvalidUsername
+	}
 
 	// 2. Verificar se o e-mail já existe
 	emailExists, err := s.userRepo.ExistsByEmail(email, nil)
@@ -137,8 +153,10 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 	// 2. Atualizar username se fornecido e alterado
 	if input.Username != nil {
 		username := strings.TrimSpace(*input.Username)
-		fmt.Println(username)
-		fmt.Println(u.Username)
+		// Validar formato do username
+		if !validUsername.MatchString(username) {
+			return nil, "", domain.ErrInvalidUsername
+		}
 		if username != u.Username {
 			exists, err := s.userRepo.ExistsByUsername(username, &id)
 			if err != nil {
@@ -154,6 +172,10 @@ func (s *userService) Update(id uuid.UUID, input domain.UpdateUserInput) (*domai
 	// 3. Atualizar e-mail se fornecido e alterado
 	if input.Email != nil {
 		email := strings.ToLower(strings.TrimSpace(*input.Email))
+		// Validar formato do email
+		if !validEmail.MatchString(email) {
+			return nil, "", domain.ErrInvalidEmail
+		}
 		if email != u.Email {
 			exists, err := s.userRepo.ExistsByEmail(email, &id)
 			if err != nil {

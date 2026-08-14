@@ -14,7 +14,9 @@ var (
 	ErrEmailAlreadyExists       = errors.New("já existe um usuário com este e-mail")
 	ErrUsernameAlreadyExists    = errors.New("já existe um usuário com este nome de usuário")
 	ErrUserNotFound             = errors.New("usuário não encontrado")
-	ErrIncorrectCurrentPassword  = errors.New("senha atual incorreta")
+	ErrIncorrectCurrentPassword = errors.New("senha atual incorreta")
+	ErrInvalidUsername          = errors.New("nome de usuário inválido: use apenas letras minúsculas, números, '.', '-' ou '_'")
+	ErrInvalidEmail             = errors.New("formato de e-mail inválido")
 )
 
 type Role string
