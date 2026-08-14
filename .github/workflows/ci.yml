@@ -4,16 +4,12 @@ on:
   push:
     branches:
       - master
-      - main
-      - develop
     paths:
       - 'backend/**'
       - '.github/workflows/ci.yml'
   pull_request:
     branches:
       - master
-      - main
-      - develop
     paths:
       - 'backend/**'
       - '.github/workflows/ci.yml'
