@@ -1,0 +1,83 @@
+name: CD - Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/cd-gcp.yml'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'southamerica-east1' }}
+  GAR_REPO: ${{ vars.GAR_REPOSITORY || 'docseq-artifacts' }}
+  SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE || 'docseq-backend-api' }}
+
+jobs:
+  deploy:
+    name: Build, Push & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Set Image Tag
+        id: meta
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}"
+          echo "image=${IMAGE}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "image_latest=${IMAGE}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.meta.outputs.image_latest }}
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ steps.meta.outputs.image }}
+          flags: |
+            --allow-unauthenticated
+            --min-instances=0
+            --max-instances=10
+            --memory=512Mi
+            --cpu=1
+            --timeout=60s
+            --set-env-vars=APP_ENV=production,PORT=8080
+            --set-secrets=DATABASE_URL=DOCSEQ_DATABASE_URL:latest,JWT_SECRET=DOCSEQ_JWT_SECRET:latest,DEFAULT_ADMIN_PASSWORD=DOCSEQ_ADMIN_PASSWORD:latest
+
+      - name: Smoke Test & Health Check
+        run: |
+          SERVICE_URL="${{ steps.deploy.outputs.url }}"
+          echo "Verificando saúde do serviço em: ${SERVICE_URL}/health"
+          
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/health" || true)
+          if [ "$STATUS" -ne 200 ]; then
+            echo "❌ Health check falhou com status: $STATUS"
+            exit 1
+          fi
+          echo "✅ Health check bem-sucedido (HTTP $STATUS)!"

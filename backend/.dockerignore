@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+.env.*
+*.log
+coverage.out
+coverage.html
+api
+tmp
+docker-compose*.yml
+Makefile
