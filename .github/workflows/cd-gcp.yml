@@ -3,6 +3,7 @@ name: CD - Deploy to GCP Cloud Run
 on:
   push:
     branches:
+      - master
       - main
     paths:
       - 'backend/**'

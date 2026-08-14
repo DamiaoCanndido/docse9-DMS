@@ -8,7 +8,7 @@ Este guia detalha o passo a passo para configurar a infraestrutura de nuvem, ban
 
 ```mermaid
 flowchart LR
-    A[GitHub Repo] -->|Push na main| B[GitHub Actions CI/CD]
+    A[GitHub Repo] -->|Push na master| B[GitHub Actions CI/CD]
     B -->|Build & Push| C[GCP Artifact Registry]
     B -->|Deploy| D[GCP Cloud Run - Go API]
     D -->|Segredos injetados| E[GCP Secret Manager]
@@ -155,11 +155,11 @@ Acesse o repositório no GitHub: **Settings -> Secrets and variables -> Actions*
 
 ## 🚀 5. Executando o Primeiro Deploy
 
-1. Faça o commit e push das alterações para a branch `main`:
+1. Faça o commit e push das alterações para a branch `master`:
    ```bash
    git add .
    git commit -m "feat(infra): setup Dockerfile, CI/CD and GCP Cloud Run deployment"
-   git push origin main
+   git push origin master
    ```
 2. Acompanhe a execução em **Actions** no GitHub:
    - A pipeline executará os testes unitários e validações de código.

@@ -3,6 +3,7 @@ name: CI - Backend Quality & Tests
 on:
   push:
     branches:
+      - master
       - main
       - develop
     paths:
@@ -10,6 +11,7 @@ on:
       - '.github/workflows/ci.yml'
   pull_request:
     branches:
+      - master
       - main
       - develop
     paths:
