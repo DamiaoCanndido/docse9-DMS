@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Municipality, PaginatedResponse, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +22,6 @@ import {
   Edit2,
   RotateCcw,
   Trash,
-  ChevronLeft,
-  ChevronRight,
   Globe,
   Calendar,
   Sparkles,
@@ -45,20 +43,28 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+function isSafeImageUrl(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 interface MunicipalitiesContentProps {
   initialData: PaginatedResponse<Municipality>;
-  currentUser: User;
+  currentUser?: User;
   viewTrash: boolean;
 }
 
 export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
   initialData,
-  currentUser,
   viewTrash,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,8 +76,6 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
   const [imageUrl, setImageUrl] = useState('');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  const currentPage = Number(searchParams.get('page')) || 1;
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(window.location.search);
@@ -156,11 +160,12 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
         toast.success('Município cadastrado com sucesso!');
       }
       closeModal();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isRedirectError(err)) {
         throw err;
       }
-      setFormError(err.response?.data?.error || 'Erro ao salvar município.');
+      const errorMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar município.';
+      setFormError(errorMsg);
       toast.error('Ocorreu um erro.');
     } finally {
       setIsSaving(false);
@@ -285,7 +290,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                 {initialData.data.map((mun) => (
                   <tr key={mun.id} className="hover:bg-zinc-900/10 transition-colors group">
                     <td className="px-6 py-4.5">
-                      {mun.imageUrl ? (
+                      {isSafeImageUrl(mun.imageUrl) ? (
                         <img
                           src={mun.imageUrl}
                           alt={mun.name}
@@ -369,7 +374,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
             {initialData.data.map((mun) => (
               <div key={mun.id} className="p-5 flex items-center justify-between gap-4 hover:bg-zinc-900/10 transition-colors group">
                 <div className="flex items-center gap-3.5 min-w-0">
-                  {mun.imageUrl ? (
+                  {isSafeImageUrl(mun.imageUrl) ? (
                     <img
                       src={mun.imageUrl}
                       alt={mun.name}

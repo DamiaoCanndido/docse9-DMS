@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
-import { User, Municipality, Role, PaginatedResponse, UserPermission, DocumentType, PermissionLevel } from '@/types';
+import { User, Municipality, Role, PaginatedResponse, DocumentType, PermissionLevel } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PaginationBar } from '@/components/ui/PaginationBar';
@@ -25,8 +25,6 @@ import {
   Edit2,
   RotateCcw,
   Trash,
-  ChevronLeft,
-  ChevronRight,
   Shield,
   Search,
   X,
@@ -135,8 +133,6 @@ export const UsersContent: React.FC<UsersContentProps> = ({
   });
   const [isLoadingPerms, setIsLoadingPerms] = useState(false);
   const [isSavingPerms, setIsSavingPerms] = useState(false);
-
-  const currentPage = Number(searchParams.get('page')) || 1;
   const roleFilter = searchParams.get('role') || '';
   const municipalityFilter = searchParams.get('municipalityId') || '';
 
@@ -269,11 +265,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           setIsSuccessModalOpen(true);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isRedirectError(err)) {
         throw err;
       }
-      setFormError(err.response?.data?.error || 'Erro ao salvar usuário.');
+      const errorMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar usuário.';
+      setFormError(errorMsg);
       toast.error('Ocorreu um erro.');
     } finally {
       setIsSaving(false);

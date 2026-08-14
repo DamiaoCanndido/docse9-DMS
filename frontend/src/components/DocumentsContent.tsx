@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
-import { Document, DocumentType, ContractType, User, PaginatedResponse, UserPermission, PermissionLevel } from '@/types';
+import { Document, DocumentType, ContractType, User, PaginatedResponse, UserPermission, CreateDocumentInput, UpdateDocumentInput } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PaginationBar } from '@/components/ui/PaginationBar';
@@ -23,10 +23,7 @@ import {
   Trash2, 
   Search, 
   X, 
-  ChevronLeft, 
-  ChevronRight, 
   Calendar as CalendarIcon, 
-  DollarSign, 
   Clock,
   Sparkles,
   FileCheck,
@@ -95,7 +92,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
   // User permissions (for COMMON role)
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
-  const [isLoadedPermissions, setIsLoadedPermissions] = useState(false);
+  const [isLoadedPermissions, setIsLoadedPermissions] = useState(currentUser.role !== 'COMMON');
 
   useEffect(() => {
     if (currentUser.role === 'COMMON') {
@@ -108,8 +105,6 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           console.error('Erro ao buscar permissões do usuário:', err);
           setIsLoadedPermissions(true);
         });
-    } else {
-      setIsLoadedPermissions(true);
     }
   }, [currentUser]);
 
@@ -137,8 +132,6 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const contractTypeFilter = (searchParams.get('contractType') as ContractType) || '';
   const currentYear = new Date().getFullYear();
   const yearFilter = searchParams.get('year') || currentYear.toString();
-  const currentPage = Number(searchParams.get('page')) || 1;
-
   const availableYears = Array.from(
     { length: currentYear - 2022 + 1 },
     (_, i) => (currentYear - i).toString()
@@ -339,7 +332,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
     try {
       if (editingDocument) {
-        const input: any = {
+        const input: UpdateDocumentInput = {
           description,
         };
 
@@ -357,7 +350,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         });
         toast.success('Documento atualizado com sucesso!');
       } else {
-        const input: any = {
+        const input: CreateDocumentInput = {
           type,
           description,
           creatorId: currentUser.id,
@@ -378,11 +371,12 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         toast.success('Documento criado com sucesso!');
       }
       setIsModalOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isRedirectError(err)) {
         throw err;
       }
-      setFormError(err.response?.data?.error || 'Erro ao salvar o documento.');
+      const errorMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar o documento.';
+      setFormError(errorMsg);
       toast.error('Ocorreu um erro.');
     } finally {
       setIsSaving(false);

@@ -8,11 +8,12 @@ export function proxy(request: NextRequest) {
   // Páginas públicas que não exigem login
   const isPublicPage = pathname === '/login';
 
-  // Ignorar arquivos estáticos e favicon
+  // Ignorar arquivos estáticos específicos e rotas internas
+  const isStaticFile = /\.(?:ico|png|jpg|jpeg|svg|css|js|webp|woff|woff2|ttf|eot)$/i.test(pathname);
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.includes('.') ||
+    isStaticFile ||
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
@@ -31,7 +32,7 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configura o middleware para rodar em todas as rotas exceto as listadas acima
+// Configura o proxy para rodar em todas as rotas da aplicação exceto assets estáticos
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|svg|css|js|webp|woff|woff2|ttf|eot)$).*)'],
 };

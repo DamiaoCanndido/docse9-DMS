@@ -5,6 +5,7 @@ export const apiServer = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // 10s timeout to prevent thread blocking/DoS
 });
 
 export const apiClient = axios.create({
@@ -12,4 +13,5 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000,
 });
