@@ -329,3 +329,27 @@ func TestUpdateDocument_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "New Description", result.Description)
 }
+
+func TestGetDocumentByIDUnscoped_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	doc := &domain.Document{ID: id, Description: "Doc"}
+
+	docRepo.On("FindByIDUnscoped", id).Return(doc, nil)
+
+	result, err := svc.GetByIDUnscoped(id)
+
+	require.NoError(t, err)
+	assert.Equal(t, id, result.ID)
+}
+
+func TestGetDocumentByIDUnscoped_NotFound(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+
+	docRepo.On("FindByIDUnscoped", id).Return((*domain.Document)(nil), nil)
+
+	_, err := svc.GetByIDUnscoped(id)
+
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}

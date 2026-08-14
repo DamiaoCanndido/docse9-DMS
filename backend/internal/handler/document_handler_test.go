@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/handler"
@@ -13,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gorm.io/gorm"
 )
 
 func setupDocumentRouter(svc domain.DocumentService, permRepo domain.UserPermissionRepository, claims *security.UserClaims) *gin.Engine {
@@ -206,4 +208,143 @@ func TestGetAllDocuments_Handler_200(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	svc.AssertExpectations(t)
 	permRepo.AssertExpectations(t)
+}
+
+func TestRestoreDocument_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+
+	deletedDoc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		DeletedAt:      gorm.DeletedAt{Time: time.Now(), Valid: true},
+	}
+
+	restoredDoc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetByIDUnscoped", docID).Return(deletedDoc, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelDelete,
+		},
+	}, nil)
+	svc.On("Restore", docID).Return(restoredDoc, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s/restore", docID), nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertExpectations(t)
+	permRepo.AssertExpectations(t)
+}
+
+func TestRestoreDocument_Handler_403_ForbiddenPermission(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+
+	deletedDoc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		DeletedAt:      gorm.DeletedAt{Time: time.Now(), Valid: true},
+	}
+
+	svc.On("GetByIDUnscoped", docID).Return(deletedDoc, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelRead, // Only Read, not Delete!
+		},
+	}, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s/restore", docID), nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "Restore")
+}
+
+func TestHardDeleteDocument_Handler_204(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetByIDUnscoped", docID).Return(doc, nil)
+	svc.On("HardDelete", docID).Return(nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s/hard", docID), nil)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestHardDeleteDocument_Handler_403_ForbiddenTenant(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	otherMunID := uuid.New()
+	userID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: otherMunID, // Different municipality!
+	}
+
+	svc.On("GetByIDUnscoped", docID).Return(doc, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s/hard", docID), nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "HardDelete")
 }

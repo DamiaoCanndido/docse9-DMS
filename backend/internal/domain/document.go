@@ -153,6 +153,7 @@ type DocumentService interface {
 	GetAll(filter DocumentFilter, page, pageSize int) ([]Document, int64, error)
 	GetDeleted(filter DocumentFilter, page, pageSize int) ([]Document, int64, error)
 	GetByID(id uuid.UUID) (*Document, error)
+	GetByIDUnscoped(id uuid.UUID) (*Document, error)
 	Update(id uuid.UUID, input UpdateDocumentInput) (*Document, error)
 	Delete(id uuid.UUID) error
 	Restore(id uuid.UUID) (*Document, error)

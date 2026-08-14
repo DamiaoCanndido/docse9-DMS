@@ -10,6 +10,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/seed"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/database"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -17,6 +18,11 @@ import (
 func main() {
 	// Carrega .env (ignora erro em produção — variáveis já devem estar setadas)
 	_ = godotenv.Load()
+
+	// Validação de configurações de segurança
+	if err := security.ValidateJWTConfig(); err != nil {
+		log.Fatalf("segurança: %v", err)
+	}
 
 	// ── Banco de dados ───────────────────────────────
 	db, err := database.Connect()
@@ -56,6 +62,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.CORSMiddleware())
 
 	// Health-check

@@ -11,13 +11,26 @@ import (
 
 var (
 	ErrInvalidToken = errors.New("token inválido ou expirado")
-	jwtSecret       = []byte("docseq-secret-key-change-in-production")
+	defaultSecret   = "docseq-secret-key-change-in-production"
 )
 
-func init() {
+// getJWTSecret obtém a chave secreta de assinatura JWT em tempo de execução.
+func getJWTSecret() []byte {
 	if secret := os.Getenv("JWT_SECRET"); secret != "" {
-		jwtSecret = []byte(secret)
+		return []byte(secret)
 	}
+	return []byte(defaultSecret)
+}
+
+// ValidateJWTConfig valida se as configurações de JWT são seguras para o ambiente atual.
+func ValidateJWTConfig() error {
+	secret := os.Getenv("JWT_SECRET")
+	if os.Getenv("APP_ENV") == "production" {
+		if secret == "" || secret == defaultSecret {
+			return errors.New("JWT_SECRET não definida ou utilizando valor padrão de fábrica em ambiente de produção — defina uma chave forte")
+		}
+	}
+	return nil
 }
 
 // UserClaims representa as claims customizadas do token JWT.
@@ -46,7 +59,7 @@ func GenerateToken(userID uuid.UUID, username, role string, municipalityID uuid.
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(getJWTSecret())
 }
 
 // ValidateToken valida um token JWT e retorna suas claims se for válido.
@@ -55,7 +68,7 @@ func ValidateToken(tokenStr string) (*UserClaims, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken
 		}
-		return jwtSecret, nil
+		return getJWTSecret(), nil
 	})
 
 	if err != nil {

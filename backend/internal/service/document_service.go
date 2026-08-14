@@ -134,6 +134,17 @@ func (s *documentService) GetByID(id uuid.UUID) (*domain.Document, error) {
 	return doc, nil
 }
 
+func (s *documentService) GetByIDUnscoped(id uuid.UUID) (*domain.Document, error) {
+	doc, err := s.docRepo.FindByIDUnscoped(id)
+	if err != nil {
+		return nil, err
+	}
+	if doc == nil {
+		return nil, domain.ErrDocumentNotFound
+	}
+	return doc, nil
+}
+
 func (s *documentService) Update(id uuid.UUID, input domain.UpdateDocumentInput) (*domain.Document, error) {
 	// 1. Buscar documento existente
 	doc, err := s.docRepo.FindByID(id)

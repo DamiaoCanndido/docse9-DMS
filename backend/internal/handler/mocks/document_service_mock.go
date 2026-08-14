@@ -45,6 +45,14 @@ func (m *DocumentService) GetByID(id uuid.UUID) (*domain.Document, error) {
 	return args.Get(0).(*domain.Document), args.Error(1)
 }
 
+func (m *DocumentService) GetByIDUnscoped(id uuid.UUID) (*domain.Document, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Document), args.Error(1)
+}
+
 func (m *DocumentService) Update(id uuid.UUID, input domain.UpdateDocumentInput) (*domain.Document, error) {
 	args := m.Called(id, input)
 	if args.Get(0) == nil {

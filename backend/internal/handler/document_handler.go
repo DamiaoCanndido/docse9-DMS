@@ -285,16 +285,26 @@ func (h *DocumentHandler) Restore(c *gin.Context) {
 		return
 	}
 
-	// Executa restauração temporária para validação
-	restored, err := h.svc.Restore(id)
+	// 1. Busca o documento na lixeira para validação prévia de permissões
+	doc, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
+	if doc == nil || !doc.DeletedAt.Valid {
+		response.NotFound(c, domain.ErrDocumentNotFound.Error())
+		return
+	}
 
-	if !h.checkAccess(c, restored, "delete") {
-		// Desfaz o restore caso o usuário não tenha permissão
-		_ = h.svc.Delete(id)
+	// 2. Valida se o usuário tem permissão para restaurar
+	if !h.checkAccess(c, doc, "delete") {
+		return
+	}
+
+	// 3. Executa a restauração segura
+	restored, err := h.svc.Restore(id)
+	if err != nil {
+		h.handleServiceError(c, err)
 		return
 	}
 
@@ -320,19 +330,23 @@ func (h *DocumentHandler) HardDelete(c *gin.Context) {
 		return
 	}
 
-	// Restaura temporariamente para obter o MunicipalityID
-	restored, err := h.svc.Restore(id)
+	// 1. Busca o documento para verificar município ANTES da exclusão definitiva
+	doc, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
+	if doc == nil {
+		response.NotFound(c, domain.ErrDocumentNotFound.Error())
+		return
+	}
 
-	if restored.MunicipalityID != claims.MunicipalityID {
-		_ = h.svc.Delete(id) // desfaz o restore
+	if doc.MunicipalityID != claims.MunicipalityID {
 		response.Forbidden(c, "permissão insuficiente para gerenciar documentos de outro município")
 		return
 	}
 
+	// 2. Executa a exclusão definitiva
 	if err := h.svc.HardDelete(id); err != nil {
 		h.handleServiceError(c, err)
 		return
