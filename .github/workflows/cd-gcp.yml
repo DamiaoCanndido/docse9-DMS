@@ -11,10 +11,9 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-  REGION: ${{ vars.GCP_REGION || 'southamerica-east1' }}
-  GAR_REPO: ${{ vars.GAR_REPOSITORY || 'docseq-artifacts' }}
-  SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE || 'docseq-backend-api' }}
+  REGION: ${{ vars.GCP_REGION || secrets.GCP_REGION || 'southamerica-east1' }}
+  GAR_REPO: ${{ vars.GAR_REPOSITORY || secrets.GAR_REPOSITORY || 'docseq-artifacts' }}
+  SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE || secrets.CLOUD_RUN_SERVICE || 'docseq-backend-api' }}
 
 jobs:
   deploy:
@@ -26,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
@@ -33,19 +33,40 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Resolve and Validate GCP Project ID
+        id: config
+        run: |
+          PROJECT_ID="${{ vars.GCP_PROJECT_ID || secrets.GCP_PROJECT_ID }}"
+          if [ -z "$PROJECT_ID" ]; then
+            PROJECT_ID="${{ steps.auth.outputs.project_id }}"
+          fi
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::GCP Project ID não encontrado. Cadastre a variável GCP_PROJECT_ID no GitHub (Settings -> Secrets and variables -> Actions -> Variables) ou no GCP_SA_KEY."
+            exit 1
+          fi
+
+          echo "project_id=${PROJECT_ID}" >> $GITHUB_OUTPUT
+          echo "GCP Project ID resolvido: ${PROJECT_ID}"
+
       - name: Configure Docker for Artifact Registry
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set Image Tag
         id: meta
         run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}"
+          PROJECT_ID="${{ steps.config.outputs.project_id }}"
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.GAR_REPO }}/${{ env.SERVICE_NAME }}"
           echo "image=${IMAGE}:${{ github.sha }}" >> $GITHUB_OUTPUT
           echo "image_latest=${IMAGE}:latest" >> $GITHUB_OUTPUT
+          echo "Target Image Tag: ${IMAGE}:${{ github.sha }}"
 
       - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -53,6 +74,8 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.image }}
             ${{ steps.meta.outputs.image_latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -61,6 +84,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ steps.meta.outputs.image }}
+          project_id: ${{ steps.config.outputs.project_id }}
           flags: |
             --allow-unauthenticated
             --min-instances=0
