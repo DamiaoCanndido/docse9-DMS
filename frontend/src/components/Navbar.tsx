@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { LogOut, Menu, X, FileText, Building2, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,11 +36,17 @@ export const Navbar: React.FC = () => {
           </Button>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-md shadow-md">
-              D
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-md shrink-0">
+              <Image
+                src="/logo.png"
+                alt="docseq Logo"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-sm text-white leading-tight">docSe9 DMS</span>
+              <span className="font-bold text-sm text-white leading-tight">docseq</span>
               {user?.municipality && (
                 <span className="text-[9px] text-zinc-500 leading-none">
                   {user.municipality.name} ({user.municipality.uf})
@@ -84,11 +91,17 @@ export const Navbar: React.FC = () => {
                 {/* Header of Drawer */}
                 <div className="flex items-center justify-between pb-4 border-b border-zinc-900">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      D
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shrink-0">
+                      <Image
+                        src="/logo.png"
+                        alt="docseq Logo"
+                        width={24}
+                        height={24}
+                        className="object-contain"
+                      />
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-md text-white leading-none">docSe9 DMS</span>
+                      <span className="font-bold text-md text-white leading-none">docseq</span>
                       <span className="text-[9px] text-zinc-500 font-medium mt-1">SISTEMA MUNICIPAL</span>
                     </div>
                   </div>

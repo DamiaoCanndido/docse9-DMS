@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { FileText, LogOut, Building2, User, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -23,11 +24,18 @@ export const Sidebar: React.FC = () => {
       <div className="flex flex-col flex-1 py-8 px-5 gap-10">
         {/* Logo */}
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-500/20">
-            D
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="docseqLogo"
+              width={26}
+              height={26}
+              className="object-contain"
+              priority
+            />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-white leading-none">docSe9 DMS</span>
+            <span className="font-bold text-lg text-white leading-none">docseq</span>
             <span className="text-[10px] text-zinc-500 font-medium mt-1">SISTEMA MUNICIPAL</span>
           </div>
         </div>

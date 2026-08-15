@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: 'docSe9 DMS - Gerenciamento de Documentos',
+  title: 'docseq - Gerenciamento de Documentos',
   description: 'Sistema Avançado de Gerenciamento Eletrônico de Documentos',
 };
 
