@@ -92,7 +92,7 @@ jobs:
             --cpu=1
             --timeout=60s
             --port=8080
-            --set-env-vars=^#^APP_ENV=production#CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173#DEFAULT_MUNICIPALITY_NAME=Paraíba#DEFAULT_MUNICIPALITY_UF=PB
+            --set-env-vars=^#^APP_ENV=production#CORS_ALLOWED_ORIGINS=https://docseq.netlify.app#DEFAULT_MUNICIPALITY_NAME=Paraíba#DEFAULT_MUNICIPALITY_UF=PB
             --set-secrets=DATABASE_URL=DOCSEQ_DATABASE_URL:latest,JWT_SECRET=DOCSEQ_JWT_SECRET:latest,DEFAULT_ADMIN_PASSWORD=DOCSEQ_ADMIN_PASSWORD:latest,DEFAULT_ADMIN_USERNAME=DOCSEQ_ADMIN_USERNAME:latest,DEFAULT_ADMIN_EMAIL=DOCSEQ_ADMIN_EMAIL:latest
 
       - name: Smoke Test & Health Check
