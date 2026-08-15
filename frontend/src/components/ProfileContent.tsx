@@ -23,8 +23,7 @@ import {
   Shield,
   Calendar,
   CheckCircle2,
-  Eye,
-  EyeOff,
+
   Sparkles,
   RefreshCw,
   Save,
@@ -58,8 +57,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
+
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
@@ -403,43 +401,25 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             )}
 
             <form onSubmit={handleChangePassword} className="flex flex-col gap-5 max-w-xl">
-              <div className="relative">
-                <Input
+              <Input
                   label="Senha Atual"
-                  type={showCurrentPassword ? 'text' : 'password'}
+                  type="password"
                   placeholder="Digite sua senha atual"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={isChangingPassword}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3.5 top-9 text-muted-foreground hover:text-foreground p-1"
-                >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
 
-              <div className="relative">
-                <Input
+              <Input
                   label="Nova Senha"
-                  type={showNewPassword ? 'text' : 'password'}
+                  type="password"
                   placeholder="Mínimo 6 caracteres"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={isChangingPassword}
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3.5 top-9 text-muted-foreground hover:text-foreground p-1"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
 
               <Input
                 label="Confirmar Nova Senha"
