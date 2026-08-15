@@ -75,8 +75,8 @@ export const ForceChangePassword: React.FC = () => {
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md overflow-y-auto px-4 py-10">
         {/* Background gradients for premium glow */}
-        <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-violet-600/10 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-indigo-600/10 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-teal-600/10 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-teal-500/10 blur-[100px] pointer-events-none" />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -87,7 +87,7 @@ export const ForceChangePassword: React.FC = () => {
         >
           {/* Top warning info */}
           <div className="flex flex-col items-center text-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+            <div className="w-12 h-12 rounded-xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
               <ShieldAlert className="w-6 h-6 animate-pulse" />
             </div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mt-1">
@@ -139,7 +139,7 @@ export const ForceChangePassword: React.FC = () => {
             <div className="flex flex-col gap-3 mt-4">
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 flex items-center justify-center gap-2"
+                className="w-full h-11 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 flex items-center justify-center gap-2"
                 isLoading={isLoading}
               >
                 <RefreshCw className="w-4 h-4" />

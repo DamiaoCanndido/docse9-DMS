@@ -398,12 +398,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             {isMod ? 'Administração do Município' : 'Administração Global'}
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-            <Users className="w-8 h-8 text-violet-600 dark:text-violet-500" />
+            <Users className="w-8 h-8 text-teal-600 dark:text-teal-500" />
             {viewTrash ? 'Usuários Excluídos (Lixeira)' : 'Gestão de Usuários'}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
@@ -438,7 +438,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       {/* Filter panel */}
       {!viewTrash && (
         <div className="p-6 bg-card border border-border backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-5 shadow-md relative overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-teal-600/5 blur-3xl rounded-full pointer-events-none" />
 
           {/* Text Search */}
           <div className="w-full md:flex-1 relative">
@@ -464,7 +464,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           <div className="w-full md:w-48 flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Perfil (Role)</label>
             <select
-              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
+              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
               value={roleFilter}
               onChange={(e) => handleFilterChange('role', e.target.value)}
             >
@@ -480,7 +480,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
             <div className="w-full md:w-56 flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Município</label>
               <select
-                className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
+                className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
                 value={municipalityFilter}
                 onChange={(e) => handleFilterChange('municipalityId', e.target.value)}
               >
@@ -509,8 +509,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
         {isPending && (
           <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">
+              <div className="w-10 h-10 rounded-full border-2 border-teal-500/20 border-t-teal-500 animate-spin" />
+              <span className="text-teal-600 dark:text-teal-400 text-xs font-bold tracking-widest uppercase">
                 Atualizando dados...
               </span>
             </div>
@@ -548,7 +548,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                           {usr.username.slice(0, 2)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                          <span className="font-bold text-foreground group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                             {usr.username}
                           </span>
                           <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
@@ -564,7 +564,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                           usr.role === 'ADMIN'
                             ? 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
                             : usr.role === 'MOD'
-                            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20'
+                            ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
                             : 'bg-muted text-muted-foreground border-border'
                         }`}
                       >
@@ -638,7 +638,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                               )}
                               <DropdownMenuItem
                                 onClick={() => openEditModal(usr)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4.5 h-4.5" />
                                 Editar
@@ -715,8 +715,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
               />
             ) : (
-              <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-start gap-3 text-xs text-violet-600 dark:text-violet-300">
-                <Key className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-teal-500/10 border border-teal-500/20 rounded-xl flex items-start gap-3 text-xs text-teal-600 dark:text-teal-300">
+                <Key className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
                 <span>
                   Uma <strong>senha temporária aleatória</strong> será gerada automaticamente pelo sistema após a criação. Você poderá visualizá-la e copiá-la na tela seguinte.
                 </span>

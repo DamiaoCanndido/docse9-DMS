@@ -24,7 +24,7 @@ export const Sidebar: React.FC = () => {
       <div className="flex flex-col flex-1 py-8 px-5 gap-10">
         {/* Logo */}
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/20 shrink-0">
             <Image
               src="/logo.png"
               alt="docseq Logo"
@@ -47,11 +47,11 @@ export const Sidebar: React.FC = () => {
             href="/"
             className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               pathname === '/'
-                ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
                 : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
-            <FileText className={`w-5 h-5 ${pathname === '/' ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
+            <FileText className={`w-5 h-5 ${pathname === '/' ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
             Documentos Oficiais
           </MotionLink>
 
@@ -61,11 +61,11 @@ export const Sidebar: React.FC = () => {
               href="/municipalities"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 pathname.startsWith('/municipalities')
-                  ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                  ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
                   : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <Building2 className={`w-5 h-5 ${pathname.startsWith('/municipalities') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
+              <Building2 className={`w-5 h-5 ${pathname.startsWith('/municipalities') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
               Municípios
             </MotionLink>
           )}
@@ -76,11 +76,11 @@ export const Sidebar: React.FC = () => {
               href="/users"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 pathname.startsWith('/users')
-                  ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                  ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
                   : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
+              <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
               Usuários
             </MotionLink>
           )}
@@ -90,11 +90,11 @@ export const Sidebar: React.FC = () => {
             href="/profile"
             className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               pathname.startsWith('/profile')
-                ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
                 : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
-            <User className={`w-5 h-5 ${pathname.startsWith('/profile') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
+            <User className={`w-5 h-5 ${pathname.startsWith('/profile') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
             Meu Perfil
           </MotionLink>
         </nav>
@@ -108,11 +108,11 @@ export const Sidebar: React.FC = () => {
             className="flex items-center gap-3 px-2 py-2 -mx-2 rounded-xl hover:bg-muted/60 transition-colors group cursor-pointer"
             title="Ir para o meu perfil"
           >
-            <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center text-foreground font-semibold uppercase group-hover:border-violet-500/50 group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors shrink-0">
+            <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center text-foreground font-semibold uppercase group-hover:border-teal-500/50 group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors shrink-0">
               {user.username.slice(0, 2)}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-foreground truncate group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">{user.username}</span>
+              <span className="text-sm font-semibold text-foreground truncate group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors">{user.username}</span>
               <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5 flex items-center gap-1">
                 <User className="w-3 h-3 text-muted-foreground" />
                 {user.role}

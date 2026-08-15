@@ -58,14 +58,14 @@ export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center bg-background text-foreground overflow-hidden px-4 py-8 transition-colors duration-200">
       {/* Background gradients for premium wow effect */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-teal-600/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-teal-500/10 blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-md flex flex-col items-center gap-6 z-10">
         {/* Login Card */}
         <div className="w-full bg-card border border-border backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-2xl relative transition-colors duration-200">
           <div className="flex flex-col items-center gap-2 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/30">
               <Image
                 src="/logo.png"
                 alt="docseq Logo"

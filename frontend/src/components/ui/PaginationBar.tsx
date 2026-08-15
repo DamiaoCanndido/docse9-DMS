@@ -60,7 +60,7 @@ export const PaginationBar: React.FC<PaginationBarProps> = ({
               disabled={isPending}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               aria-label="Selecione a quantidade de itens por página"
-              className="bg-muted/70 border border-border text-foreground text-xs rounded-xl px-2.5 py-1.5 h-9 focus:outline-none focus:border-violet-500 cursor-pointer disabled:opacity-50"
+              className="bg-muted/70 border border-border text-foreground text-xs rounded-xl px-2.5 py-1.5 h-9 focus:outline-none focus:border-teal-500 cursor-pointer disabled:opacity-50"
             >
               <option value={10}>10 por pág</option>
               <option value={25}>25 por pág</option>

@@ -212,12 +212,12 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             Administração Global
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-violet-600 dark:text-violet-500" />
+            <Building2 className="w-8 h-8 text-teal-600 dark:text-teal-500" />
             {viewTrash ? 'Municípios Excluídos (Lixeira)' : 'Gestão de Municípios'}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
@@ -254,8 +254,8 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
         {isPending && (
           <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">
+              <div className="w-10 h-10 rounded-full border-2 border-teal-500/20 border-t-teal-500 animate-spin" />
+              <span className="text-teal-600 dark:text-teal-400 text-xs font-bold tracking-widest uppercase">
                 Carregando dados...
               </span>
             </div>
@@ -302,7 +302,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                    <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                       {mun.name}
                     </td>
                     <td className="px-6 py-4.5">
@@ -346,7 +346,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                             <>
                               <DropdownMenuItem
                                 onClick={() => openEditModal(mun)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4 h-4" />
                                 Editar
@@ -386,7 +386,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors truncate">
+                    <span className="font-bold text-foreground group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors truncate">
                       {mun.name}
                     </span>
                     <span className="text-xs text-muted-foreground font-medium mt-0.5 flex items-center gap-1.5">
@@ -429,7 +429,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                         <>
                           <DropdownMenuItem
                             onClick={() => openEditModal(mun)}
-                            className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
+                            className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
                           >
                             <Edit2 className="w-4 h-4" />
                             Editar

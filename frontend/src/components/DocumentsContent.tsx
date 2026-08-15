@@ -424,7 +424,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   if (hasNoPermissions) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-2xl mx-auto">
-        <div className="w-20 h-20 rounded-3xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-6 shadow-xl shadow-violet-500/5">
+        <div className="w-20 h-20 rounded-3xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-6 shadow-xl shadow-teal-500/5">
           <ShieldAlert className="w-10 h-10" />
         </div>
         <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
@@ -435,11 +435,11 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         </p>
         <div className="mt-6 p-5 bg-card border border-border rounded-2xl text-xs text-muted-foreground text-left flex flex-col gap-2.5 w-full shadow-xl">
           <span className="font-semibold text-foreground flex items-center gap-2 text-sm">
-            <Building2 className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             Como solicitar acesso?
           </span>
           <p className="leading-relaxed">
-            Entre em contato com um <strong className="text-violet-600 dark:text-violet-400">Moderador</strong> ou <strong className="text-violet-600 dark:text-violet-400">Administrador</strong> do município de <strong className="text-foreground">{currentUser.municipality?.name || 'sua prefeitura'}</strong> para que sejam concedidas as permissões de leitura/escrita nos tipos de documentos desejados (Ofícios, Decretos, Portarias, Leis ou Contratos).
+            Entre em contato com um <strong className="text-teal-600 dark:text-teal-400">Moderador</strong> ou <strong className="text-teal-600 dark:text-teal-400">Administrador</strong> do município de <strong className="text-foreground">{currentUser.municipality?.name || 'sua prefeitura'}</strong> para que sejam concedidas as permissões de leitura/escrita nos tipos de documentos desejados (Ofícios, Decretos, Portarias, Leis ou Contratos).
           </p>
         </div>
       </div>
@@ -451,12 +451,12 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       {/* Welcome banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             Painel de Documentos Municipais
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-            <FileText className="w-8 h-8 text-violet-600 dark:text-violet-500" />
+            <FileText className="w-8 h-8 text-teal-600 dark:text-teal-500" />
             {viewTrash ? 'Documentos Excluídos (Lixeira)' : 'Documentos Oficiais'}
           </h1>
           <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
@@ -505,7 +505,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               className={cn(
                 "flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap select-none relative",
                 isActive
-                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/25 font-bold"
+                  ? "bg-teal-600 text-white shadow-md shadow-teal-600/25 font-bold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
             >
@@ -520,7 +520,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       {!viewTrash && (
         <div className="p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row items-end gap-4 shadow-sm relative overflow-hidden">
           {/* Glow effect */}
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-teal-600/5 blur-3xl rounded-full pointer-events-none" />
 
           <div className="w-full md:flex-1 relative">
             <Input
@@ -545,7 +545,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <div className="w-full md:w-44 flex flex-col gap-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Ano</label>
             <select
-              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
+              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
               value={yearFilter}
               onChange={(e) => handleFilterChange('year', e.target.value)}
             >
@@ -568,7 +568,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               >
                 <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Tipo de Contrato</label>
                 <select
-                  className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
+                  className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
                   value={contractTypeFilter}
                   onChange={(e) => handleFilterChange('contractType', e.target.value)}
                 >
@@ -597,8 +597,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         {isPending && (
           <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">Carregando {activeTabMeta.label.toLowerCase()}...</span>
+              <div className="w-10 h-10 rounded-full border-2 border-teal-500/20 border-t-teal-500 animate-spin" />
+              <span className="text-teal-600 dark:text-teal-400 text-xs font-bold tracking-widest uppercase">Carregando {activeTabMeta.label.toLowerCase()}...</span>
             </div>
           </div>
         )}
@@ -645,7 +645,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
                   return (
                     <tr key={doc.id} className="hover:bg-muted/40 transition-colors group">
-                      <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                      <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                         #{doc.order}
                       </td>
                       <td className="px-6 py-4.5 max-w-xs md:max-w-md font-medium text-foreground">
@@ -655,7 +655,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                         <>
                           <td className="px-6 py-4.5 text-xs">
                             <span className="font-semibold text-foreground flex items-center gap-1.5">
-                              <FileCheck className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                              <FileCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                               {doc.contractType ? (contractTypeLabels[doc.contractType] || doc.contractType) : '—'}
                             </span>
                           </td>
@@ -698,7 +698,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                             {showEdit && (
                               <DropdownMenuItem
                                 onClick={() => openEditModal(doc)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4 h-4" />
                                 Editar
@@ -802,7 +802,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
             <div className="w-full flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Descrição / Ementa</label>
               <textarea
-                className="w-full h-28 bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full h-28 bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                 placeholder="Descreva o conteúdo do documento ou sua ementa oficial..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -817,7 +817,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 className="border border-border rounded-xl p-4 bg-muted/40 flex flex-col gap-4"
               >
-                <h3 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                <h3 className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                   <FileCheck className="w-4 h-4" />
                   Detalhes do Contrato
                 </h3>

@@ -187,11 +187,11 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
     <div className="flex flex-col gap-8 max-w-5xl mx-auto transition-colors duration-200">
       {/* Header Profile Hero Card */}
       <div className="p-6 md:p-8 bg-card border border-border backdrop-blur-xl rounded-3xl shadow-xl relative overflow-hidden transition-colors duration-200">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-2xl uppercase shadow-xl shadow-violet-500/20 shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-teal-600 to-teal-500 flex items-center justify-center text-white font-bold text-2xl uppercase shadow-xl shadow-teal-500/20 shrink-0">
               {effectiveUser.username.slice(0, 2)}
             </div>
 
@@ -205,7 +205,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                     effectiveUser.role === 'ADMIN'
                       ? 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
                       : effectiveUser.role === 'MOD'
-                      ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20'
+                      ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
                       : 'bg-muted text-foreground border-border'
                   }`}
                 >
@@ -226,7 +226,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
 
                 {effectiveUser.municipality && (
                   <span className="flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+                    <Building2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                     {effectiveUser.municipality.name} ({effectiveUser.municipality.uf})
                   </span>
                 )}
@@ -255,7 +255,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
           onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'profile'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
           }`}
         >
@@ -267,7 +267,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
           onClick={() => setActiveTab('security')}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'security'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
           }`}
         >
@@ -279,7 +279,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
           onClick={() => setActiveTab('appearance')}
           className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'appearance'
-              ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+              ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
           }`}
         >
@@ -292,7 +292,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             onClick={() => setActiveTab('permissions')}
             className={`flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'permissions'
-                ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+                ? 'bg-teal-600 text-white shadow-md shadow-teal-600/25'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
             }`}
           >
@@ -315,7 +315,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             className="p-6 md:p-8 bg-card border border-border backdrop-blur-xl rounded-3xl shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+              <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
                 <UserIcon className="w-5 h-5" />
               </div>
               <div>
@@ -353,7 +353,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
               <div className="flex flex-col gap-2 pt-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Município de Atuação</label>
                 <div className="p-3.5 bg-muted/60 border border-border rounded-xl flex items-center gap-3 text-sm text-foreground">
-                  <Building2 className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                  <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
                   <span>{effectiveUser.municipality ? `${effectiveUser.municipality.name} (${effectiveUser.municipality.uf})` : 'Acesso Global / Sem vínculo específico'}</span>
                 </div>
                 <span className="text-[11px] text-muted-foreground">Apenas administradores podem alterar a lotação municipal.</span>
@@ -385,7 +385,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             className="p-6 md:p-8 bg-card border border-border backdrop-blur-xl rounded-3xl shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+              <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
@@ -457,7 +457,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             className="p-6 md:p-8 bg-card border border-border backdrop-blur-xl rounded-3xl shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+              <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
@@ -477,15 +477,15 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                   }}
                   className={`p-5 rounded-2xl border text-left flex flex-col justify-between gap-6 transition-all cursor-pointer ${
                     theme === 'dark'
-                      ? 'bg-violet-600/10 border-violet-500/50 shadow-md ring-1 ring-violet-500/30'
-                      : 'bg-muted/40 border-border hover:border-violet-500/30 hover:bg-muted/70'
+                      ? 'bg-teal-600/10 border-teal-500/50 shadow-md ring-1 ring-teal-500/30'
+                      : 'bg-muted/40 border-border hover:border-teal-500/30 hover:bg-muted/70'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-violet-600 dark:text-violet-400">
+                    <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-teal-600 dark:text-teal-400">
                       <Moon className="w-5 h-5" />
                     </div>
-                    {theme === 'dark' && <CheckCircle2 className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
+                    {theme === 'dark' && <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />}
                   </div>
                   <div>
                     <span className="font-bold text-foreground block text-sm">Modo Escuro</span>
@@ -502,15 +502,15 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                   }}
                   className={`p-5 rounded-2xl border text-left flex flex-col justify-between gap-6 transition-all cursor-pointer ${
                     theme === 'light'
-                      ? 'bg-violet-600/10 border-violet-500/50 shadow-md ring-1 ring-violet-500/30'
-                      : 'bg-muted/40 border-border hover:border-violet-500/30 hover:bg-muted/70'
+                      ? 'bg-teal-600/10 border-teal-500/50 shadow-md ring-1 ring-teal-500/30'
+                      : 'bg-muted/40 border-border hover:border-teal-500/30 hover:bg-muted/70'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-amber-500">
                       <Sun className="w-5 h-5" />
                     </div>
-                    {theme === 'light' && <CheckCircle2 className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
+                    {theme === 'light' && <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />}
                   </div>
                   <div>
                     <span className="font-bold text-foreground block text-sm">Modo Claro</span>
@@ -527,15 +527,15 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                   }}
                   className={`p-5 rounded-2xl border text-left flex flex-col justify-between gap-6 transition-all cursor-pointer ${
                     theme === 'system'
-                      ? 'bg-violet-600/10 border-violet-500/50 shadow-md ring-1 ring-violet-500/30'
-                      : 'bg-muted/40 border-border hover:border-violet-500/30 hover:bg-muted/70'
+                      ? 'bg-teal-600/10 border-teal-500/50 shadow-md ring-1 ring-teal-500/30'
+                      : 'bg-muted/40 border-border hover:border-teal-500/30 hover:bg-muted/70'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground">
                       <Laptop className="w-5 h-5" />
                     </div>
-                    {theme === 'system' && <CheckCircle2 className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
+                    {theme === 'system' && <CheckCircle2 className="w-5 h-5 text-teal-600 dark:text-teal-400" />}
                   </div>
                   <div>
                     <span className="font-bold text-foreground block text-sm">Automático</span>
@@ -558,7 +558,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
             className="p-6 md:p-8 bg-card border border-border backdrop-blur-xl rounded-3xl shadow-xl"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+              <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
                 <Shield className="w-5 h-5" />
               </div>
               <div>
@@ -571,7 +571,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
 
             {isLoadingPerms ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3">
-                <div className="w-8 h-8 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
+                <div className="w-8 h-8 rounded-full border-2 border-teal-500/20 border-t-teal-500 animate-spin" />
                 <span className="text-muted-foreground text-xs">Carregando permissões...</span>
               </div>
             ) : (
@@ -590,7 +590,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                   return (
                     <div key={type} className="grid grid-cols-2 p-4 items-center gap-4 hover:bg-muted/40 transition-colors">
                       <div className="flex items-center gap-3 font-semibold text-foreground">
-                        <Icon className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                        <Icon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                         {meta.label}
                       </div>
                       <div>
@@ -601,7 +601,7 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
                               : level === 'WRITE'
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                               : level === 'READ'
-                              ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20'
+                              ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
                               : 'bg-muted text-muted-foreground border-border'
                           }`}
                         >
