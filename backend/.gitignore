@@ -1,2 +1,6 @@
 .env
 coverage.**
+
+# Migração legada e dados temporários
+data/
+cmd/migrate_legacy/
