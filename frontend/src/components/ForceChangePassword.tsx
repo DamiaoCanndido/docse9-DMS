@@ -73,7 +73,7 @@ export const ForceChangePassword: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md overflow-y-auto px-4 py-10">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md overflow-y-auto px-4 py-10">
         {/* Background gradients for premium glow */}
         <div className="absolute top-[20%] left-[20%] w-[350px] h-[350px] rounded-full bg-violet-600/10 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[20%] right-[20%] w-[350px] h-[350px] rounded-full bg-indigo-600/10 blur-[100px] pointer-events-none" />
@@ -83,17 +83,17 @@ export const ForceChangePassword: React.FC = () => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="w-full max-w-lg bg-zinc-950/70 border border-zinc-800/80 backdrop-blur-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative"
+          className="w-full max-w-lg bg-card border border-border backdrop-blur-2xl rounded-2xl p-6 md:p-8 shadow-2xl relative"
         >
           {/* Top warning info */}
           <div className="flex flex-col items-center text-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
               <ShieldAlert className="w-6 h-6 animate-pulse" />
             </div>
-            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white mt-1">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground mt-1">
               Troca de Senha Obrigatória
             </h1>
-            <p className="text-sm text-zinc-400 max-w-sm">
+            <p className="text-sm text-muted-foreground max-w-sm">
               Sua conta foi criada ou redefinida com uma senha temporária. Para sua segurança, você deve alterá-la antes de continuar.
             </p>
           </div>
@@ -102,7 +102,7 @@ export const ForceChangePassword: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg p-3.5 mb-6 text-center font-medium"
+              className="bg-red-500/10 border border-red-500/20 text-red-500 dark:text-red-400 text-sm rounded-lg p-3.5 mb-6 text-center font-medium"
             >
               {error}
             </motion.div>
@@ -148,7 +148,7 @@ export const ForceChangePassword: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full flex items-center justify-center gap-2 border-zinc-800 hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400 transition-all py-2.5 h-11"
+                className="w-full flex items-center justify-center gap-2 border-border text-muted-foreground hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-500 transition-all py-2.5 h-11"
                 onClick={logout}
                 disabled={isLoading}
               >

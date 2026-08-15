@@ -20,14 +20,14 @@ export const Sidebar: React.FC = () => {
   const isMod = user?.role === 'MOD';
 
   return (
-    <aside className="w-68 bg-zinc-950/80 border-r border-zinc-800/80 backdrop-blur-xl flex flex-col justify-between hidden md:flex shrink-0">
+    <aside className="w-68 bg-card border-r border-border backdrop-blur-xl flex flex-col justify-between hidden md:flex shrink-0 transition-colors duration-200">
       <div className="flex flex-col flex-1 py-8 px-5 gap-10">
         {/* Logo */}
         <div className="flex items-center gap-3 px-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 shrink-0">
             <Image
               src="/logo.png"
-              alt="docseqLogo"
+              alt="docseq Logo"
               width={26}
               height={26}
               className="object-contain"
@@ -35,8 +35,8 @@ export const Sidebar: React.FC = () => {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-white leading-none">docseq</span>
-            <span className="text-[10px] text-zinc-500 font-medium mt-1">SISTEMA MUNICIPAL</span>
+            <span className="font-bold text-lg text-foreground leading-none">docseq</span>
+            <span className="text-[10px] text-muted-foreground font-medium mt-1">SISTEMA MUNICIPAL</span>
           </div>
         </div>
 
@@ -47,11 +47,11 @@ export const Sidebar: React.FC = () => {
             href="/"
             className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
               pathname === '/'
-                ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
-                : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
             }`}
           >
-            <FileText className={`w-5 h-5 ${pathname === '/' ? 'text-violet-400' : 'text-zinc-500'}`} />
+            <FileText className={`w-5 h-5 ${pathname === '/' ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
             Documentos Oficiais
           </MotionLink>
 
@@ -61,11 +61,11 @@ export const Sidebar: React.FC = () => {
               href="/municipalities"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 pathname.startsWith('/municipalities')
-                  ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
-                  : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <Building2 className={`w-5 h-5 ${pathname.startsWith('/municipalities') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              <Building2 className={`w-5 h-5 ${pathname.startsWith('/municipalities') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
               Municípios
             </MotionLink>
           )}
@@ -76,44 +76,59 @@ export const Sidebar: React.FC = () => {
               href="/users"
               className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 pathname.startsWith('/users')
-                  ? 'bg-gradient-to-r from-violet-600/15 to-indigo-600/15 border border-violet-500/20 text-violet-300 shadow-md shadow-violet-500/5'
-                  : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+                  ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
-              <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-violet-400' : 'text-zinc-500'}`} />
+              <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
               Usuários
             </MotionLink>
           )}
+
+          <MotionLink
+            whileHover={{ x: 4 }}
+            href="/profile"
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              pathname.startsWith('/profile')
+                ? 'bg-violet-600/10 border border-violet-500/20 text-violet-600 dark:text-violet-300 shadow-sm'
+                : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <User className={`w-5 h-5 ${pathname.startsWith('/profile') ? 'text-violet-600 dark:text-violet-400' : 'text-muted-foreground'}`} />
+            Meu Perfil
+          </MotionLink>
         </nav>
       </div>
 
-
-
       {/* User Info & Logout */}
-      <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-5">
+      <div className="p-5 border-t border-border bg-card/60 flex flex-col gap-4">
         {user && (
-          <div className="flex items-center gap-3 px-1">
-            <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-300 font-semibold uppercase">
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 px-2 py-2 -mx-2 rounded-xl hover:bg-muted/60 transition-colors group cursor-pointer"
+            title="Ir para o meu perfil"
+          >
+            <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center text-foreground font-semibold uppercase group-hover:border-violet-500/50 group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors shrink-0">
               {user.username.slice(0, 2)}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-semibold text-white truncate">{user.username}</span>
-              <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider mt-0.5 flex items-center gap-1">
-                <User className="w-3 h-3 text-zinc-500" />
+              <span className="text-sm font-semibold text-foreground truncate group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">{user.username}</span>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                <User className="w-3 h-3 text-muted-foreground" />
                 {user.role}
               </span>
               {user.municipality && (
-                <span className="text-[10px] text-zinc-500 truncate mt-1 flex items-center gap-1">
-                  <Building2 className="w-3 h-3 text-zinc-600" />
+                <span className="text-[10px] text-muted-foreground truncate mt-1 flex items-center gap-1">
+                  <Building2 className="w-3 h-3 text-muted-foreground" />
                   {user.municipality.name} ({user.municipality.uf})
                 </span>
               )}
             </div>
-          </div>
+          </Link>
         )}
         <Button
           variant="outline"
-          className="w-full flex items-center justify-center gap-2 border-zinc-800 hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-400 transition-all py-2.5 rounded-xl text-zinc-400"
+          className="w-full flex items-center justify-center gap-2 border-border text-muted-foreground hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-500 transition-all py-2.5 rounded-xl"
           onClick={logout}
         >
           <LogOut className="w-4 h-4" />

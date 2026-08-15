@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '../context/AuthContext';
 import { ForceChangePassword } from '@/components/ForceChangePassword';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { getUserOrNull } from './api/auth';
 import './globals.css';
 import { Toaster } from 'sonner';
@@ -22,13 +23,15 @@ export default async function RootLayout({
   const user = await getUserOrNull();
 
   return (
-    <html lang="pt-BR" className={cn("dark", "font-sans", geist.variable)} style={{ colorScheme: 'dark' }}>
-      <body className="antialiased bg-black text-zinc-100 min-h-screen">
-        <AuthProvider initialUser={user}>
-          {children}
-          <ForceChangePassword />
-        </AuthProvider>
-        <Toaster position="top-right" richColors />
+    <html lang="pt-BR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+      <body className="antialiased bg-background text-foreground min-h-screen transition-colors duration-200">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <AuthProvider initialUser={user}>
+            {children}
+            <ForceChangePassword />
+          </AuthProvider>
+          <Toaster position="top-right" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -398,15 +398,15 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             {isMod ? 'Administração do Município' : 'Administração Global'}
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <Users className="w-8 h-8 text-violet-500" />
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+            <Users className="w-8 h-8 text-violet-600 dark:text-violet-500" />
             {viewTrash ? 'Usuários Excluídos (Lixeira)' : 'Gestão de Usuários'}
           </h1>
-          <p className="text-zinc-400 mt-1.5 text-sm max-w-xl">
+          <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
             {viewTrash
               ? 'Visualize usuários deletados e restaure o acesso deles ou remova-os permanentemente.'
               : 'Gerencie as contas de acesso dos moderadores e funcionários públicos municipais.'}
@@ -416,7 +416,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-4.5 rounded-xl h-11"
+            className="border-border hover:bg-muted text-foreground font-semibold px-4.5 rounded-xl h-11"
             onClick={handleToggleTrash}
           >
             {viewTrash ? 'Ver Ativos' : 'Ver Lixeira'}
@@ -437,7 +437,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
       {/* Filter panel */}
       {!viewTrash && (
-        <div className="p-6 bg-zinc-950/60 border border-zinc-800/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-5 shadow-2xl relative overflow-hidden">
+        <div className="p-6 bg-card border border-border backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-5 shadow-md relative overflow-hidden">
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/5 blur-3xl rounded-full pointer-events-none" />
 
           {/* Text Search */}
@@ -449,11 +449,11 @@ export const UsersContent: React.FC<UsersContentProps> = ({
               onChange={(e) => setSearchVal(e.target.value)}
               className="pl-10"
             />
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 bottom-3.5" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 bottom-3.5" />
             {searchVal && (
               <button
                 onClick={() => setSearchVal('')}
-                className="absolute right-3.5 bottom-3.5 text-zinc-500 hover:text-white p-0.5 rounded-full hover:bg-zinc-800 transition-all"
+                className="absolute right-3.5 bottom-3.5 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted transition-all"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -462,31 +462,31 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
           {/* Role Filter */}
           <div className="w-full md:w-48 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Perfil (Role)</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Perfil (Role)</label>
             <select
-              className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer"
+              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
               value={roleFilter}
               onChange={(e) => handleFilterChange('role', e.target.value)}
             >
-              <option value="">Todos</option>
-              {isAdmin && <option value="ADMIN">Administrador</option>}
-              <option value="MOD">Moderador</option>
-              <option value="COMMON">Funcionário Comum</option>
+              <option value="" className="bg-card text-foreground">Todos</option>
+              {isAdmin && <option value="ADMIN" className="bg-card text-foreground">Administrador</option>}
+              <option value="MOD" className="bg-card text-foreground">Moderador</option>
+              <option value="COMMON" className="bg-card text-foreground">Funcionário Comum</option>
             </select>
           </div>
 
           {/* Municipality Filter (ADMIN only) */}
           {isAdmin && (
             <div className="w-full md:w-56 flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Município</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Município</label>
               <select
-                className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer"
+                className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
                 value={municipalityFilter}
                 onChange={(e) => handleFilterChange('municipalityId', e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="" className="bg-card text-foreground">Todos</option>
                 {municipalities.map((m) => (
-                  <option key={m.id} value={m.id}>
+                  <option key={m.id} value={m.id} className="bg-card text-foreground">
                     {m.name} ({m.uf})
                   </option>
                 ))}
@@ -496,7 +496,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
           <Button
             variant="outline"
-            className="w-full md:w-auto h-11 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-5 rounded-xl"
+            className="w-full md:w-auto h-10 border-border hover:bg-muted text-foreground font-semibold px-5 rounded-xl"
             onClick={handleClearFilters}
           >
             Limpar Filtros
@@ -505,12 +505,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       )}
 
       {/* Users table */}
-      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden shadow-2xl relative">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl relative">
         {isPending && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-400 text-xs font-bold tracking-widest uppercase">
+              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">
                 Atualizando dados...
               </span>
             </div>
@@ -519,11 +519,11 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
         {initialData.data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900/50 flex items-center justify-center text-zinc-500 mb-5 border border-zinc-800">
-              <Users className="w-7 h-7 text-zinc-600" />
+            <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground mb-5 border border-border">
+              <Users className="w-7 h-7 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-bold text-white">Nenhum usuário encontrado</h3>
-            <p className="text-zinc-500 text-sm mt-2 max-w-sm">
+            <h3 className="text-xl font-bold text-foreground">Nenhum usuário encontrado</h3>
+            <p className="text-muted-foreground text-sm mt-2 max-w-sm">
               Tente redefinir os filtros ou buscar por outros termos.
             </p>
           </div>
@@ -531,7 +531,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-zinc-900 bg-zinc-950/70 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-border bg-muted/50 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                   <th className="px-6 py-4.5">Usuário</th>
                   <th className="px-6 py-4.5">Perfil</th>
                   <th className="px-6 py-4.5">Município</th>
@@ -539,20 +539,20 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                   <th className="px-6 py-4.5 text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-900 text-sm text-zinc-300">
+              <tbody className="divide-y divide-border text-sm text-foreground">
                 {initialData.data.map((usr) => (
-                  <tr key={usr.id} className="hover:bg-zinc-900/10 transition-colors group">
+                  <tr key={usr.id} className="hover:bg-muted/40 transition-colors group">
                     <td className="px-6 py-4.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 font-semibold uppercase text-xs">
+                        <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground font-semibold uppercase text-xs">
                           {usr.username.slice(0, 2)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-white group-hover:text-violet-400 transition-colors">
+                          <span className="font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                             {usr.username}
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-medium flex items-center gap-1 mt-0.5">
-                            <Mail className="w-3 h-3 text-zinc-600" />
+                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
+                            <Mail className="w-3 h-3 text-muted-foreground" />
                             {usr.email}
                           </span>
                         </div>
@@ -562,10 +562,10 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
                           usr.role === 'ADMIN'
-                            ? 'bg-red-500/5 text-red-400 border-red-500/20'
+                            ? 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
                             : usr.role === 'MOD'
-                            ? 'bg-violet-500/5 text-violet-400 border-violet-500/20'
-                            : 'bg-zinc-900/80 text-zinc-400 border-zinc-800'
+                            ? 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20'
+                            : 'bg-muted text-muted-foreground border-border'
                         }`}
                       >
                         {usr.role}
@@ -574,22 +574,22 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                     <td className="px-6 py-4.5">
                       {usr.municipality ? (
                         <div className="flex flex-col">
-                          <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-zinc-500" />
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                             {usr.municipality.name}
                           </span>
-                          <span className="text-[10px] text-zinc-500 ml-5">
+                          <span className="text-[10px] text-muted-foreground ml-5">
                             Estado: {usr.municipality.uf}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-zinc-650">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4.5 text-zinc-500 text-xs font-medium">
+                    <td className="px-6 py-4.5 text-muted-foreground text-xs font-medium">
                       {usr.lastLogin ? (
                         <div className="flex items-center gap-1.5">
-                          <UserCheck className="w-3.5 h-3.5 text-zinc-600" />
+                          <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
                           {new Date(usr.lastLogin).toLocaleDateString('pt-BR')} às{' '}
                           {new Date(usr.lastLogin).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
@@ -597,29 +597,29 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                           })}
                         </div>
                       ) : (
-                        <span className="text-zinc-700 italic">Nunca acessou</span>
+                        <span className="text-muted-foreground italic">Nunca acessou</span>
                       )}
                     </td>
                     <td className="px-6 py-4.5 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger render={
-                          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all cursor-pointer">
                             <MoreHorizontal className="w-4.5 h-4.5" />
                           </button>
                         } />
-                        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[170px]">
+                        <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground min-w-[170px]">
                           {viewTrash ? (
                             <>
                               <DropdownMenuItem
                                 onClick={() => handleRestoreUser(usr.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-emerald-500 cursor-pointer focus:bg-muted focus:text-emerald-500 p-2 text-xs font-medium"
                               >
                                 <RotateCcw className="w-4.5 h-4.5" />
                                 Restaurar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleHardDeleteUser(usr.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                               >
                                 <Trash className="w-4.5 h-4.5" />
                                 Excluir Definitivamente
@@ -629,8 +629,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                             <>
                               {usr.role === 'COMMON' && (
                                 <DropdownMenuItem
-                                  onClick={() => openPermissionsModal(usr)}
-                                  className="flex items-center gap-2 hover:bg-zinc-900 hover:text-amber-400 cursor-pointer focus:bg-zinc-900 focus:text-amber-400 p-2 text-xs font-medium"
+                                   onClick={() => openPermissionsModal(usr)}
+                                  className="flex items-center gap-2 hover:bg-muted hover:text-amber-500 cursor-pointer focus:bg-muted focus:text-amber-500 p-2 text-xs font-medium"
                                 >
                                   <Shield className="w-4.5 h-4.5" />
                                   Permissões
@@ -638,7 +638,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                               )}
                               <DropdownMenuItem
                                 onClick={() => openEditModal(usr)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4.5 h-4.5" />
                                 Editar
@@ -646,7 +646,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                               {usr.id !== currentUser.id && (
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteUser(usr.id)}
-                                  className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                  className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                                 >
                                   <Trash2 className="w-4.5 h-4.5" />
                                   Mover para Lixeira
@@ -678,12 +678,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
       {/* User Create/Edit Modal via shadcn/ui Dialog */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+        <DialogContent className="bg-card border border-border text-foreground max-w-lg rounded-2xl shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-foreground">
               {selectedUser ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
             </DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
               Configure as credenciais e o escopo de acesso do usuário.
             </DialogDescription>
           </DialogHeader>
@@ -715,8 +715,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
               />
             ) : (
-              <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-start gap-3 text-xs text-violet-300">
-                <Key className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-start gap-3 text-xs text-violet-600 dark:text-violet-300">
+                <Key className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0 mt-0.5" />
                 <span>
                   Uma <strong>senha temporária aleatória</strong> será gerada automaticamente pelo sistema após a criação. Você poderá visualizá-la e copiá-la na tela seguinte.
                 </span>
@@ -725,12 +725,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
             {/* Perfil Selection via shadcn/ui Select */}
             <div className="w-full flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-zinc-400">Perfil de Acesso</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Perfil de Acesso</label>
               <Select value={role} onValueChange={(val) => setRole((val as Role) || 'COMMON')}>
-                <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                <SelectTrigger className="w-full bg-background border-border text-foreground text-sm h-10 rounded-xl">
                   <SelectValue placeholder="Selecione o perfil" />
                 </SelectTrigger>
-                <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                <SelectContent className="bg-popover border-border text-popover-foreground">
                   {isAdmin && <SelectItem value="ADMIN" label="Administrador Global">Administrador Global</SelectItem>}
                   <SelectItem value="MOD" label="Moderador Municipal">Moderador Municipal</SelectItem>
                   <SelectItem value="COMMON" label="Funcionário Comum">Funcionário Comum</SelectItem>
@@ -741,9 +741,9 @@ export const UsersContent: React.FC<UsersContentProps> = ({
             {/* Municipality Selection (ADMIN only) via shadcn/ui Select */}
             {isAdmin && (
               <div className="w-full flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-zinc-400">Município Vinculado</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Município Vinculado</label>
                 <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
-                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                  <SelectTrigger className="w-full bg-background border-border text-foreground text-sm h-10 rounded-xl">
                     <SelectValue placeholder="Selecione o município">
                       {municipalityId
                         ? (() => {
@@ -753,7 +753,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                         : null}
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                  <SelectContent className="bg-popover border-border text-popover-foreground">
                     {municipalities.map((m) => (
                       <SelectItem key={m.id} value={m.id} label={`${m.name} (${m.uf})`}>
                         {m.name} ({m.uf})
@@ -765,10 +765,10 @@ export const UsersContent: React.FC<UsersContentProps> = ({
             )}
 
             {isMod && (
-              <div className="p-3 bg-zinc-900/50 border border-zinc-850 rounded-xl flex items-center gap-2">
-                <Building2 className="w-4.5 h-4.5 text-zinc-500" />
-                <span className="text-xs text-zinc-400">
-                  Vinculado a: <strong>{currentUser.municipality?.name} ({currentUser.municipality?.uf})</strong>
+              <div className="p-3 bg-muted border border-border rounded-xl flex items-center gap-2">
+                <Building2 className="w-4.5 h-4.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Vinculado a: <strong className="text-foreground">{currentUser.municipality?.name} ({currentUser.municipality?.uf})</strong>
                 </span>
               </div>
             )}
@@ -784,7 +784,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-zinc-800 text-zinc-300 rounded-xl"
+                  className="border-border text-foreground hover:bg-muted rounded-xl"
                   onClick={() => setIsUserModalOpen(false)}
                 >
                   Cancelar
@@ -805,13 +805,13 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
       {/* User Permissions Modal via shadcn/ui Dialog */}
       <Dialog open={isPermModalOpen} onOpenChange={setIsPermModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-2xl rounded-2xl shadow-2xl p-6">
+        <DialogContent className="bg-card border border-border text-foreground max-w-2xl rounded-2xl shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-amber-500" />
               Permissões do Usuário: {selectedUser?.username}
             </DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
               Configure o nível de permissão que o funcionário comum terá para cada tipo de documento oficial.
             </DialogDescription>
           </DialogHeader>
@@ -819,12 +819,12 @@ export const UsersContent: React.FC<UsersContentProps> = ({
           {isLoadingPerms ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
-              <span className="text-zinc-500 text-xs">Carregando permissões...</span>
+              <span className="text-muted-foreground text-xs">Carregando permissões...</span>
             </div>
           ) : (
             <div className="flex flex-col gap-6 mt-4">
-              <div className="border border-zinc-900 rounded-xl overflow-hidden divide-y divide-zinc-900 bg-zinc-950/20">
-                <div className="grid grid-cols-2 md:grid-cols-5 p-3.5 bg-zinc-950 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+              <div className="border border-border rounded-xl overflow-hidden divide-y divide-border bg-card">
+                <div className="grid grid-cols-2 md:grid-cols-5 p-3.5 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                   <div className="col-span-2">Tipo de Documento</div>
                   <div className="col-span-3">Nível de Acesso</div>
                 </div>
@@ -832,9 +832,9 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 {docTypesList.map((type) => (
                   <div
                     key={type.value}
-                    className="grid grid-cols-2 md:grid-cols-5 p-3.5 items-center gap-4 hover:bg-zinc-900/5 transition-colors"
+                    className="grid grid-cols-2 md:grid-cols-5 p-3.5 items-center gap-4 hover:bg-muted/30 transition-colors"
                   >
-                    <div className="col-span-2 font-semibold text-zinc-200">
+                    <div className="col-span-2 font-semibold text-foreground">
                       {type.label}
                     </div>
                     <div className="col-span-3 flex items-center gap-1.5 md:gap-3 flex-wrap">
@@ -845,8 +845,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                           onClick={() => handlePermissionChange(type.value, lvl.value)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                             permissions[type.value] === lvl.value
-                              ? 'bg-amber-500/10 border border-amber-500/35 text-amber-400'
-                              : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                              ? 'bg-amber-500/10 border border-amber-500/35 text-amber-600 dark:text-amber-400 font-bold'
+                              : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
                           }`}
                         >
                           {lvl.label}
@@ -862,7 +862,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-zinc-800 text-zinc-300 rounded-xl"
+                    className="border-border text-foreground hover:bg-muted rounded-xl"
                     onClick={() => setIsPermModalOpen(false)}
                   >
                     Cancelar
@@ -871,7 +871,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                 <Button
                   type="button"
                   variant="default"
-                  className="rounded-xl font-bold bg-amber-500/20 border border-amber-500/35 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300 shadow-md shadow-amber-500/5 px-6"
+                  className="rounded-xl font-bold bg-amber-500/20 border border-amber-500/35 text-amber-600 dark:text-amber-400 hover:bg-amber-500/30 hover:text-amber-700 dark:hover:text-amber-300 shadow-sm px-6"
                   onClick={handleSavePermissions}
                   isLoading={isSavingPerms}
                 >
@@ -885,31 +885,31 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
       {/* Success Modal after Creating User */}
       <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+        <DialogContent className="bg-card border border-border text-foreground max-w-lg rounded-2xl shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-400" />
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-500" />
               Usuário Criado com Sucesso!
             </DialogTitle>
-            <DialogDescription className="text-zinc-400 text-xs mt-1">
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
               Copie a senha temporária abaixo para enviar ao usuário.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-4 mt-3">
-            <div className="p-3.5 bg-zinc-900/60 border border-zinc-800 rounded-xl flex flex-col gap-2">
+            <div className="p-3.5 bg-muted/60 border border-border rounded-xl flex flex-col gap-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-500 font-medium">Nome de Usuário:</span>
-                <span className="font-bold text-white">{createdUserCredentials?.username}</span>
+                <span className="text-muted-foreground font-medium">Nome de Usuário:</span>
+                <span className="font-bold text-foreground">{createdUserCredentials?.username}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-500 font-medium">E-mail:</span>
-                <span className="font-medium text-zinc-300">{createdUserCredentials?.email}</span>
+                <span className="text-muted-foreground font-medium">E-mail:</span>
+                <span className="font-medium text-foreground">{createdUserCredentials?.email}</span>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5" />
                 Senha Temporária Gerada
               </label>
@@ -919,13 +919,13 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   readOnly
                   value={createdUserCredentials?.randomPassword || ''}
-                  className="w-full bg-zinc-900 border border-amber-500/40 text-amber-300 font-mono text-base px-4 py-3 rounded-xl pr-24 focus:outline-none focus:border-amber-500 select-all"
+                  className="w-full bg-muted/80 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-mono text-base px-4 py-3 rounded-xl pr-24 focus:outline-none focus:border-amber-500 select-all"
                 />
                 <div className="absolute right-2 flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
                     title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -953,8 +953,8 @@ export const UsersContent: React.FC<UsersContentProps> = ({
               </div>
             </div>
 
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-300">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-600 dark:text-amber-300">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <span>
                 <strong>Atenção:</strong> Por motivos de segurança, esta senha temporária não será exibida novamente. Certifique-se de copiá-la e enviá-la para o usuário agora.
               </span>

@@ -146,3 +146,46 @@ export async function changePassword(form: { currentPassword: string; newPasswor
     return { success: false, error: 'Falha na conexão com o servidor de API.' };
   }
 }
+
+export async function updateUserProfile(form: { username: string; email: string }): Promise<{ success: boolean; user?: User; error?: string }> {
+  try {
+    const token = await getToken();
+    const currentUser = await getUserOrNull();
+    if (!token || !currentUser) {
+      return { success: false, error: 'Usuário não autenticado.' };
+    }
+
+    const response = await apiServer.patch<{ success: boolean; data: User | { user: User } }>(
+      `/users/${currentUser.id}`,
+      {
+        username: form.username,
+        email: form.email,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const rawData = response.data.data;
+    const updatedUser: User = (rawData && typeof rawData === 'object' && 'user' in rawData)
+      ? (rawData as { user: User }).user
+      : (rawData as User);
+
+    const cookieStore = await cookies();
+    cookieStore.set('user', JSON.stringify(updatedUser), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60, // 1 day
+      path: '/',
+    });
+
+    return { success: true, user: parseStringify(updatedUser) };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const msg = error.response?.data?.error || 'Erro ao atualizar dados do perfil.';
+      return { success: false, error: msg };
+    }
+    return { success: false, error: 'Falha na conexão com o servidor de API.' };
+  }
+}

@@ -424,22 +424,22 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   if (hasNoPermissions) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-2xl mx-auto">
-        <div className="w-20 h-20 rounded-3xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 mb-6 shadow-xl shadow-violet-500/5">
+        <div className="w-20 h-20 rounded-3xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400 mb-6 shadow-xl shadow-violet-500/5">
           <ShieldAlert className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-extrabold text-white tracking-tight">
+        <h2 className="text-2xl font-extrabold text-foreground tracking-tight">
           Acesso Pendente de Liberação
         </h2>
-        <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
-          Olá, <strong className="text-zinc-200">{currentUser.username}</strong>! Sua conta foi registrada com sucesso no sistema, porém você ainda não possui permissões atribuídas para visualizar ou gerenciar documentos oficiais.
+        <p className="text-muted-foreground text-sm mt-3 leading-relaxed">
+          Olá, <strong className="text-foreground">{currentUser.username}</strong>! Sua conta foi registrada com sucesso no sistema, porém você ainda não possui permissões atribuídas para visualizar ou gerenciar documentos oficiais.
         </p>
-        <div className="mt-6 p-5 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-xs text-zinc-400 text-left flex flex-col gap-2.5 w-full shadow-2xl">
-          <span className="font-semibold text-zinc-300 flex items-center gap-2 text-sm">
-            <Building2 className="w-4 h-4 text-violet-400" />
+        <div className="mt-6 p-5 bg-card border border-border rounded-2xl text-xs text-muted-foreground text-left flex flex-col gap-2.5 w-full shadow-xl">
+          <span className="font-semibold text-foreground flex items-center gap-2 text-sm">
+            <Building2 className="w-4 h-4 text-violet-600 dark:text-violet-400" />
             Como solicitar acesso?
           </span>
           <p className="leading-relaxed">
-            Entre em contato com um <strong className="text-violet-300">Moderador</strong> ou <strong className="text-violet-300">Administrador</strong> do município de <strong className="text-zinc-200">{currentUser.municipality?.name || 'sua prefeitura'}</strong> para que sejam concedidas as permissões de leitura/escrita nos tipos de documentos desejados (Ofícios, Decretos, Portarias, Leis ou Contratos).
+            Entre em contato com um <strong className="text-violet-600 dark:text-violet-400">Moderador</strong> ou <strong className="text-violet-600 dark:text-violet-400">Administrador</strong> do município de <strong className="text-foreground">{currentUser.municipality?.name || 'sua prefeitura'}</strong> para que sejam concedidas as permissões de leitura/escrita nos tipos de documentos desejados (Ofícios, Decretos, Portarias, Leis ou Contratos).
           </p>
         </div>
       </div>
@@ -451,15 +451,15 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       {/* Welcome banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             Painel de Documentos Municipais
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <FileText className="w-8 h-8 text-violet-500" />
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+            <FileText className="w-8 h-8 text-violet-600 dark:text-violet-500" />
             {viewTrash ? 'Documentos Excluídos (Lixeira)' : 'Documentos Oficiais'}
           </h1>
-          <p className="text-zinc-400 mt-1.5 text-sm max-w-xl">
+          <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
             {viewTrash 
               ? 'Visualize, restaure ou delete em definitivo os documentos excluídos de seu município.' 
               : `Gerencie e pesquise os documentos oficiais de ${
@@ -471,7 +471,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-4.5 rounded-xl h-11"
+            className="border-border hover:bg-muted text-foreground font-semibold px-4.5 rounded-xl h-11"
             onClick={handleToggleTrash}
           >
             {viewTrash ? 'Ver Ativos' : 'Ver Lixeira'}
@@ -491,7 +491,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       </div>
 
       {/* Navigation Tabs Bar by Document Type */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-zinc-950/80 border border-zinc-800/90 rounded-2xl overflow-x-auto scrollbar-none shadow-xl">
+      <div className="flex items-center gap-1.5 p-1.5 bg-card/80 border border-border rounded-2xl overflow-x-auto scrollbar-none shadow-md">
         {docTypesList.map((tab) => {
           const isActive = activeTab === tab.value;
           const Icon = tab.icon;
@@ -505,11 +505,11 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               className={cn(
                 "flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap select-none relative",
                 isActive
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25 font-bold"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
+                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/25 font-bold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
             >
-              <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-zinc-400")} />
+              <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-muted-foreground")} />
               {tab.label}
             </button>
           );
@@ -518,7 +518,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
       {/* Filter panel */}
       {!viewTrash && (
-        <div className="p-5 bg-zinc-950/60 border border-zinc-800/80 backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-4 shadow-2xl relative overflow-hidden">
+        <div className="p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row items-end gap-4 shadow-sm relative overflow-hidden">
           {/* Glow effect */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/5 blur-3xl rounded-full pointer-events-none" />
 
@@ -528,13 +528,13 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               placeholder={`Buscar por descrição em ${activeTabMeta.label.toLowerCase()}...`}
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
-              className="pl-10"
+              className="pl-10 bg-background text-foreground"
             />
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 bottom-3.5" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 bottom-3.5 pointer-events-none" />
             {searchVal && (
               <button
                 onClick={() => setSearchVal('')}
-                className="absolute right-3.5 bottom-3.5 text-zinc-500 hover:text-white p-0.5 rounded-full hover:bg-zinc-800 transition-all"
+                className="absolute right-3.5 bottom-3.5 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted transition-all cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -543,14 +543,14 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
           {/* Year Dropdown */}
           <div className="w-full md:w-44 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Ano</label>
+            <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Ano</label>
             <select
-              className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer"
+              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
               value={yearFilter}
               onChange={(e) => handleFilterChange('year', e.target.value)}
             >
               {availableYears.map((y) => (
-                <option key={y} value={y}>
+                <option key={y} value={y} className="bg-card text-foreground">
                   {y === 'all' ? 'Todos os Anos' : y}
                 </option>
               ))}
@@ -566,16 +566,16 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                 exit={{ opacity: 0, width: 0, scale: 0.95 }}
                 className="w-full md:w-56 flex flex-col gap-1.5"
               >
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Tipo de Contrato</label>
+                <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Tipo de Contrato</label>
                 <select
-                  className="w-full bg-zinc-900 border border-zinc-800 text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer"
+                  className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 cursor-pointer h-10"
                   value={contractTypeFilter}
                   onChange={(e) => handleFilterChange('contractType', e.target.value)}
                 >
-                  <option value="">Todos os Contratos</option>
-                  <option value="service">Prestação de Serviço</option>
-                  <option value="bidding">Licitação</option>
-                  <option value="publicinterest">Interesse Público</option>
+                  <option value="" className="bg-card text-foreground">Todos os Contratos</option>
+                  <option value="service" className="bg-card text-foreground">Prestação de Serviço</option>
+                  <option value="bidding" className="bg-card text-foreground">Licitação</option>
+                  <option value="publicinterest" className="bg-card text-foreground">Interesse Público</option>
                 </select>
               </motion.div>
             )}
@@ -583,7 +583,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
           <Button
             variant="outline"
-            className="w-full md:w-auto h-11 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-5 rounded-xl"
+            className="w-full md:w-auto h-10 border-border hover:bg-muted text-foreground font-semibold px-5 rounded-xl"
             onClick={handleClearFilters}
           >
             Limpar Filtros
@@ -592,24 +592,24 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
       )}
 
       {/* Documents list */}
-      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden shadow-2xl relative">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl relative">
         {/* Loading overlay */}
         {isPending && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-400 text-xs font-bold tracking-widest uppercase">Carregando {activeTabMeta.label.toLowerCase()}...</span>
+              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">Carregando {activeTabMeta.label.toLowerCase()}...</span>
             </div>
           </div>
         )}
 
         {initialData.data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900/60 flex items-center justify-center text-zinc-500 mb-4 border border-zinc-800">
-              <FolderOpen className="w-7 h-7 text-zinc-500" />
+            <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground mb-4 border border-border">
+              <FolderOpen className="w-7 h-7 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-bold text-white">Nenhum registro encontrado</h3>
-            <p className="text-zinc-400 text-sm mt-1.5 max-w-sm">
+            <h3 className="text-xl font-bold text-foreground">Nenhum registro encontrado</h3>
+            <p className="text-muted-foreground text-sm mt-1.5 max-w-sm">
               Não há {activeTabMeta.label.toLowerCase()} cadastrados{searchVal ? ' com os termos buscados' : ''}.
             </p>
           </div>
@@ -617,7 +617,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-zinc-900 bg-zinc-950/70 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-border bg-muted/50 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                   <th className="px-6 py-4.5">Número</th>
                   <th className="px-6 py-4.5">Descrição / Ementa</th>
                   {activeTab === 'CONTRACT' ? (
@@ -636,7 +636,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                   <th className="px-6 py-4.5 text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-900 text-sm text-zinc-300">
+              <tbody className="divide-y divide-border text-sm text-foreground">
                 {initialData.data.map((doc) => {
                   const showEdit = !viewTrash && canEdit(doc.type);
                   const showDelete = !viewTrash && canDelete(doc.type);
@@ -644,44 +644,44 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                   const showHardDelete = viewTrash && (currentUser.role === 'MOD');
 
                   return (
-                    <tr key={doc.id} className="hover:bg-zinc-900/20 transition-colors group">
-                      <td className="px-6 py-4.5 font-bold text-white group-hover:text-violet-400 transition-colors">
+                    <tr key={doc.id} className="hover:bg-muted/40 transition-colors group">
+                      <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                         #{doc.order}
                       </td>
-                      <td className="px-6 py-4.5 max-w-xs md:max-w-md font-medium">
+                      <td className="px-6 py-4.5 max-w-xs md:max-w-md font-medium text-foreground">
                         {doc.description}
                       </td>
                       {activeTab === 'CONTRACT' ? (
                         <>
                           <td className="px-6 py-4.5 text-xs">
-                            <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
-                              <FileCheck className="w-3.5 h-3.5 text-violet-400" />
+                            <span className="font-semibold text-foreground flex items-center gap-1.5">
+                              <FileCheck className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                               {doc.contractType ? (contractTypeLabels[doc.contractType] || doc.contractType) : '—'}
                             </span>
                           </td>
-                          <td className="px-6 py-4.5 text-xs font-semibold text-emerald-400">
+                          <td className="px-6 py-4.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                             {doc.value ? (
                               doc.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                             ) : '—'}
                           </td>
-                          <td className="px-6 py-4.5 text-xs text-zinc-400 font-medium">
+                          <td className="px-6 py-4.5 text-xs text-muted-foreground font-medium">
                             {doc.duration ? `${doc.duration} meses` : '—'}
                           </td>
-                          <td className="px-6 py-4.5 text-right text-zinc-400 text-xs font-medium">
+                          <td className="px-6 py-4.5 text-right text-muted-foreground text-xs font-medium">
                             <div className="flex items-center justify-end gap-1.5">
-                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               {doc.startIn ? format(new Date(doc.startIn), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '—'}
                             </div>
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="px-6 py-4.5 text-xs text-zinc-400">
+                          <td className="px-6 py-4.5 text-xs text-muted-foreground">
                             {doc.createdBy?.username || doc.createdBy?.email || 'Sistema'}
                           </td>
-                          <td className="px-6 py-4.5 text-right text-zinc-400 text-xs font-medium">
+                          <td className="px-6 py-4.5 text-right text-muted-foreground text-xs font-medium">
                             <div className="flex items-center justify-end gap-1.5">
-                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
                               {format(new Date(doc.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                             </div>
                           </td>
@@ -690,15 +690,15 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                       <td className="px-6 py-4.5 text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger render={
-                            <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                            <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all cursor-pointer">
                               <MoreHorizontal className="w-4.5 h-4.5" />
                             </button>
                           } />
-                          <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[170px]">
+                          <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground min-w-[170px]">
                             {showEdit && (
                               <DropdownMenuItem
                                 onClick={() => openEditModal(doc)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4 h-4" />
                                 Editar
@@ -707,7 +707,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                             {showDelete && (
                               <DropdownMenuItem
                                 onClick={() => handleDelete(doc.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                               >
                                 <Trash2 className="w-4 h-4" />
                                 Mover para Lixeira
@@ -716,7 +716,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                             {showRestore && (
                               <DropdownMenuItem
                                 onClick={() => handleRestore(doc.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-emerald-500 cursor-pointer focus:bg-muted focus:text-emerald-500 p-2 text-xs font-medium"
                               >
                                 <RotateCcw className="w-4.5 h-4.5" />
                                 Restaurar
@@ -725,14 +725,14 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                             {showHardDelete && (
                               <DropdownMenuItem
                                 onClick={() => handleHardDelete(doc.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                               >
                                 <Trash className="w-4.5 h-4.5" />
                                 Excluir Definitivamente
                               </DropdownMenuItem>
                             )}
                             {!showEdit && !showDelete && !showRestore && !showHardDelete && (
-                              <span className="p-2 text-xs text-zinc-500 italic block text-center">Sem permissões</span>
+                              <span className="p-2 text-xs text-muted-foreground italic block text-center">Sem permissões</span>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -759,12 +759,12 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
       {/* Create/Edit Document Modal via shadcn/ui Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-xl rounded-2xl shadow-2xl p-6">
+        <DialogContent className="bg-card border border-border text-foreground max-w-xl rounded-2xl shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-foreground">
               {editingDocument ? 'Editar Documento' : 'Novo Documento Oficial'}
             </DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
               {editingDocument
                 ? 'Modifique os metadados do documento selecionado.'
                 : 'Cadastre um novo documento oficial no isolamento do seu município.'}
@@ -774,17 +774,17 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <form onSubmit={handleSave} className="flex flex-col gap-5 mt-4">
             {/* Type selection - read-only on edit */}
             <div className="w-full flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-zinc-400">Tipo de Documento</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Tipo de Documento</label>
               {editingDocument ? (
-                <div className="w-full bg-zinc-900/50 border border-zinc-850 px-3.5 py-2.5 rounded-lg text-sm text-zinc-300 font-semibold">
+                <div className="w-full bg-muted border border-border px-3.5 py-2.5 rounded-xl text-sm text-foreground font-semibold">
                   {docTypesList.find((t) => t.value === type)?.singleLabel || type}
                 </div>
               ) : (
                 <Select value={type} onValueChange={(val) => setType(val as DocumentType)} items={{NOTICE: 'Ofício', DECREE: 'Decreto', ORDINANCE: 'Portaria', LAW: 'Lei', CONTRACT: 'Contrato'}}>
-                  <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-sm h-10">
+                  <SelectTrigger className="w-full bg-background border-border text-foreground text-sm h-10 rounded-xl">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
-                  <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                  <SelectContent className="bg-popover border-border text-popover-foreground">
                     {docTypesList.map((t) => {
                       const allowed = canCreate(t.value);
                       return (
@@ -800,9 +800,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
             {/* Description textarea */}
             <div className="w-full flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-zinc-400">Descrição / Ementa</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Descrição / Ementa</label>
               <textarea
-                className="w-full h-28 bg-zinc-900 border border-border text-foreground px-3.5 py-2.5 rounded-lg text-sm transition-all duration-200 placeholder-zinc-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full h-28 bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all duration-200 placeholder:text-muted-foreground focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
                 placeholder="Descreva o conteúdo do documento ou sua ementa oficial..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -815,9 +815,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="border border-zinc-900/80 rounded-xl p-4 bg-zinc-950/20 flex flex-col gap-4"
+                className="border border-border rounded-xl p-4 bg-muted/40 flex flex-col gap-4"
               >
-                <h3 className="text-xs font-bold text-violet-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                <h3 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                   <FileCheck className="w-4 h-4" />
                   Detalhes do Contrato
                 </h3>
@@ -825,14 +825,14 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   {/* Contract Type */}
                   <div className="w-full flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                       Tipo de Contrato
                     </label>
                     <Select value={contractType} onValueChange={(val) => setContractType(val as ContractType)} items={contractTypeLabels}>
-                      <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 text-xs h-10">
+                      <SelectTrigger className="w-full bg-background border-border text-foreground text-xs h-10 rounded-xl">
                         <SelectValue placeholder="Selecione o tipo de contrato" />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                      <SelectContent className="bg-popover border-border text-popover-foreground">
                         <SelectItem value="service">Prestação de Serviço</SelectItem>
                         <SelectItem value="bidding">Licitação</SelectItem>
                         <SelectItem value="publicinterest">Interesse Público</SelectItem>
@@ -865,7 +865,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
 
                   {/* Start Date via Popover + Calendar (DatePicker) */}
                   <div className="w-full flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                       Data de Início
                     </label>
                     <Popover>
@@ -873,15 +873,15 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal bg-zinc-900 border-zinc-850 text-zinc-300 text-xs h-10 rounded-lg",
-                            !startIn && "text-zinc-500"
+                            "w-full justify-start text-left font-normal bg-background border-border text-foreground text-xs h-10 rounded-xl",
+                            !startIn && "text-muted-foreground"
                           )}
                         >
-                          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-500" />
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                           {dateValue ? format(dateValue, "PPP", { locale: ptBR }) : <span>Selecione a data</span>}
                         </Button>
                       } />
-                      <PopoverContent className="w-auto p-0 bg-zinc-950 border-zinc-800" align="start">
+                      <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
                         <Calendar
                           mode="single"
                           selected={dateValue}
@@ -906,7 +906,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-zinc-800 text-zinc-300 rounded-xl"
+                  className="border-border text-foreground hover:bg-muted rounded-xl"
                   onClick={() => setIsModalOpen(false)}
                 >
                   Cancelar

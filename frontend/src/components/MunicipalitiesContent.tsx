@@ -212,25 +212,25 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
+          <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
-            Painel de Administração Global
+            Administração Global
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <Building2 className="w-8 h-8 text-violet-500" />
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
+            <Building2 className="w-8 h-8 text-violet-600 dark:text-violet-500" />
             {viewTrash ? 'Municípios Excluídos (Lixeira)' : 'Gestão de Municípios'}
           </h1>
-          <p className="text-zinc-400 mt-1.5 text-sm max-w-xl">
+          <p className="text-muted-foreground mt-1.5 text-sm max-w-xl">
             {viewTrash
-              ? 'Gerencie os municípios deletados. Restaure-os ou exclua-os permanentemente do banco de dados.'
-              : 'Cadastre, edite e configure as organizações municipais atendidas pelo Docseq DMS.'}
+              ? 'Visualize municípios desativados e restaure-os ou remova-os definitivamente.'
+              : 'Cadastre e administre as prefeituras e órgãos públicos isolados atendidos pelo sistema.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900 text-zinc-300 font-semibold px-4.5 rounded-xl h-11 flex-1 sm:flex-none"
+            className="border-border hover:bg-muted text-foreground font-semibold px-4.5 rounded-xl h-11 flex-1 sm:flex-none"
             onClick={handleToggleTrash}
           >
             {viewTrash ? 'Ver Ativos' : 'Ver Lixeira'}
@@ -250,12 +250,12 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
       </div>
 
       {/* Grid or Table container */}
-      <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden shadow-2xl relative">
+      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl relative">
         {isPending && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
             <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
-              <span className="text-violet-400 text-xs font-bold tracking-widest uppercase">
+              <span className="text-violet-600 dark:text-violet-400 text-xs font-bold tracking-widest uppercase">
                 Carregando dados...
               </span>
             </div>
@@ -264,11 +264,11 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
 
         {initialData.data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900/50 flex items-center justify-center text-zinc-500 mb-5 border border-zinc-800">
-              <Building2 className="w-7 h-7 text-zinc-600" />
+            <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground mb-5 border border-border">
+              <Building2 className="w-7 h-7 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-bold text-white">Nenhum município encontrado</h3>
-            <p className="text-zinc-500 text-sm mt-2 max-w-sm">
+            <h3 className="text-xl font-bold text-foreground">Nenhum município encontrado</h3>
+            <p className="text-muted-foreground text-sm mt-2 max-w-sm">
               Não há municípios registrados {viewTrash ? 'na lixeira' : 'no sistema'}.
             </p>
           </div>
@@ -278,7 +278,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
             <div className="overflow-x-auto hidden md:block">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-zinc-900 bg-zinc-950/70 text-zinc-400 text-[11px] font-bold uppercase tracking-wider">
+                <tr className="border-b border-border bg-muted/50 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                   <th className="px-6 py-4.5">Logo</th>
                   <th className="px-6 py-4.5">Nome do Município</th>
                   <th className="px-6 py-4.5">Estado (UF)</th>
@@ -286,57 +286,57 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                   <th className="px-6 py-4.5 text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-900 text-sm text-zinc-300">
+              <tbody className="divide-y divide-border text-sm text-foreground">
                 {initialData.data.map((mun) => (
-                  <tr key={mun.id} className="hover:bg-zinc-900/10 transition-colors group">
+                  <tr key={mun.id} className="hover:bg-muted/40 transition-colors group">
                     <td className="px-6 py-4.5">
                       {isSafeImageUrl(mun.imageUrl) ? (
                         <img
                           src={mun.imageUrl}
                           alt={mun.name}
-                          className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 object-cover"
+                          className="w-9 h-9 rounded-lg bg-muted border border-border object-cover"
                         />
                       ) : (
-                        <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600">
+                        <div className="w-9 h-9 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground">
                           <Building2 className="w-5 h-5" />
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4.5 font-bold text-white group-hover:text-violet-400 transition-colors">
+                    <td className="px-6 py-4.5 font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                       {mun.name}
                     </td>
                     <td className="px-6 py-4.5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-900 border border-zinc-850 text-zinc-300">
-                        <Globe className="w-3.5 h-3.5 text-zinc-500" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted border border-border text-foreground">
+                        <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                         {mun.uf}
                       </span>
                     </td>
-                    <td className="px-6 py-4.5 text-zinc-500 text-xs font-medium">
+                    <td className="px-6 py-4.5 text-muted-foreground text-xs font-medium">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-zinc-600" />
+                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                         {new Date(mun.createdAt).toLocaleDateString('pt-BR')}
                       </div>
                     </td>
                     <td className="px-6 py-4.5 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger render={
-                          <button className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer">
+                          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all cursor-pointer">
                             <MoreHorizontal className="w-4.5 h-4.5" />
                           </button>
                         } />
-                        <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[160px]">
+                        <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground min-w-[160px]">
                           {viewTrash ? (
                             <>
                               <DropdownMenuItem
                                 onClick={() => handleRestore(mun.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-emerald-500 cursor-pointer focus:bg-muted focus:text-emerald-500 p-2 text-xs font-medium"
                               >
                                 <RotateCcw className="w-4 h-4" />
                                 Restaurar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleHardDelete(mun.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                               >
                                 <Trash className="w-4 h-4" />
                                 Excluir Permanentemente
@@ -346,14 +346,14 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                             <>
                               <DropdownMenuItem
                                 onClick={() => openEditModal(mun)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
                               >
                                 <Edit2 className="w-4 h-4" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDelete(mun.id)}
-                                className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                               >
                                 <Trash2 className="w-4 h-4" />
                                 Mover para Lixeira
@@ -370,31 +370,31 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
           </div>
 
           {/* Mobile Card List View */}
-          <div className="flex flex-col divide-y divide-zinc-900 md:hidden">
+          <div className="flex flex-col divide-y divide-border md:hidden">
             {initialData.data.map((mun) => (
-              <div key={mun.id} className="p-5 flex items-center justify-between gap-4 hover:bg-zinc-900/10 transition-colors group">
+              <div key={mun.id} className="p-5 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors group">
                 <div className="flex items-center gap-3.5 min-w-0">
                   {isSafeImageUrl(mun.imageUrl) ? (
                     <img
                       src={mun.imageUrl}
                       alt={mun.name}
-                      className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 object-cover shrink-0"
+                      className="w-11 h-11 rounded-xl bg-muted border border-border object-cover shrink-0"
                     />
                   ) : (
-                    <div className="w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
+                    <div className="w-11 h-11 rounded-xl bg-muted border border-border flex items-center justify-center text-muted-foreground shrink-0">
                       <Building2 className="w-6 h-6" />
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <span className="font-bold text-white group-hover:text-violet-400 transition-colors truncate">
+                    <span className="font-bold text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors truncate">
                       {mun.name}
                     </span>
-                    <span className="text-xs text-zinc-500 font-medium mt-0.5 flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5 text-zinc-600" />
+                    <span className="text-xs text-muted-foreground font-medium mt-0.5 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                       {mun.uf}
                     </span>
-                    <span className="text-[10px] text-zinc-600 font-medium mt-1 flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-zinc-700" />
+                    <span className="text-[10px] text-muted-foreground font-medium mt-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
                       {new Date(mun.createdAt).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
@@ -403,23 +403,23 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                 <div className="shrink-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger render={
-                      <button className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-900 rounded-lg transition-all cursor-pointer border border-zinc-800 bg-zinc-950">
+                      <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all cursor-pointer border border-border bg-card">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                     } />
-                    <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300 min-w-[160px]">
+                    <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground min-w-[160px]">
                       {viewTrash ? (
                         <>
                           <DropdownMenuItem
                             onClick={() => handleRestore(mun.id)}
-                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-emerald-400 cursor-pointer focus:bg-zinc-900 focus:text-emerald-400 p-2 text-xs font-medium"
+                            className="flex items-center gap-2 hover:bg-muted hover:text-emerald-500 cursor-pointer focus:bg-muted focus:text-emerald-500 p-2 text-xs font-medium"
                           >
                             <RotateCcw className="w-4 h-4" />
                             Restaurar
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleHardDelete(mun.id)}
-                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                            className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                           >
                             <Trash className="w-4 h-4" />
                             Excluir Permanentemente
@@ -429,14 +429,14 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                         <>
                           <DropdownMenuItem
                             onClick={() => openEditModal(mun)}
-                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-violet-400 cursor-pointer focus:bg-zinc-900 focus:text-violet-400 p-2 text-xs font-medium"
+                            className="flex items-center gap-2 hover:bg-muted hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer focus:bg-muted focus:text-violet-600 dark:focus:text-violet-400 p-2 text-xs font-medium"
                           >
                             <Edit2 className="w-4 h-4" />
                             Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDelete(mun.id)}
-                            className="flex items-center gap-2 hover:bg-zinc-900 hover:text-red-400 cursor-pointer focus:bg-zinc-900 focus:text-red-400 p-2 text-xs font-medium"
+                            className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
                           >
                             <Trash2 className="w-4 h-4" />
                             Mover para Lixeira
@@ -451,7 +451,6 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
           </div>
         </>)}
 
-        {/* Pagination */}
         {/* Pagination bar */}
         <PaginationBar
           currentPage={initialData.page}
@@ -466,12 +465,12 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
 
       {/* Create/Edit Modal via shadcn/ui Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800/80 text-zinc-300 max-w-lg rounded-2xl shadow-2xl p-6">
+        <DialogContent className="bg-card border border-border text-foreground max-w-lg rounded-2xl shadow-2xl p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
+            <DialogTitle className="text-xl font-bold text-foreground">
               {editingMunicipality ? 'Editar Município' : 'Cadastrar Novo Município'}
             </DialogTitle>
-            <DialogDescription className="text-zinc-500 text-xs mt-1">
+            <DialogDescription className="text-muted-foreground text-xs mt-1">
               {editingMunicipality
                 ? 'Atualize as informações do município selecionado.'
                 : 'Insira os dados da prefeitura para adicioná-la ao sistema.'}
@@ -515,7 +514,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-zinc-800 text-zinc-300 rounded-xl"
+                  className="border-border text-foreground hover:bg-muted rounded-xl"
                   onClick={closeModal}
                 >
                   Cancelar
