@@ -37,9 +37,9 @@ type User struct {
 	MustChangePassword bool           `gorm:"type:boolean;not null;default:true"              json:"mustChangePassword"`
 	MunicipalityID     uuid.UUID      `gorm:"type:uuid;not null"                             json:"municipalityId"`
 	Municipality       Municipality   `gorm:"foreignKey:MunicipalityID"                      json:"municipality,omitempty"`
-	LastLogin          *time.Time     `gorm:"type:timestamp"                                 json:"lastLogin,omitempty"`
-	CreatedAt          time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt          time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	LastLogin          *time.Time     `gorm:"type:timestamptz"                               json:"lastLogin,omitempty"`
+	CreatedAt          time.Time      `gorm:"autoCreateTime;type:timestamptz"                json:"createdAt"`
+	UpdatedAt          time.Time      `gorm:"autoUpdateTime;type:timestamptz"                json:"updatedAt"`
 	DeletedAt          gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 

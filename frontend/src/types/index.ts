@@ -76,6 +76,7 @@ export interface CreateDocumentInput {
 export interface UpdateDocumentInput {
   description?: string;
   fileKey?: string;
+  createdAt?: string;
   duration?: number;
   contractType?: ContractType;
   value?: number;

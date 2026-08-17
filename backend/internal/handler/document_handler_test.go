@@ -348,3 +348,58 @@ func TestHardDeleteDocument_Handler_403_ForbiddenTenant(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, w.Code)
 	svc.AssertNotCalled(t, "HardDelete")
 }
+
+func TestUpdateDocument_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+
+	existingDoc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		Description:    "Oficio Original",
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		CreatedAt:      time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
+	}
+
+	newDesc := "Oficio Atualizado"
+	newCreatedAt := time.Date(2023, 5, 20, 15, 30, 0, 0, time.UTC)
+	input := domain.UpdateDocumentInput{
+		Description: &newDesc,
+		CreatedAt:   &newCreatedAt,
+	}
+
+	updatedDoc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		Description:    newDesc,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		CreatedAt:      newCreatedAt,
+	}
+
+	svc.On("GetByID", docID).Return(existingDoc, nil)
+	svc.On("Update", docID, input).Return(updatedDoc, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelWrite,
+		},
+	}, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s", docID), input)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertExpectations(t)
+	permRepo.AssertExpectations(t)
+}

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { isRedirectError } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/date';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User as UserIcon,
@@ -237,12 +238,11 @@ export const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser }) =
           <div className="flex flex-col items-start md:items-end gap-1 text-xs text-muted-foreground border-t md:border-t-0 pt-4 md:pt-0 border-border w-full md:w-auto">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-              Membro desde: {new Date(effectiveUser.createdAt).toLocaleDateString('pt-BR')}
+              Membro desde: {formatDate(effectiveUser.createdAt)}
             </span>
             {effectiveUser.lastLogin && (
               <span className="text-muted-foreground">
-                Último acesso: {new Date(effectiveUser.lastLogin).toLocaleDateString('pt-BR')} às{' '}
-                {new Date(effectiveUser.lastLogin).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                Último acesso: {formatDateTime(effectiveUser.lastLogin)}
               </span>
             )}
           </div>

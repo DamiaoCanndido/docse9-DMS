@@ -38,8 +38,15 @@ import {
   ShieldAlert,
   Building2
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { 
+  formatDate, 
+  formatDateTime, 
+  formatTime, 
+  formatDateLong, 
+  parseDateSafe, 
+  combineDateAndTime,
+  ptBR
+} from '@/lib/date';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -146,12 +153,12 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const [contractType, setContractType] = useState<ContractType>('service');
   const [value, setValue] = useState('');
   const [duration, setDuration] = useState('');
-  const [startIn, setStartIn] = useState('');
+  const [startInDate, setStartInDate] = useState<Date | undefined>(undefined);
+  const [startInTime, setStartInTime] = useState('00:00');
+  const [createdAtDate, setCreatedAtDate] = useState<Date | undefined>(undefined);
+  const [createdAtTime, setCreatedAtTime] = useState('00:00');
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  // Date parsing for shadcn Calendar
-  const dateValue = startIn ? new Date(startIn) : undefined;
 
   // Permissions helpers
   const canCreate = (t: DocumentType) => {
@@ -288,7 +295,10 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     setContractType('service');
     setValue('');
     setDuration('');
-    setStartIn('');
+    setStartInDate(undefined);
+    setStartInTime('00:00');
+    setCreatedAtDate(undefined);
+    setCreatedAtTime('00:00');
     setFormError('');
     setIsModalOpen(true);
   };
@@ -300,7 +310,25 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     setContractType(doc.contractType || 'service');
     setValue(doc.value ? doc.value.toString() : '');
     setDuration(doc.duration ? doc.duration.toString() : '');
-    setStartIn(doc.startIn ? new Date(doc.startIn).toISOString() : '');
+    
+    if (doc.startIn) {
+      const sDate = parseDateSafe(doc.startIn);
+      setStartInDate(sDate);
+      setStartInTime(formatTime(sDate));
+    } else {
+      setStartInDate(undefined);
+      setStartInTime('00:00');
+    }
+
+    if (doc.createdAt) {
+      const cDate = parseDateSafe(doc.createdAt);
+      setCreatedAtDate(cDate);
+      setCreatedAtTime(formatTime(cDate));
+    } else {
+      setCreatedAtDate(undefined);
+      setCreatedAtTime('00:00');
+    }
+
     setFormError('');
     setIsModalOpen(true);
   };
@@ -321,7 +349,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         setFormError('A duração em meses do contrato é obrigatória e deve ser maior que zero.');
         return;
       }
-      if (!startIn) {
+      if (!startInDate) {
         setFormError('A data de início do contrato é obrigatória.');
         return;
       }
@@ -340,7 +368,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           input.contractType = contractType;
           input.value = Number(value);
           input.duration = Number(duration);
-          input.startIn = new Date(startIn).toISOString();
+          input.startIn = combineDateAndTime(startInDate, startInTime);
+        } else if (createdAtDate) {
+          input.createdAt = combineDateAndTime(createdAtDate, createdAtTime);
         }
 
         await updateDocument({
@@ -361,7 +391,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           input.contractType = contractType;
           input.value = Number(value);
           input.duration = Number(duration);
-          input.startIn = new Date(startIn).toISOString();
+          input.startIn = combineDateAndTime(startInDate, startInTime);
         }
 
         await createDocument({
@@ -670,7 +700,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                           <td className="px-6 py-4.5 text-right text-muted-foreground text-xs font-medium">
                             <div className="flex items-center justify-end gap-1.5">
                               <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                              {doc.startIn ? format(new Date(doc.startIn), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '—'}
+                              {formatDateTime(doc.startIn)}
                             </div>
                           </td>
                         </>
@@ -682,7 +712,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                           <td className="px-6 py-4.5 text-right text-muted-foreground text-xs font-medium">
                             <div className="flex items-center justify-end gap-1.5">
                               <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                              {format(new Date(doc.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                              {formatDateTime(doc.createdAt)}
                             </div>
                           </td>
                         </>
@@ -874,23 +904,87 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal bg-background border-border text-foreground text-xs h-10 rounded-xl",
-                            !startIn && "text-muted-foreground"
+                            !startInDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {dateValue ? format(dateValue, "PPP", { locale: ptBR }) : <span>Selecione a data</span>}
+                          {startInDate ? formatDate(startInDate) : <span>Selecione a data</span>}
                         </Button>
                       } />
                       <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
                         <Calendar
                           mode="single"
-                          selected={dateValue}
-                          onSelect={(date) => setStartIn(date ? date.toISOString() : '')}
+                          selected={startInDate}
+                          onSelect={(date) => setStartInDate(date || undefined)}
                           locale={ptBR}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {/* Start Time (Hora e Minuto) */}
+                  <Input
+                    label="Hora de Início (HH:mm)"
+                    type="time"
+                    value={startInTime}
+                    onChange={(e) => setStartInTime(e.target.value)}
+                    className="text-xs py-2 h-10"
+                    required
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* CreatedAt Date & Time editing for non-contract documents */}
+            {editingDocument && type !== 'CONTRACT' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="border border-border rounded-xl p-4 bg-muted/40 flex flex-col gap-4"
+              >
+                <h3 className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                  <Clock className="w-4 h-4" />
+                  Data e Hora de Registro Oficial
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  {/* CreatedAt Date via Popover + Calendar */}
+                  <div className="w-full flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                      Data de Registro
+                    </label>
+                    <Popover>
+                      <PopoverTrigger render={
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-background border-border text-foreground text-xs h-10 rounded-xl",
+                            !createdAtDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                          {createdAtDate ? formatDate(createdAtDate) : <span>Selecione a data</span>}
+                        </Button>
+                      } />
+                      <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={createdAtDate}
+                          onSelect={(date) => setCreatedAtDate(date || undefined)}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* CreatedAt Time Input */}
+                  <Input
+                    label="Hora do Registro (HH:mm)"
+                    type="time"
+                    value={createdAtTime}
+                    onChange={(e) => setCreatedAtTime(e.target.value)}
+                    className="text-xs py-2 h-10"
+                  />
                 </div>
               </motion.div>
             )}

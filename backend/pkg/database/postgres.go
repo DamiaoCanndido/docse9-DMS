@@ -16,7 +16,7 @@ func Connect() (*gorm.DB, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = fmt.Sprintf(
-			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=America/Recife",
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=UTC",
 			os.Getenv("DB_HOST"),
 			os.Getenv("DB_USER"),
 			os.Getenv("DB_PASSWORD"),
@@ -64,6 +64,16 @@ func Migrate(db *gorm.DB) error {
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto").Error; err != nil {
 		return fmt.Errorf("extensão pgcrypto: %w", err)
 	}
+
+	// Garante conversão de colunas existentes para timestamptz caso tenham sido criadas anteriormente como timestamp
+	_ = db.Exec("ALTER TABLE documents ALTER COLUMN start_in TYPE timestamptz USING start_in AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE documents ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE documents ALTER COLUMN updated_at TYPE timestamptz USING updated_at AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE users ALTER COLUMN last_login TYPE timestamptz USING last_login AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE users ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE users ALTER COLUMN updated_at TYPE timestamptz USING updated_at AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE municipalities ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC'")
+	_ = db.Exec("ALTER TABLE municipalities ALTER COLUMN updated_at TYPE timestamptz USING updated_at AT TIME ZONE 'UTC'")
 
 	return db.AutoMigrate(
 		&domain.Municipality{},

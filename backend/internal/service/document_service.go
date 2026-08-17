@@ -165,7 +165,12 @@ func (s *documentService) Update(id uuid.UUID, input domain.UpdateDocumentInput)
 		doc.FileKey = strings.TrimSpace(*input.FileKey)
 	}
 
-	// 4. Se for contrato, atualiza campos específicos se fornecidos
+	// 4. Se não for contrato, atualiza createdAt se fornecido
+	if doc.Type != domain.TypeContract && input.CreatedAt != nil {
+		doc.CreatedAt = *input.CreatedAt
+	}
+
+	// 5. Se for contrato, atualiza campos específicos se fornecidos
 	if doc.Type == domain.TypeContract {
 		if input.Duration != nil {
 			doc.Duration = input.Duration
@@ -187,7 +192,7 @@ func (s *documentService) Update(id uuid.UUID, input domain.UpdateDocumentInput)
 		}
 	}
 
-	// 5. Salvar alterações
+	// 6. Salvar alterações
 	if err := s.docRepo.Update(doc); err != nil {
 		return nil, err
 	}

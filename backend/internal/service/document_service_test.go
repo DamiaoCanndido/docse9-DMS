@@ -330,6 +330,95 @@ func TestUpdateDocument_Success(t *testing.T) {
 	assert.Equal(t, "New Description", result.Description)
 }
 
+func TestUpdateDocument_CreatedAt_NonContract_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	originalCreatedAt := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
+	doc := &domain.Document{
+		ID:          id,
+		Description: "Portaria",
+		Type:        domain.TypeOrdinance,
+		CreatedAt:   originalCreatedAt,
+	}
+
+	newCreatedAt := time.Date(2023, 6, 15, 14, 30, 0, 0, time.UTC)
+	input := domain.UpdateDocumentInput{
+		CreatedAt: &newCreatedAt,
+	}
+
+	docRepo.On("FindByID", id).Return(doc, nil)
+	docRepo.On("Update", mock.MatchedBy(func(d *domain.Document) bool {
+		return d.CreatedAt.Equal(newCreatedAt)
+	})).Return(nil)
+
+	updatedDoc := &domain.Document{
+		ID:          id,
+		Description: "Portaria",
+		Type:        domain.TypeOrdinance,
+		CreatedAt:   newCreatedAt,
+	}
+	docRepo.On("FindByID", id).Return(updatedDoc, nil)
+
+	result, err := svc.Update(id, input)
+
+	require.NoError(t, err)
+	assert.Equal(t, newCreatedAt, result.CreatedAt)
+	docRepo.AssertExpectations(t)
+}
+
+func TestUpdateDocument_CreatedAt_Contract_Ignored(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	originalCreatedAt := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
+	duration := 12
+	cType := domain.ContractService
+	val := 5000.0
+	startIn := time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC)
+
+	doc := &domain.Document{
+		ID:           id,
+		Description:  "Contrato",
+		Type:         domain.TypeContract,
+		Duration:     &duration,
+		ContractType: &cType,
+		Value:        &val,
+		StartIn:      &startIn,
+		CreatedAt:    originalCreatedAt,
+	}
+
+	attemptedCreatedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	newStartIn := time.Date(2024, 2, 1, 15, 45, 0, 0, time.UTC)
+	input := domain.UpdateDocumentInput{
+		CreatedAt: &attemptedCreatedAt,
+		StartIn:   &newStartIn,
+	}
+
+	docRepo.On("FindByID", id).Return(doc, nil)
+	// Must keep originalCreatedAt in Update call
+	docRepo.On("Update", mock.MatchedBy(func(d *domain.Document) bool {
+		return d.CreatedAt.Equal(originalCreatedAt) && d.StartIn.Equal(newStartIn)
+	})).Return(nil)
+
+	updatedDoc := &domain.Document{
+		ID:           id,
+		Description:  "Contrato",
+		Type:         domain.TypeContract,
+		Duration:     &duration,
+		ContractType: &cType,
+		Value:        &val,
+		StartIn:      &newStartIn,
+		CreatedAt:    originalCreatedAt,
+	}
+	docRepo.On("FindByID", id).Return(updatedDoc, nil)
+
+	result, err := svc.Update(id, input)
+
+	require.NoError(t, err)
+	assert.Equal(t, originalCreatedAt, result.CreatedAt)
+	assert.Equal(t, &newStartIn, result.StartIn)
+	docRepo.AssertExpectations(t)
+}
+
 func TestGetDocumentByIDUnscoped_Success(t *testing.T) {
 	svc, docRepo, _, _ := newDocumentService(t)
 	id := uuid.New()

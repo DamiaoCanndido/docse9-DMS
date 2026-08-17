@@ -15,6 +15,7 @@ import {
 } from '@/app/api/municipalities';
 import { toast } from 'sonner';
 import { isRedirectError } from '@/lib/utils';
+import { formatDate } from '@/lib/date';
 import {
   Building2,
   Plus,
@@ -314,7 +315,7 @@ export const MunicipalitiesContent: React.FC<MunicipalitiesContentProps> = ({
                     <td className="px-6 py-4.5 text-muted-foreground text-xs font-medium">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                        {new Date(mun.createdAt).toLocaleDateString('pt-BR')}
+                        {formatDate(mun.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4.5 text-center">

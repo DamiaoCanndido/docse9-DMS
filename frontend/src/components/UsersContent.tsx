@@ -18,6 +18,7 @@ import {
 } from '@/app/api/users';
 import { toast } from 'sonner';
 import { isRedirectError } from '@/lib/utils';
+import { formatDateTime } from '@/lib/date';
 import {
   Users,
   Plus,
@@ -590,11 +591,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
                       {usr.lastLogin ? (
                         <div className="flex items-center gap-1.5">
                           <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                          {new Date(usr.lastLogin).toLocaleDateString('pt-BR')} às{' '}
-                          {new Date(usr.lastLogin).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                          {formatDateTime(usr.lastLogin)}
                         </div>
                       ) : (
                         <span className="text-muted-foreground italic">Nunca acessou</span>

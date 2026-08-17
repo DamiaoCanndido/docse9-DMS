@@ -53,10 +53,10 @@ type Document struct {
 	Duration     *int          `gorm:"type:integer"                                   json:"duration,omitempty"`
 	ContractType *ContractType `gorm:"type:varchar(50)"                                 json:"contractType,omitempty"`
 	Value        *float64      `gorm:"type:numeric(15,2)"                             json:"value,omitempty"`
-	StartIn      *time.Time    `gorm:"type:timestamp"                                 json:"startIn,omitempty"`
+	StartIn      *time.Time    `gorm:"type:timestamptz"                               json:"startIn,omitempty"`
 
-	CreatedAt time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	CreatedAt time.Time      `gorm:"autoCreateTime;type:timestamptz"                json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime;type:timestamptz"                json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 
@@ -116,6 +116,7 @@ type CreateDocumentInput struct {
 type UpdateDocumentInput struct {
 	Description *string        `json:"description" binding:"omitempty,min=3"`
 	FileKey     *string        `json:"fileKey"     binding:"omitempty"`
+	CreatedAt   *time.Time     `json:"createdAt"   binding:"omitempty"`
 
 	// Campos exclusivos para Contrato
 	Duration     *int          `json:"duration"     binding:"omitempty,gt=0"`

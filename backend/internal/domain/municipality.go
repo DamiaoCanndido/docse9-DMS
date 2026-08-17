@@ -17,8 +17,8 @@ type Municipality struct {
 	Name      string         `gorm:"type:varchar(255);not null;uniqueIndex"         json:"name"`
 	UF        string         `gorm:"type:char(2);not null"                          json:"uf"`
 	ImageURL  string         `gorm:"type:text"                                      json:"imageUrl,omitempty"`
-	CreatedAt time.Time      `gorm:"autoCreateTime"                                 json:"createdAt"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime"                                 json:"updatedAt"`
+	CreatedAt time.Time      `gorm:"autoCreateTime;type:timestamptz"                json:"createdAt"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime;type:timestamptz"                json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"` // soft-delete
 }
 

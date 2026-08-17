@@ -1346,6 +1346,11 @@ components:
         fileKey:
           type: string
           example: "uploads/docs/notice_updated.pdf"
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora de registro oficial do documento (aplicável para todos os tipos exceto CONTRACT)
+          example: "2025-01-15T10:30:00Z"
         duration:
           type: integer
           minimum: 1

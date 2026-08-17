@@ -123,7 +123,7 @@ func (r *documentRepository) GetLastOrder(municipalityID uuid.UUID, docType doma
 	}
 
 	if year != nil {
-		query = query.Where("EXTRACT(YEAR FROM created_at) = ?", *year)
+		query = query.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *year)
 	}
 
 	err := query.Row().Scan(&lastOrder)
@@ -148,7 +148,7 @@ func applyFilters(query *gorm.DB, filter domain.DocumentFilter) *gorm.DB {
 		query = query.Where("contract_type = ?", *filter.ContractType)
 	}
 	if filter.Year != nil {
-		query = query.Where("EXTRACT(YEAR FROM created_at) = ?", *filter.Year)
+		query = query.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *filter.Year)
 	}
 	if filter.Search != "" {
 		query = query.Where("LOWER(description) LIKE LOWER(?)", "%"+filter.Search+"%")
