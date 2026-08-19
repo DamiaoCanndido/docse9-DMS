@@ -17,8 +17,11 @@ func NewAuthHandler(svc domain.AuthService) *AuthHandler {
 }
 
 // RegisterRoutes registra todas as rotas de autenticação.
-func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup) {
+func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup, middlewares ...gin.HandlerFunc) {
 	g := rg.Group("/auth")
+	for _, m := range middlewares {
+		g.Use(m)
+	}
 	{
 		g.POST("/login", h.Login)
 	}

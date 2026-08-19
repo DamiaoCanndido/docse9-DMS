@@ -79,24 +79,17 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		startIn = input.StartIn
 	}
 
-	// 5. Calcular o próximo número sequencial (order)
+	// 5. Determinar o ano de numeração (para LAW o ano é nil pois a numeração é perpétua)
 	var year *int
 	if input.Type != domain.TypeLaw {
 		currentYear := time.Now().Year()
 		year = &currentYear
 	}
 
-	lastOrder, err := s.docRepo.GetLastOrder(input.MunicipalityID, input.Type, contractType, year)
-	if err != nil {
-		return nil, err
-	}
-	nextOrder := lastOrder + 1
-
-	// 6. Criar e persistir o documento
+	// 6. Criar e persistir o documento com numeração transacional atômica
 	doc := &domain.Document{
 		ID:             uuid.New(),
 		Type:           input.Type,
-		Order:          nextOrder,
 		Description:    strings.TrimSpace(input.Description),
 		FileKey:        "", // em branco por padrão
 		CreatorID:      input.CreatorID,
@@ -107,7 +100,7 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		StartIn:        startIn,
 	}
 
-	if err := s.docRepo.Create(doc); err != nil {
+	if err := s.docRepo.CreateWithNextOrder(doc, year); err != nil {
 		return nil, err
 	}
 

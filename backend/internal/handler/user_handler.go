@@ -21,8 +21,9 @@ func NewUserHandler(svc domain.UserService) *UserHandler {
 }
 
 // RegisterRoutes registra todas as rotas do recurso User.
-func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("/users/me/change-password", h.ChangePassword)
+func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup, changePasswordMiddlewares ...gin.HandlerFunc) {
+	handlers := append(changePasswordMiddlewares, h.ChangePassword)
+	rg.POST("/users/me/change-password", handlers...)
 	rg.GET("/users/:id/permissions", h.GetPermissions)
 
 	g := rg.Group("/users")

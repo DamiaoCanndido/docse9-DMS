@@ -131,6 +131,7 @@ type UpdateDocumentInput struct {
 
 type DocumentRepository interface {
 	Create(d *Document) error
+	CreateWithNextOrder(d *Document, year *int) error
 	FindAll(filter DocumentFilter, page, pageSize int) ([]Document, int64, error)
 	FindDeleted(filter DocumentFilter, page, pageSize int) ([]Document, int64, error)
 	FindByID(id uuid.UUID) (*Document, error)

@@ -16,6 +16,11 @@ func (m *DocumentRepository) Create(d *domain.Document) error {
 	return args.Error(0)
 }
 
+func (m *DocumentRepository) CreateWithNextOrder(d *domain.Document, year *int) error {
+	args := m.Called(d, year)
+	return args.Error(0)
+}
+
 func (m *DocumentRepository) FindAll(filter domain.DocumentFilter, page, pageSize int) ([]domain.Document, int64, error) {
 	args := m.Called(filter, page, pageSize)
 	var docs []domain.Document

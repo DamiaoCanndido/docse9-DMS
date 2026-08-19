@@ -282,3 +282,42 @@ func (s *DocumentRepositorySuite) TestFindAll_Filters() {
 	s.Equal(int64(1), total)
 	s.Equal(doc2.ID, docs[0].ID)
 }
+
+func (s *DocumentRepositorySuite) TestCreateWithNextOrder_Atomic_Concurrency() {
+	year := 2026
+	concurrency := 15
+	errChan := make(chan error, concurrency)
+	createdOrders := make(chan int, concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		go func(idx int) {
+			doc := &domain.Document{
+				ID:             uuid.New(),
+				Type:           domain.TypeDecree,
+				Description:    "Decreto Concorrente",
+				CreatorID:      s.user.ID,
+				MunicipalityID: s.mun.ID,
+			}
+			err := s.repo.CreateWithNextOrder(doc, &year)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			createdOrders <- doc.Order
+			errChan <- nil
+		}(i)
+	}
+
+	for i := 0; i < concurrency; i++ {
+		err := <-errChan
+		s.Require().NoError(err)
+	}
+
+	orderMap := make(map[int]bool)
+	for i := 0; i < concurrency; i++ {
+		ord := <-createdOrders
+		s.False(orderMap[ord], "Order %d gerado em duplicidade durante concorrência!", ord)
+		orderMap[ord] = true
+	}
+	s.Len(orderMap, concurrency)
+}

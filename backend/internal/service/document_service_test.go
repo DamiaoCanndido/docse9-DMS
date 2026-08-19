@@ -41,9 +41,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	
 	// Para NOTICE, o ano atual deve ser passado no cálculo da ordem
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeNotice, (*domain.ContractType)(nil), &currentYear).Return(5, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -86,9 +84,7 @@ func TestCreateDocument_Success_Law(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	// Para LAW, o ano deve ser nil (ordem nunca reseta)
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeLaw, (*domain.ContractType)(nil), (*int)(nil)).Return(12, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), (*int)(nil)).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -138,9 +134,7 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cType, &currentYear).Return(0, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -198,9 +192,7 @@ func TestCreateDocument_ContractTypes_IndependentSequences(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cBidding, &currentYear).Return(10, nil)
-
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
