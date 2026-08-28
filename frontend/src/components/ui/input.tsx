@@ -12,20 +12,23 @@ interface InputProps extends React.ComponentProps<"input"> {
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, type, ...props }, ref) => {
+  ({ className, label, error, type, id, ...props }, ref) => {
+    const generatedId = React.useId();
+    const inputId = id || generatedId;
     const [showPassword, setShowPassword] = React.useState(false);
     const isPasswordType = type === 'password';
 
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
-          <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+          <label htmlFor={inputId} className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
             {label}
           </label>
         )}
         <div className="relative w-full">
           <InputPrimitive
             ref={ref}
+            id={inputId}
             type={isPasswordType ? (showPassword ? 'text' : 'password') : type}
             data-slot="input"
             className={cn(

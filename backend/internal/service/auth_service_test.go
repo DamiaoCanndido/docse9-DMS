@@ -98,3 +98,35 @@ func TestLogin_Fail_InvalidPassword(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 }
+
+func TestLogin_Success_FallbackLookup(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	svc := service.NewAuthService(userRepo)
+
+	hashedPassword, _ := security.HashPassword("secret123")
+	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
+	u.Password = hashedPassword
+
+	t.Run("Identity with @ falls back to Username", func(t *testing.T) {
+		input := domain.LoginInput{Username: "user@domain", Password: "secret123"}
+		userRepo.On("FindByEmail", "user@domain").Return(nil, nil).Once()
+		userRepo.On("FindByUsername", "user@domain").Return(&u, nil).Once()
+		userRepo.On("Update", mock.AnythingOfType("*domain.User")).Return(nil).Once()
+
+		resp, err := svc.Login(input)
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.Token)
+	})
+}
+
+func TestLogin_Fail_RepoErrors(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	svc := service.NewAuthService(userRepo)
+
+	input := domain.LoginInput{Username: "user", Password: "password"}
+	userRepo.On("FindByUsername", "user").Return(nil, assert.AnError).Once()
+
+	_, err := svc.Login(input)
+	assert.ErrorIs(t, err, assert.AnError)
+}
+

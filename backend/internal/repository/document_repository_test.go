@@ -285,7 +285,7 @@ func (s *DocumentRepositorySuite) TestFindAll_Filters() {
 
 func (s *DocumentRepositorySuite) TestCreateWithNextOrder_Atomic_Concurrency() {
 	year := 2026
-	concurrency := 15
+	concurrency := 50
 	errChan := make(chan error, concurrency)
 	createdOrders := make(chan int, concurrency)
 
@@ -294,7 +294,7 @@ func (s *DocumentRepositorySuite) TestCreateWithNextOrder_Atomic_Concurrency() {
 			doc := &domain.Document{
 				ID:             uuid.New(),
 				Type:           domain.TypeDecree,
-				Description:    "Decreto Concorrente",
+				Description:    "Decreto Concorrente 50 Goroutines",
 				CreatorID:      s.user.ID,
 				MunicipalityID: s.mun.ID,
 			}
@@ -321,3 +321,4 @@ func (s *DocumentRepositorySuite) TestCreateWithNextOrder_Atomic_Concurrency() {
 	}
 	s.Len(orderMap, concurrency)
 }
+

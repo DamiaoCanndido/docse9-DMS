@@ -1,5 +1,7 @@
 .env
-coverage.**
+coverage.*
+*.out
+*.html
 
 # Migração legada e dados temporários
 data/

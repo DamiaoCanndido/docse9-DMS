@@ -19,21 +19,27 @@ import (
 
 // setupUserRouter monta o Gin com o handler e o mock de service injetado.
 func setupUserRouter(svc domain.UserService) *gin.Engine {
+	return setupUserRouterWithClaims(svc, &security.UserClaims{
+		UserID:         uuid.New(),
+		Username:       "admin_test",
+		Role:           string(domain.RoleAdmin),
+		MunicipalityID: uuid.New(),
+	})
+}
+
+func setupUserRouterWithClaims(svc domain.UserService, claims *security.UserClaims) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
-		claims := &security.UserClaims{
-			UserID:         uuid.New(),
-			Username:       "admin_test",
-			Role:           string(domain.RoleAdmin),
-			MunicipalityID: uuid.New(),
+		if claims != nil {
+			c.Set("user", claims)
 		}
-		c.Set("user", claims)
 		c.Next()
 	})
 	h := handler.NewUserHandler(svc)
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // POST /api/v1/users
@@ -331,17 +337,6 @@ func TestGetPermissions_Handler_200(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func setupUserRouterWithClaims(svc domain.UserService, claims *security.UserClaims) *gin.Engine {
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set("user", claims)
-		c.Next()
-	})
-	h := handler.NewUserHandler(svc)
-	h.RegisterRoutes(r.Group("/api/v1"))
-	return r
-}
-
 func TestGetPermissions_CommonUser_OwnPermissions_200(t *testing.T) {
 	svc := new(handlerMocks.UserService)
 	u := testhelper.MakeUserCommon(testhelper.MunPassagemID)
@@ -452,3 +447,264 @@ func TestChangePassword_Handler_200(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+func TestCreateUser_Handler_CommonUser_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: uuid.New(),
+	}
+
+	input := domain.CreateUserInput{
+		Username:       "newuser",
+		Email:          "new@example.com",
+		Role:           domain.RoleCommon,
+		MunicipalityID: claims.MunicipalityID,
+	}
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPost, "/api/v1/users", input)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestCreateUser_Handler_ModCreatingAdmin_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: uuid.New(),
+	}
+
+	input := domain.CreateUserInput{
+		Username:       "admin2",
+		Email:          "admin2@example.com",
+		Role:           domain.RoleAdmin, // MOD cannot create ADMIN!
+		MunicipalityID: claims.MunicipalityID,
+	}
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPost, "/api/v1/users", input)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestCreateUser_Handler_ModCreatingOtherMun_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: uuid.New(),
+	}
+
+	input := domain.CreateUserInput{
+		Username:       "moduser",
+		Email:          "moduser@example.com",
+		Role:           domain.RoleCommon,
+		MunicipalityID: uuid.New(), // Other municipality!
+	}
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPost, "/api/v1/users", input)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestGetAllUsers_Handler_CommonUser_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: uuid.New(),
+	}
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, "/api/v1/users", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestGetDeletedUsers_Handler_CommonUser_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: uuid.New(),
+	}
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, "/api/v1/users/trash", nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestDeleteUser_Handler_ModDeletingOtherMun_403(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	otherMunID := uuid.New()
+	targetUser := testhelper.MakeUserCommon(otherMunID)
+
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: uuid.New(), // Different municipality
+	}
+
+	svc.On("GetByID", targetUser.ID).Return(&targetUser, nil)
+
+	path := fmt.Sprintf("/api/v1/users/%s", targetUser.ID)
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodDelete, path, nil)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestChangePassword_Handler_400_ValidationMismatch(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "oldpassword123",
+		NewPassword:     "newpassword123",
+		ConfirmPassword: "differentpassword", // Mismatch
+	}
+
+	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users/me/change-password", input)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestChangePassword_Handler_400_IncorrectCurrent(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "wrongpassword",
+		NewPassword:     "newpassword123",
+		ConfirmPassword: "newpassword123",
+	}
+
+	svc.On("ChangePassword", mock.Anything, input).Return(nil, domain.ErrIncorrectCurrentPassword)
+
+	w := doRequest(setupUserRouter(svc), http.MethodPost, "/api/v1/users/me/change-password", input)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUser_Handler_400_InvalidUUIDs(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+
+	t.Run("GetByID invalid UUID", func(t *testing.T) {
+		w := doRequest(setupUserRouter(svc), http.MethodGet, "/api/v1/users/bad-uuid", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Update invalid UUID", func(t *testing.T) {
+		w := doRequest(setupUserRouter(svc), http.MethodPatch, "/api/v1/users/bad-uuid", map[string]string{"username": "test"})
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Delete invalid UUID", func(t *testing.T) {
+		w := doRequest(setupUserRouter(svc), http.MethodDelete, "/api/v1/users/bad-uuid", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Restore invalid UUID", func(t *testing.T) {
+		w := doRequest(setupUserRouter(svc), http.MethodPatch, "/api/v1/users/bad-uuid/restore", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("HardDelete invalid UUID", func(t *testing.T) {
+		w := doRequest(setupUserRouter(svc), http.MethodDelete, "/api/v1/users/bad-uuid/hard", nil)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestGetAllUsers_Handler_Mod_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	munID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	adminRole := domain.RoleAdmin
+	expectedFilter := domain.UserFilter{
+		MunicipalityID: &munID,
+		ExcludeRole:    &adminRole,
+	}
+
+	users := []domain.User{
+		testhelper.MakeUserCommon(munID),
+	}
+
+	svc.On("GetAll", expectedFilter, 1, 20).Return(users, int64(1), nil)
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, "/api/v1/users", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestGetDeletedUsers_Handler_Mod_200(t *testing.T) {
+	svc := new(handlerMocks.UserService)
+	munID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	adminRole := domain.RoleAdmin
+	expectedFilter := domain.UserFilter{
+		MunicipalityID: &munID,
+		ExcludeRole:    &adminRole,
+	}
+
+	users := []domain.User{
+		testhelper.MakeUserCommon(munID),
+	}
+
+	svc.On("GetDeleted", expectedFilter, 1, 20).Return(users, int64(1), nil)
+
+	w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodGet, "/api/v1/users/trash", nil)
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestUpdateUser_Handler_ModRoleRestrictions(t *testing.T) {
+	munID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	targetUser := testhelper.MakeUserCommon(munID)
+
+	t.Run("MOD cannot promote to ADMIN", func(t *testing.T) {
+		svc := new(handlerMocks.UserService)
+		svc.On("GetByID", targetUser.ID).Return(&targetUser, nil)
+
+		adminRole := domain.RoleAdmin
+		input := domain.UpdateUserInput{Role: &adminRole}
+
+		path := fmt.Sprintf("/api/v1/users/%s", targetUser.ID)
+		w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPatch, path, input)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("MOD cannot change user municipality to another", func(t *testing.T) {
+		svc := new(handlerMocks.UserService)
+		svc.On("GetByID", targetUser.ID).Return(&targetUser, nil)
+
+		otherMun := uuid.New()
+		input := domain.UpdateUserInput{MunicipalityID: &otherMun}
+
+		path := fmt.Sprintf("/api/v1/users/%s", targetUser.ID)
+		w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPatch, path, input)
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
+
+	t.Run("Reset password returns randomPassword", func(t *testing.T) {
+		svc := new(handlerMocks.UserService)
+		svc.On("GetByID", targetUser.ID).Return(&targetUser, nil)
+
+		reset := true
+		input := domain.UpdateUserInput{ResetPassword: &reset}
+		svc.On("Update", targetUser.ID, input).Return(&targetUser, "GeneratedPass@123", nil)
+
+		path := fmt.Sprintf("/api/v1/users/%s", targetUser.ID)
+		w := doRequest(setupUserRouterWithClaims(svc, claims), http.MethodPatch, path, input)
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp map[string]any
+		parseBody(t, w, &resp)
+		data := resp["data"].(map[string]any)
+		assert.Equal(t, "GeneratedPass@123", data["randomPassword"])
+	})
+}
+
+

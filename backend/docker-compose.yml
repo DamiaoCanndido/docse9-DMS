@@ -1,3 +1,5 @@
+name: docseq-dms
+
 services:
   postgres:
     image: postgres:16
@@ -16,7 +18,10 @@ services:
 
 volumes:
   postgres_data_docseq_dms:
+    name: backend_postgres_data_docseq_dms
+    external: true
 
 networks:
   backend:
-    driver: bridge
+    name: backend_network
+

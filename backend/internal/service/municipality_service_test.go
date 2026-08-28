@@ -224,6 +224,51 @@ func TestUpdate_NameConflict(t *testing.T) {
 	repo.AssertNotCalled(t, "Update")
 }
 
+func TestUpdate_UF_Success(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+	newUF := "rn"
+	input := domain.UpdateMunicipalityInput{UF: &newUF}
+
+	repo.On("FindByID", m.ID).Return(&m, nil)
+	repo.On("Update", mock.MatchedBy(func(mun *domain.Municipality) bool {
+		return mun.UF == "RN"
+	})).Return(nil)
+
+	res, err := svc.Update(m.ID, input)
+	require.NoError(t, err)
+	assert.Equal(t, "RN", res.UF)
+}
+
+func TestUpdate_InvalidUF(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+	newUF := "INVALID"
+	input := domain.UpdateMunicipalityInput{UF: &newUF}
+
+	repo.On("FindByID", m.ID).Return(&m, nil)
+
+	_, err := svc.Update(m.ID, input)
+	assert.ErrorIs(t, err, service.ErrInvalidUF)
+}
+
+func TestUpdate_ImageURL(t *testing.T) {
+	svc, repo := newSvc(t)
+	m := testhelper.MakePassagem()
+	newImg := "https://example.com/new.png"
+	input := domain.UpdateMunicipalityInput{ImageURL: &newImg}
+
+	repo.On("FindByID", m.ID).Return(&m, nil)
+	repo.On("Update", mock.MatchedBy(func(mun *domain.Municipality) bool {
+		return mun.ImageURL == newImg
+	})).Return(nil)
+
+	res, err := svc.Update(m.ID, input)
+	require.NoError(t, err)
+	assert.Equal(t, newImg, res.ImageURL)
+}
+
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Delete
 // ═══════════════════════════════════════════════════════════════════════════════

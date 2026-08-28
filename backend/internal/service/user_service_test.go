@@ -724,3 +724,131 @@ func TestChangePassword_IncorrectCurrentPassword(t *testing.T) {
 	assert.ErrorIs(t, err, domain.ErrIncorrectCurrentPassword)
 	userRepo.AssertNotCalled(t, "Update")
 }
+
+func TestGetByIDUnscoped_User(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+
+	t.Run("Success", func(t *testing.T) {
+		userRepo.On("FindByIDUnscoped", u.ID).Return(&u, nil).Once()
+		res, err := svc.GetByIDUnscoped(u.ID)
+		require.NoError(t, err)
+		assert.Equal(t, u.ID, res.ID)
+	})
+
+	t.Run("NotFound", func(t *testing.T) {
+		nonExistent := uuid.New()
+		userRepo.On("FindByIDUnscoped", nonExistent).Return((*domain.User)(nil), nil).Once()
+		_, err := svc.GetByIDUnscoped(nonExistent)
+		assert.ErrorIs(t, err, domain.ErrUserNotFound)
+	})
+}
+
+func TestUpdateUser_ResetPassword_Success(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+
+	userRepo.On("FindByID", u.ID).Return(&u, nil)
+	userRepo.On("Update", mock.AnythingOfType("*domain.User")).Return(nil)
+
+	reset := true
+	input := domain.UpdateUserInput{
+		ResetPassword: &reset,
+	}
+
+	updated, randomPwd, err := svc.Update(u.ID, input)
+	require.NoError(t, err)
+	assert.NotEmpty(t, randomPwd)
+	assert.True(t, updated.MustChangePassword)
+}
+
+func TestGetPermissions_UserNotFound(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	nonExistent := uuid.New()
+	userRepo.On("FindByID", nonExistent).Return((*domain.User)(nil), nil)
+
+	_, err := svc.GetPermissions(nonExistent)
+	assert.ErrorIs(t, err, domain.ErrUserNotFound)
+}
+
+func TestUpdatePermissions_UserNotFound(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	nonExistent := uuid.New()
+	userRepo.On("FindByID", nonExistent).Return((*domain.User)(nil), nil)
+
+	input := domain.UpdateUserPermissionsInput{
+		Permissions: []domain.UpdateUserPermissionItem{
+			{DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+		},
+	}
+
+	_, err := svc.UpdatePermissions(nonExistent, input)
+	assert.ErrorIs(t, err, domain.ErrUserNotFound)
+}
+
+func TestGetPermissions_AdminUser(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	munRepo := new(mocks.MunicipalityRepository)
+	permRepo := new(mocks.UserPermissionRepository)
+	svc := service.NewUserService(userRepo, munRepo, permRepo)
+
+	userID := uuid.New()
+	u := &domain.User{ID: userID, Role: domain.RoleAdmin}
+
+	userRepo.On("FindByID", userID).Return(u, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{}, nil)
+
+	res, err := svc.GetPermissions(userID)
+	require.NoError(t, err)
+	assert.Len(t, res, 5) // Returns all 5 docTypes with LevelNone
+}
+
+func TestUpdatePermissions_AdminUser(t *testing.T) {
+	userRepo := new(mocks.UserRepository)
+	munRepo := new(mocks.MunicipalityRepository)
+	permRepo := new(mocks.UserPermissionRepository)
+	svc := service.NewUserService(userRepo, munRepo, permRepo)
+
+	userID := uuid.New()
+	u := &domain.User{ID: userID, Role: domain.RoleAdmin}
+
+	userRepo.On("FindByID", userID).Return(u, nil)
+	permRepo.On("DeleteByUserID", userID).Return(nil)
+	permRepo.On("Create", mock.AnythingOfType("*domain.UserPermission")).Return(nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{}, nil)
+
+	input := domain.UpdateUserPermissionsInput{
+		Permissions: []domain.UpdateUserPermissionItem{
+			{DocumentType: domain.TypeNotice, Level: domain.LevelWrite},
+		},
+	}
+
+	res, err := svc.UpdatePermissions(userID, input)
+	require.NoError(t, err)
+	assert.Len(t, res, 5)
+}
+
+
+func TestChangePassword_UpdateError(t *testing.T) {
+	svc, userRepo, _ := newUserService(t)
+	mun := testhelper.MakePassagem()
+	u := testhelper.MakeUserCommon(mun.ID)
+	hashed, _ := security.HashPassword("secret123")
+	u.Password = hashed
+
+	input := domain.ChangePasswordInput{
+		CurrentPassword: "secret123",
+		NewPassword:     "newsecret456",
+		ConfirmPassword: "newsecret456",
+	}
+
+	userRepo.On("FindByID", u.ID).Return(&u, nil)
+	userRepo.On("Update", mock.AnythingOfType("*domain.User")).Return(assert.AnError)
+
+	_, err := svc.ChangePassword(u.ID, input)
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
+

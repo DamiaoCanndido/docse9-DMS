@@ -57,6 +57,34 @@ func TestValidateToken_InvalidSignature(t *testing.T) {
 	os.Unsetenv("JWT_SECRET")
 }
 
+func TestValidateToken_MalformedTokens(t *testing.T) {
+	testCases := []struct {
+		name  string
+		token string
+	}{
+		{"empty string", ""},
+		{"random text", "invalid-token-string"},
+		{"two segments", "header.payload"},
+		{"invalid base64", "header.payload.signature!"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			claims, err := security.ValidateToken(tc.token)
+			assert.Nil(t, claims)
+			assert.ErrorIs(t, err, security.ErrInvalidToken)
+		})
+	}
+}
+
+func TestValidateToken_NoneAlgorithm(t *testing.T) {
+	// Token with alg: "none"
+	token := "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJ1c2VyX2lkIjoiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwIn0."
+	claims, err := security.ValidateToken(token)
+	assert.Nil(t, claims)
+	assert.ErrorIs(t, err, security.ErrInvalidToken)
+}
+
 func TestValidateJWTConfig(t *testing.T) {
 	t.Run("development allows default secret", func(t *testing.T) {
 		os.Setenv("APP_ENV", "development")
@@ -85,3 +113,5 @@ func TestValidateJWTConfig(t *testing.T) {
 	os.Unsetenv("APP_ENV")
 	os.Unsetenv("JWT_SECRET")
 }
+
+
