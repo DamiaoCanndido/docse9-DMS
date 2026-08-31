@@ -50,7 +50,10 @@ func (s *DocumentRepositorySuite) SetupSuite() {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	s.Require().NoError(err)
+	if err != nil {
+		s.T().Skip("Docker daemon não disponível, pulando suite de repositório:", err)
+		return
+	}
 	s.container = container
 
 	host, err := container.Host(ctx)
@@ -72,7 +75,9 @@ func (s *DocumentRepositorySuite) SetupSuite() {
 }
 
 func (s *DocumentRepositorySuite) TearDownSuite() {
-	_ = s.container.Terminate(context.Background())
+	if s.container != nil {
+		_ = s.container.Terminate(context.Background())
+	}
 }
 
 func (s *DocumentRepositorySuite) SetupTest() {

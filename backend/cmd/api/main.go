@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +16,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/seed"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/database"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/logger"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -25,24 +26,37 @@ func main() {
 	// Carrega .env (ignora erro em produção — variáveis já devem estar setadas)
 	_ = godotenv.Load()
 
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "development"
+	}
+
+	// ── Observabilidade: Logger Estruturado JSON (slog) ─
+	appLogger := logger.InitLogger(appEnv)
+	slog.Info("Iniciando docseq-DMS API...", slog.String("env", appEnv))
+
 	// Validação de configurações de segurança
 	if err := security.ValidateJWTConfig(); err != nil {
-		log.Fatalf("segurança: %v", err)
+		slog.Error("Falha de validação das configurações de segurança", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// ── Banco de dados ───────────────────────────────
 	db, err := database.Connect()
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		slog.Error("Falha ao conectar no banco de dados", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	if err := database.Migrate(db); err != nil {
-		log.Fatalf("migrate: %v", err)
+		slog.Error("Falha ao executar migrações do banco", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// Garante a existência de um usuário admin padrão (idempotente)
 	if err := seed.AdminUser(db); err != nil {
-		log.Fatalf("seed: %v", err)
+		slog.Error("Falha ao executar seed de admin", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// ── Wiring (DI manual) ──────────────────────────
@@ -62,34 +76,23 @@ func main() {
 	authSvc := service.NewAuthService(userRepo)
 	authHnd := handler.NewAuthHandler(authSvc)
 
+	healthHnd := handler.NewHealthHandler(db)
+
 	// ── Router ──────────────────────────────────────
-	if os.Getenv("APP_ENV") == "production" {
+	if appEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(middleware.RequestIDMiddleware())
+	r.Use(middleware.StructuredLoggerMiddleware(appLogger))
+	r.Use(middleware.RecoveryWithSlog(appLogger))
 	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.MaxBodySizeMiddleware(1 << 20)) // Limite de 1MB por payload
 
-	// Health-check ativo com validação de conectividade do banco
-	r.GET("/health", func(c *gin.Context) {
-		sqlDB, err := db.DB()
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "error", "database": "unreachable"})
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
-		defer cancel()
-
-		if err := sqlDB.PingContext(ctx); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "error", "database": "down"})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "database": "up"})
-	})
+	// Health-check ativo com ping de conectividade no banco
+	r.GET("/health", healthHnd.HealthCheck)
 
 	// Rate limiter para endpoints sensíveis de autenticação (5 req/min por IP)
 	authRateLimiter := middleware.RateLimiterMiddleware(5, 1*time.Minute)
@@ -129,28 +132,34 @@ func main() {
 
 	// Executa o servidor em goroutine separada
 	go func() {
-		log.Printf("🚀  docseq-DMS rodando em :%s", port)
+		slog.Info("🚀 docseq-DMS rodando com sucesso", slog.String("port", port), slog.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server listen: %v", err)
+			slog.Error("Erro inesperado no servidor HTTP", slog.String("error", err.Error()))
+			os.Exit(1)
 		}
 	}()
 
 	// ── Graceful Shutdown ───────────────────────────
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
-	log.Println("🛑 Sinal de encerramento recebido. Encerrando servidor graciosamente...")
+	sig := <-quit
+	slog.Info("🛑 Sinal de encerramento recebido. Encerrando servidor graciosamente...", slog.String("signal", sig.String()))
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Servidor forçado a encerrar: %v", err)
+		slog.Error("Servidor forçado a encerrar antes de finalizar requisições em voo", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	if sqlDB, err := db.DB(); err == nil {
-		_ = sqlDB.Close()
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			slog.Error("Erro ao encerrar conexões com o pool do banco", slog.String("error", closeErr.Error()))
+		} else {
+			slog.Info("Conexões com o banco de dados encerradas com sucesso")
+		}
 	}
 
-	log.Println("✅ Servidor docseq-DMS finalizado com sucesso.")
+	slog.Info("✅ Servidor docseq-DMS finalizado com sucesso.")
 }
