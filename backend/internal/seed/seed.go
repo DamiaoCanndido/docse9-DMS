@@ -3,7 +3,7 @@ package seed
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
@@ -45,7 +45,7 @@ func AdminUser(db *gorm.DB) error {
 		return fmt.Errorf("seed: checar usuário admin: %w", err)
 	}
 	if exists {
-		log.Println("🌱  Usuário admin padrão já existe — seed ignorado")
+		slog.Info("🌱 Usuário admin padrão já existe — seed ignorado")
 		return nil
 	}
 
@@ -71,9 +71,9 @@ func AdminUser(db *gorm.DB) error {
 		return fmt.Errorf("seed: criar usuário admin: %w", err)
 	}
 
-	log.Printf("🌱  Usuário admin padrão criado (username=%q, email=%q)\n", username, email)
+	slog.Info("🌱 Usuário admin padrão criado", slog.String("username", username), slog.String("email", email))
 	if os.Getenv("DEFAULT_ADMIN_PASSWORD") == "" {
-		log.Println("⚠️   DEFAULT_ADMIN_PASSWORD não foi definida — senha padrão de fábrica em uso (apenas ambientes não-produtivos). Troque-a assim que possível.")
+		slog.Warn("⚠️ DEFAULT_ADMIN_PASSWORD não foi definida — senha padrão de fábrica em uso (apenas ambientes não-produtivos). Troque-a assim que possível.")
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func ensureDefaultMunicipality(db *gorm.DB) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	log.Printf("🌱  Município padrão criado (%s/%s) para vincular o admin\n", m.Name, m.UF)
+	slog.Info("🌱 Município padrão criado para vincular o admin", slog.String("name", m.Name), slog.String("uf", m.UF))
 	return m.ID, nil
 }
 

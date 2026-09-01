@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"errors"
-
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -17,8 +15,11 @@ func NewAuthHandler(svc domain.AuthService) *AuthHandler {
 }
 
 // RegisterRoutes registra todas as rotas de autenticação.
-func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup) {
+func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup, middlewares ...gin.HandlerFunc) {
 	g := rg.Group("/auth")
+	for _, m := range middlewares {
+		g.Use(m)
+	}
 	{
 		g.POST("/login", h.Login)
 	}
@@ -34,18 +35,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	resp, err := h.svc.Login(input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleAuthError(c, err)
 		return
 	}
 
 	response.OK(c, resp)
 }
 
-func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
-	switch {
-	case errors.Is(err, domain.ErrInvalidCredentials):
-		response.Unauthorized(c, err.Error())
-	default:
-		response.InternalError(c)
-	}
-}

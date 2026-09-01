@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"errors"
 	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/middleware"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
@@ -21,8 +19,9 @@ func NewUserHandler(svc domain.UserService) *UserHandler {
 }
 
 // RegisterRoutes registra todas as rotas do recurso User.
-func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("/users/me/change-password", h.ChangePassword)
+func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup, changePasswordMiddlewares ...gin.HandlerFunc) {
+	handlers := append(changePasswordMiddlewares, h.ChangePassword)
+	rg.POST("/users/me/change-password", handlers...)
 	rg.GET("/users/:id/permissions", h.GetPermissions)
 
 	g := rg.Group("/users")
@@ -75,7 +74,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 
 	u, randomPassword, err := h.svc.Create(input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -166,7 +165,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 
 	u, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -192,7 +191,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 	u, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -226,7 +225,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 	updated, randomPassword, err := h.svc.Update(id, input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -249,7 +248,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 
 	u, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -258,7 +257,7 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.svc.Delete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -274,7 +273,7 @@ func (h *UserHandler) Restore(c *gin.Context) {
 
 	u, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -284,7 +283,7 @@ func (h *UserHandler) Restore(c *gin.Context) {
 
 	restored, err := h.svc.Restore(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -300,7 +299,7 @@ func (h *UserHandler) HardDelete(c *gin.Context) {
 
 	u, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -309,7 +308,7 @@ func (h *UserHandler) HardDelete(c *gin.Context) {
 	}
 
 	if err := h.svc.HardDelete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -325,7 +324,7 @@ func (h *UserHandler) GetPermissions(c *gin.Context) {
 
 	u, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -335,7 +334,7 @@ func (h *UserHandler) GetPermissions(c *gin.Context) {
 
 	p, err := h.svc.GetPermissions(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -351,7 +350,7 @@ func (h *UserHandler) UpdatePermissions(c *gin.Context) {
 
 	u, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -367,7 +366,7 @@ func (h *UserHandler) UpdatePermissions(c *gin.Context) {
 
 	p, err := h.svc.UpdatePermissions(id, input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -389,7 +388,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 
 	u, err := h.svc.ChangePassword(claims.UserID, input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleUserError(c, err)
 		return
 	}
 
@@ -436,25 +435,4 @@ func (h *UserHandler) checkAccess(c *gin.Context, targetUser *domain.User) bool 
 	}
 
 	return true
-}
-
-func (h *UserHandler) handleServiceError(c *gin.Context, err error) {
-	switch {
-	case errors.Is(err, domain.ErrUserNotFound):
-		response.NotFound(c, err.Error())
-	case errors.Is(err, domain.ErrEmailAlreadyExists):
-		response.Conflict(c, err.Error())
-	case errors.Is(err, domain.ErrUsernameAlreadyExists):
-		response.Conflict(c, err.Error())
-	case errors.Is(err, domain.ErrIncorrectCurrentPassword):
-		response.BadRequest(c, err.Error())
-	case errors.Is(err, domain.ErrInvalidUsername):
-		response.BadRequest(c, err.Error())
-	case errors.Is(err, domain.ErrInvalidEmail):
-		response.BadRequest(c, err.Error())
-	case errors.Is(err, service.ErrMunicipalityNotFound):
-		response.BadRequest(c, err.Error())
-	default:
-		response.InternalError(c)
-	}
 }

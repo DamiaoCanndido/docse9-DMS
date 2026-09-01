@@ -52,7 +52,10 @@ func (s *MunicipalityRepositorySuite) SetupSuite() {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	s.Require().NoError(err)
+	if err != nil {
+		s.T().Skip("Docker daemon não disponível, pulando suite de repositório:", err)
+		return
+	}
 	s.container = container
 
 	host, err := container.Host(ctx)
@@ -73,7 +76,9 @@ func (s *MunicipalityRepositorySuite) SetupSuite() {
 
 // TearDownSuite para o container ao fim da suite.
 func (s *MunicipalityRepositorySuite) TearDownSuite() {
-	_ = s.container.Terminate(context.Background())
+	if s.container != nil {
+		_ = s.container.Terminate(context.Background())
+	}
 }
 
 // SetupTest recria o repo e limpa a tabela antes de cada teste.

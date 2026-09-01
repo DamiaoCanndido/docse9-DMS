@@ -1,14 +1,10 @@
 package handler
 
 import (
-	"errors"
-
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
-	"github.com/google/uuid"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type DocumentHandler struct {
@@ -82,7 +78,7 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 
 	d, err := h.svc.Create(input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -198,7 +194,7 @@ func (h *DocumentHandler) GetByID(c *gin.Context) {
 
 	d, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -218,7 +214,7 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 
 	d, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -234,7 +230,7 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 
 	updated, err := h.svc.Update(id, input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -250,7 +246,7 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 
 	d, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -259,7 +255,7 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.svc.Delete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -288,7 +284,7 @@ func (h *DocumentHandler) Restore(c *gin.Context) {
 	// 1. Busca o documento na lixeira para validação prévia de permissões
 	doc, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 	if doc == nil || !doc.DeletedAt.Valid {
@@ -304,7 +300,7 @@ func (h *DocumentHandler) Restore(c *gin.Context) {
 	// 3. Executa a restauração segura
 	restored, err := h.svc.Restore(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -333,7 +329,7 @@ func (h *DocumentHandler) HardDelete(c *gin.Context) {
 	// 1. Busca o documento para verificar município ANTES da exclusão definitiva
 	doc, err := h.svc.GetByIDUnscoped(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 	if doc == nil {
@@ -348,7 +344,7 @@ func (h *DocumentHandler) HardDelete(c *gin.Context) {
 
 	// 2. Executa a exclusão definitiva
 	if err := h.svc.HardDelete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleDocumentError(c, err)
 		return
 	}
 
@@ -466,32 +462,4 @@ func (h *DocumentHandler) buildAllowedTypesFilter(userID uuid.UUID, filter *doma
 	}
 
 	return true, ""
-}
-
-func (h *DocumentHandler) handleServiceError(c *gin.Context, err error) {
-	switch {
-	case errors.Is(err, domain.ErrDocumentNotFound):
-		response.NotFound(c, err.Error())
-	case errors.Is(err, domain.ErrInvalidDocumentType) ||
-		errors.Is(err, domain.ErrInvalidContractType) ||
-		errors.Is(err, domain.ErrContractFieldsRequired):
-		response.BadRequest(c, err.Error())
-	case errors.Is(err, service.ErrMunicipalityNotFound) ||
-		errors.Is(err, domain.ErrUserNotFound):
-		response.BadRequest(c, err.Error())
-	default:
-		response.InternalError(c)
-	}
-}
-
-func getClaims(c *gin.Context) *security.UserClaims {
-	userVal, exists := c.Get("user")
-	if !exists {
-		return nil
-	}
-	claims, ok := userVal.(*security.UserClaims)
-	if !ok {
-		return nil
-	}
-	return claims
 }

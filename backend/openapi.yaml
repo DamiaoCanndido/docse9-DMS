@@ -355,16 +355,24 @@ paths:
       - url: http://localhost:8080
         description: Desenvolvimento local (sem prefixo /api/v1)
     get:
-      summary: Health check
+      summary: Health check com verificação de banco de dados
+      description: Executa um ping com timeout de 2s no banco de dados para atestar prontidão da aplicação.
       operationId: healthCheck
-      tags: [municipalities]
       responses:
         '200':
-          description: Serviço operacional
+          description: Serviço operacional e banco acessível
           content:
             application/json:
               example:
                 status: ok
+                database: up
+        '503':
+          description: Banco de dados inacessível ou fora do ar
+          content:
+            application/json:
+              example:
+                status: error
+                database: down
   # ─────────────────────────────────────────────
   # GET/PUT /users/{id}/permissions
   # ─────────────────────────────────────────────

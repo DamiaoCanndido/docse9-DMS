@@ -84,6 +84,10 @@ func Forbidden(c *gin.Context, msg string) {
 	c.JSON(http.StatusForbidden, errorResponse{Success: false, Error: msg})
 }
 
+func Error(c *gin.Context, statusCode int, msg string) {
+	c.JSON(statusCode, errorResponse{Success: false, Error: msg})
+}
+
 func InternalError(c *gin.Context) {
 	c.JSON(http.StatusInternalServerError, errorResponse{
 		Success: false,

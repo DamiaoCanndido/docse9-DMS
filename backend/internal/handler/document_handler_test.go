@@ -9,6 +9,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/handler"
 	handlerMocks "github.com/DamiaoCanndido/docse9-DMS/backend/internal/handler/mocks"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -403,3 +404,296 @@ func TestUpdateDocument_Handler_200(t *testing.T) {
 	svc.AssertExpectations(t)
 	permRepo.AssertExpectations(t)
 }
+
+func TestDeleteDocument_Handler_204(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      userID,
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetByID", docID).Return(doc, nil)
+	svc.On("Delete", docID).Return(nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelDelete,
+		},
+	}, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s", docID), nil)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+	svc.AssertExpectations(t)
+	permRepo.AssertExpectations(t)
+}
+
+func TestDeleteDocument_Handler_403_ForbiddenOtherUser(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+	otherUserID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      otherUserID, // Created by someone else
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetByID", docID).Return(doc, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelDelete,
+		},
+	}, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s", docID), nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "Delete")
+}
+
+func TestUpdateDocument_Handler_403_ForbiddenOtherUser(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	userID := uuid.New()
+	otherUserID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      otherUserID, // Created by someone else
+		MunicipalityID: munID,
+	}
+
+	newDesc := "Tentativa de alteração"
+	input := domain.UpdateDocumentInput{
+		Description: &newDesc,
+	}
+
+	svc.On("GetByID", docID).Return(doc, nil)
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{
+		{
+			UserID:       userID,
+			DocumentType: domain.TypeNotice,
+			Level:        domain.LevelWrite,
+		},
+	}, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s", docID), input)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "Update")
+}
+
+func TestDocument_AdminAccessDenied(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	docID := uuid.New()
+	munID := uuid.New()
+	adminID := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID,
+		Type:           domain.TypeNotice,
+		CreatorID:      adminID,
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetByID", docID).Return(doc, nil)
+
+	claims := &security.UserClaims{
+		UserID:         adminID,
+		Role:           string(domain.RoleAdmin),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, fmt.Sprintf("/api/v1/documents/%s", docID), nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestGetDeletedDocuments_Handler_200(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	modID := uuid.New()
+
+	docs := []domain.Document{
+		{ID: uuid.New(), Description: "Doc Lixeira", Type: domain.TypeNotice, MunicipalityID: munID},
+	}
+
+	claims := &security.UserClaims{
+		UserID:         modID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	svc.On("GetDeleted", mock.MatchedBy(func(filter domain.DocumentFilter) bool {
+		return filter.MunicipalityID != nil && *filter.MunicipalityID == munID
+	}), 1, 20).Return(docs, int64(1), nil)
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, "/api/v1/documents/trash", nil)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestGetAllDocuments_Handler_CommonUser_NoPermissions_403(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	userID := uuid.New()
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	permRepo.On("FindByUserID", userID).Return([]domain.UserPermission{}, nil) // 0 permissões
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, "/api/v1/documents", nil)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "GetAll")
+}
+
+func TestGetDocumentByID_Handler_400_InvalidUUID(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	claims := &security.UserClaims{
+		UserID:         uuid.New(),
+		Role:           string(domain.RoleMod),
+		MunicipalityID: uuid.New(),
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, "/api/v1/documents/not-a-uuid", nil)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestDocument_Handler_Errors(t *testing.T) {
+	munID := uuid.New()
+	modID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         modID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	t.Run("CreateDocument 400 InvalidDocumentType", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		input := domain.CreateDocumentInput{Type: "invalid_type", Description: "Test", MunicipalityID: munID, CreatorID: modID}
+		svc.On("Create", input).Return(nil, domain.ErrInvalidDocumentType)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("CreateDocument 400 MunicipalityNotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		input := domain.CreateDocumentInput{Type: domain.TypeNotice, Description: "Test", MunicipalityID: munID, CreatorID: modID}
+		svc.On("Create", input).Return(nil, service.ErrMunicipalityNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("CreateDocument 500 InternalError", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		input := domain.CreateDocumentInput{Type: domain.TypeNotice, Description: "Test", MunicipalityID: munID, CreatorID: modID}
+		svc.On("Create", input).Return(nil, assert.AnError)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+	})
+
+	t.Run("GetByID 404 NotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		svc.On("GetByID", docID).Return(nil, domain.ErrDocumentNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, fmt.Sprintf("/api/v1/documents/%s", docID), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Update 404 NotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		svc.On("GetByID", docID).Return(nil, domain.ErrDocumentNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s", docID), map[string]string{"description": "new"})
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Delete 404 NotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		svc.On("GetByID", docID).Return(nil, domain.ErrDocumentNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s", docID), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("Restore 404 NotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		svc.On("GetByIDUnscoped", docID).Return(nil, domain.ErrDocumentNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPatch, fmt.Sprintf("/api/v1/documents/%s/restore", docID), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("HardDelete 404 NotFound", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		svc.On("GetByIDUnscoped", docID).Return(nil, domain.ErrDocumentNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodDelete, fmt.Sprintf("/api/v1/documents/%s/hard", docID), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+

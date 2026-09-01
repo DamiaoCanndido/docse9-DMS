@@ -71,3 +71,18 @@ func TestLogin_Handler_401_InvalidCredentials(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+func TestLogin_Handler_500_InternalError(t *testing.T) {
+	svc := new(handlerMocks.AuthService)
+	input := domain.LoginInput{
+		Username: "user",
+		Password: "password",
+	}
+
+	svc.On("Login", input).Return(nil, assert.AnError)
+
+	w := doRequest(setupAuthRouter(svc), http.MethodPost, "/api/v1/auth/login", input)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+

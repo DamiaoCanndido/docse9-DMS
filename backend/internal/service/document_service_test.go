@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func newDocumentService(t *testing.T) (domain.DocumentService, *mocks.DocumentRepository, *mocks.UserRepository, *mocks.MunicipalityRepository) {
@@ -41,9 +42,7 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	
 	// Para NOTICE, o ano atual deve ser passado no cálculo da ordem
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeNotice, (*domain.ContractType)(nil), &currentYear).Return(5, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -86,9 +85,7 @@ func TestCreateDocument_Success_Law(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	// Para LAW, o ano deve ser nil (ordem nunca reseta)
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeLaw, (*domain.ContractType)(nil), (*int)(nil)).Return(12, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), (*int)(nil)).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -138,9 +135,7 @@ func TestCreateDocument_Success_Contract(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 	
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cType, &currentYear).Return(0, nil)
-	
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -198,9 +193,7 @@ func TestCreateDocument_ContractTypes_IndependentSequences(t *testing.T) {
 	userRepo.On("FindByID", user.ID).Return(&user, nil)
 
 	currentYear := time.Now().Year()
-	docRepo.On("GetLastOrder", mun.ID, domain.TypeContract, &cBidding, &currentYear).Return(10, nil)
-
-	docRepo.On("Create", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("CreateWithNextOrder", mock.AnythingOfType("*domain.Document"), &currentYear).Return(nil)
 
 	expectedDoc := &domain.Document{
 		ID:             uuid.New(),
@@ -419,6 +412,91 @@ func TestUpdateDocument_CreatedAt_Contract_Ignored(t *testing.T) {
 	docRepo.AssertExpectations(t)
 }
 
+func TestUpdateDocument_Contract_Fields_All(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	duration := 12
+	cType := domain.ContractService
+	val := 5000.0
+	startIn := time.Date(2024, 1, 1, 8, 0, 0, 0, time.UTC)
+
+	doc := &domain.Document{
+		ID:           id,
+		Description:  "Contrato Antigo",
+		Type:         domain.TypeContract,
+		Duration:     &duration,
+		ContractType: &cType,
+		Value:        &val,
+		StartIn:      &startIn,
+	}
+
+	newDuration := 24
+	newCType := domain.ContractBidding
+	newVal := 10000.0
+	newFileKey := "docs/contract1.pdf"
+	newDesc := "Contrato Novo"
+
+	input := domain.UpdateDocumentInput{
+		Description:  &newDesc,
+		FileKey:      &newFileKey,
+		Duration:     &newDuration,
+		ContractType: &newCType,
+		Value:        &newVal,
+	}
+
+	docRepo.On("FindByID", id).Return(doc, nil).Once()
+	docRepo.On("Update", mock.AnythingOfType("*domain.Document")).Return(nil)
+	docRepo.On("FindByID", id).Return(&domain.Document{
+		ID:           id,
+		Description:  newDesc,
+		FileKey:      newFileKey,
+		Type:         domain.TypeContract,
+		Duration:     &newDuration,
+		ContractType: &newCType,
+		Value:        &newVal,
+	}, nil).Once()
+
+	res, err := svc.Update(id, input)
+	require.NoError(t, err)
+	assert.Equal(t, newDesc, res.Description)
+	assert.Equal(t, newFileKey, res.FileKey)
+	assert.Equal(t, &newDuration, res.Duration)
+	assert.Equal(t, &newCType, res.ContractType)
+	assert.Equal(t, &newVal, res.Value)
+}
+
+func TestUpdateDocument_Contract_InvalidContractType(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	doc := &domain.Document{
+		ID:   id,
+		Type: domain.TypeContract,
+	}
+
+	invalidType := domain.ContractType("INVALID_CONTRACT_TYPE")
+	input := domain.UpdateDocumentInput{
+		ContractType: &invalidType,
+	}
+
+	docRepo.On("FindByID", id).Return(doc, nil)
+
+	_, err := svc.Update(id, input)
+	assert.ErrorIs(t, err, domain.ErrInvalidContractType)
+}
+
+func TestUpdateDocument_NotFound(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	newDesc := "Novo"
+	input := domain.UpdateDocumentInput{Description: &newDesc}
+
+	docRepo.On("FindByID", id).Return((*domain.Document)(nil), nil)
+
+	_, err := svc.Update(id, input)
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}
+
+
 func TestGetDocumentByIDUnscoped_Success(t *testing.T) {
 	svc, docRepo, _, _ := newDocumentService(t)
 	id := uuid.New()
@@ -442,3 +520,112 @@ func TestGetDocumentByIDUnscoped_NotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
 }
+
+func TestGetAllDocuments_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	filter := domain.DocumentFilter{}
+	docs := []domain.Document{{ID: uuid.New(), Description: "Doc 1"}}
+
+	docRepo.On("FindAll", filter, 1, 20).Return(docs, int64(1), nil)
+
+	result, total, err := svc.GetAll(filter, 1, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, result, 1)
+}
+
+func TestGetDeletedDocuments_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	filter := domain.DocumentFilter{}
+	docs := []domain.Document{{ID: uuid.New(), Description: "Deleted Doc"}}
+
+	docRepo.On("FindDeleted", filter, 1, 20).Return(docs, int64(1), nil)
+
+	result, total, err := svc.GetDeleted(filter, 1, 20)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), total)
+	assert.Len(t, result, 1)
+}
+
+func TestDeleteDocument_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	doc := &domain.Document{ID: id}
+
+	docRepo.On("FindByID", id).Return(doc, nil)
+	docRepo.On("Delete", id).Return(nil)
+
+	err := svc.Delete(id)
+	require.NoError(t, err)
+}
+
+func TestDeleteDocument_NotFound(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+
+	docRepo.On("FindByID", id).Return((*domain.Document)(nil), nil)
+
+	err := svc.Delete(id)
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}
+
+func TestRestoreDocument_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	deletedDoc := &domain.Document{
+		ID:        id,
+		DeletedAt: gorm.DeletedAt{Time: time.Now(), Valid: true},
+	}
+
+	docRepo.On("FindByIDUnscoped", id).Return(deletedDoc, nil)
+	docRepo.On("Restore", id).Return(nil)
+
+	result, err := svc.Restore(id)
+	require.NoError(t, err)
+	assert.Equal(t, id, result.ID)
+	assert.False(t, result.DeletedAt.Valid)
+}
+
+func TestRestoreDocument_NotFound(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+
+	docRepo.On("FindByIDUnscoped", id).Return((*domain.Document)(nil), nil)
+
+	_, err := svc.Restore(id)
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}
+
+func TestRestoreDocument_NotDeleted(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	activeDoc := &domain.Document{ID: id} // DeletedAt is not set (Valid: false)
+
+	docRepo.On("FindByIDUnscoped", id).Return(activeDoc, nil)
+
+	_, err := svc.Restore(id)
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}
+
+func TestHardDeleteDocument_Success(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+	doc := &domain.Document{ID: id}
+
+	docRepo.On("FindByIDUnscoped", id).Return(doc, nil)
+	docRepo.On("HardDelete", id).Return(nil)
+
+	err := svc.HardDelete(id)
+	require.NoError(t, err)
+}
+
+func TestHardDeleteDocument_NotFound(t *testing.T) {
+	svc, docRepo, _, _ := newDocumentService(t)
+	id := uuid.New()
+
+	docRepo.On("FindByIDUnscoped", id).Return((*domain.Document)(nil), nil)
+
+	err := svc.HardDelete(id)
+	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
+}
+

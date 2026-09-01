@@ -1,15 +1,10 @@
 package handler
 
 import (
-	"errors"
-	"strconv"
-
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/middleware"
-	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type MunicipalityHandler struct {
@@ -59,7 +54,7 @@ func (h *MunicipalityHandler) Create(c *gin.Context) {
 
 	m, err := h.svc.Create(input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -124,7 +119,7 @@ func (h *MunicipalityHandler) GetByID(c *gin.Context) {
 
 	m, err := h.svc.GetByID(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -141,7 +136,7 @@ func (h *MunicipalityHandler) GetByUF(c *gin.Context) {
 
 	municipalities, total, err := h.svc.GetByUF(uf, page, pageSize)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -166,7 +161,7 @@ func (h *MunicipalityHandler) Update(c *gin.Context) {
 
 	m, err := h.svc.Update(id, input)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -184,7 +179,7 @@ func (h *MunicipalityHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.svc.Delete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -211,7 +206,7 @@ func (h *MunicipalityHandler) Restore(c *gin.Context) {
 
 	m, err := h.svc.Restore(id)
 	if err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
@@ -229,49 +224,9 @@ func (h *MunicipalityHandler) HardDelete(c *gin.Context) {
 	}
 
 	if err := h.svc.HardDelete(id); err != nil {
-		h.handleServiceError(c, err)
+		handleMunicipalityError(c, err)
 		return
 	}
 
 	response.NoContent(c)
-}
-
-// ──────────────────────────────────────────────
-// Helpers privados
-// ──────────────────────────────────────────────
-
-func (h *MunicipalityHandler) handleServiceError(c *gin.Context, err error) {
-	switch {
-	case errors.Is(err, service.ErrMunicipalityNotFound):
-		response.NotFound(c, err.Error())
-	case errors.Is(err, service.ErrMunicipalityNameConflict):
-		response.Conflict(c, err.Error())
-	case errors.Is(err, service.ErrInvalidUF):
-		response.BadRequest(c, err.Error())
-	default:
-		response.InternalError(c)
-	}
-}
-
-func parseUUID(c *gin.Context, param string) (uuid.UUID, bool) {
-	raw := c.Param(param)
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		response.BadRequest(c, "ID inválido")
-		return uuid.Nil, false
-	}
-	return id, true
-}
-
-func parsePagination(c *gin.Context) (page, pageSize int) {
-	page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ = strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-	return
 }

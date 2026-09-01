@@ -1,68 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useTransition, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
-import { User, Municipality, Role, PaginatedResponse, DocumentType, PermissionLevel } from '@/types';
+import { User, Municipality, Role, PaginatedResponse } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PaginationBar } from '@/components/ui/PaginationBar';
 import {
   createUser,
   updateUser,
   deleteUser,
   restoreUser,
   hardDeleteUser,
-  getUserPermissions,
-  updateUserPermissions,
 } from '@/app/api/users';
 import { toast } from 'sonner';
 import { isRedirectError } from '@/lib/utils';
-import { formatDateTime } from '@/lib/date';
-import {
-  Users,
-  Plus,
-  Trash2,
-  Edit2,
-  RotateCcw,
-  Trash,
-  Shield,
-  Search,
-  X,
-  Sparkles,
-  Building2,
-  Mail,
-  UserCheck,
-  MoreHorizontal,
-  Copy,
-  Check,
-  Key,
-  Eye,
-  EyeOff,
-  AlertCircle,
-} from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Users, Plus, Sparkles } from 'lucide-react';
+import { UserFilterBar } from './users/UserFilterBar';
+import { UserTable } from './users/UserTable';
+import { UserFormDialog } from './users/UserFormDialog';
+import { UserPermissionsMatrix } from './users/UserPermissionsMatrix';
+import { UserCreatedSuccessDialog } from './users/UserCreatedSuccessDialog';
+import { UserDeleteDialog, UserDeleteMode } from './users/UserDeleteDialog';
 
 interface UsersContentProps {
   initialData: PaginatedResponse<User>;
@@ -82,7 +40,7 @@ export const UsersContent: React.FC<UsersContentProps> = ({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // Search input state
+  // Search input state with debounce
   const [searchVal, setSearchVal] = useState(searchParams.get('search') || '');
   const [debouncedSearch] = useDebounce(searchVal, 400);
 
@@ -102,38 +60,30 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
   // Modals state
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isPermModalOpen, setIsPermModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  // Success modal state for user creation (random password copy)
+  const [isPermModalOpen, setIsPermModalOpen] = useState(false);
+  const [selectedPermUser, setSelectedPermUser] = useState<User | null>(null);
+
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [createdUserCredentials, setCreatedUserCredentials] = useState<{
     username: string;
     email: string;
     randomPassword?: string;
   } | null>(null);
-  const [copiedPassword, setCopiedPassword] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  // User form states
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('COMMON');
-  const [municipalityId, setMunicipalityId] = useState('');
-  const [formError, setFormError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Permissions state
-  const [permissions, setPermissions] = useState<Record<DocumentType, PermissionLevel>>({
-    NOTICE: 'NONE',
-    DECREE: 'NONE',
-    ORDINANCE: 'NONE',
-    LAW: 'NONE',
-    CONTRACT: 'NONE',
+  // Delete dialog state
+  const [deleteDialogState, setDeleteDialogState] = useState<{
+    isOpen: boolean;
+    mode: UserDeleteMode;
+    user: User | null;
+  }>({
+    isOpen: false,
+    mode: 'delete',
+    user: null,
   });
-  const [isLoadingPerms, setIsLoadingPerms] = useState(false);
-  const [isSavingPerms, setIsSavingPerms] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+
   const roleFilter = searchParams.get('role') || '';
   const municipalityFilter = searchParams.get('municipalityId') || '';
 
@@ -194,75 +144,79 @@ export const UsersContent: React.FC<UsersContentProps> = ({
     });
   };
 
-  // User CRUD
+  // User CRUD Handlers
   const openCreateModal = () => {
     setSelectedUser(null);
-    setUsername('');
-    setEmail('');
-    setPassword('');
-    setRole('COMMON');
-    setMunicipalityId(isMod ? currentUser.municipalityId : municipalities[0]?.id || '');
-    setFormError('');
     setIsUserModalOpen(true);
   };
 
   const openEditModal = (user: User) => {
     setSelectedUser(user);
-    setUsername(user.username);
-    setEmail(user.email);
-    setPassword('');
-    setRole(user.role);
-    setMunicipalityId(user.municipalityId);
-    setFormError('');
     setIsUserModalOpen(true);
   };
 
-  const handleSaveUser = async (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!username.trim() || !email.trim()) {
-      setFormError('Nome de usuário e e-mail são obrigatórios.');
-      return;
-    }
+  const openPermissionsModal = (user: User) => {
+    setSelectedPermUser(user);
+    setIsPermModalOpen(true);
+  };
 
-    setIsSaving(true);
-    setFormError('');
+  const openDeleteDialog = (user: User, mode: UserDeleteMode) => {
+    setDeleteDialogState({
+      isOpen: true,
+      mode,
+      user,
+    });
+  };
 
+  const closeDeleteDialog = () => {
+    setDeleteDialogState((prev) => ({
+      ...prev,
+      isOpen: false,
+      user: null,
+    }));
+  };
+
+  const handleSaveUser = async (payload: {
+    isEdit: boolean;
+    id?: string;
+    username: string;
+    email: string;
+    password?: string;
+    role: Role;
+    municipalityId: string;
+  }) => {
     try {
-      if (selectedUser) {
+      if (payload.isEdit && payload.id) {
         await updateUser({
-          id: selectedUser.id,
+          id: payload.id,
           input: {
-            username,
-            email,
-            password: password ? password : undefined,
-            role,
-            municipalityId: isAdmin ? municipalityId : undefined,
+            username: payload.username,
+            email: payload.email,
+            password: payload.password ? payload.password : undefined,
+            role: payload.role,
+            municipalityId: isAdmin ? payload.municipalityId : undefined,
           },
           path: pathname,
         });
         toast.success('Usuário atualizado com sucesso!');
-        setIsUserModalOpen(false);
       } else {
         const res = await createUser({
           input: {
-            username,
-            email,
-            role,
-            municipalityId: isAdmin ? municipalityId : currentUser.municipalityId,
+            username: payload.username,
+            email: payload.email,
+            role: payload.role,
+            municipalityId: isAdmin ? payload.municipalityId : currentUser.municipalityId,
           },
           path: pathname,
         });
         toast.success('Usuário criado com sucesso!');
-        setIsUserModalOpen(false);
 
         if (res.randomPassword) {
           setCreatedUserCredentials({
-            username: res.user?.username || username,
-            email: res.user?.email || email,
+            username: res.user?.username || payload.username,
+            email: res.user?.email || payload.email,
             randomPassword: res.randomPassword,
           });
-          setCopiedPassword(false);
-          setShowPassword(false);
           setIsSuccessModalOpen(true);
         }
       }
@@ -270,129 +224,40 @@ export const UsersContent: React.FC<UsersContentProps> = ({
       if (isRedirectError(err)) {
         throw err;
       }
-      const errorMsg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao salvar usuário.';
-      setFormError(errorMsg);
-      toast.error('Ocorreu um erro.');
+      const errorMsg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Erro ao salvar usuário.';
+      toast.error(errorMsg);
+      throw err;
+    }
+  };
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteDialogState.user) return;
+    const targetId = deleteDialogState.user.id;
+    setIsDeleteLoading(true);
+
+    try {
+      if (deleteDialogState.mode === 'delete') {
+        await deleteUser({ id: targetId, path: pathname });
+        toast.success('Usuário enviado para a lixeira.');
+      } else if (deleteDialogState.mode === 'restore') {
+        await restoreUser({ id: targetId, path: pathname });
+        toast.success('Usuário restaurado com sucesso!');
+      } else if (deleteDialogState.mode === 'hardDelete') {
+        await hardDeleteUser({ id: targetId, path: pathname });
+        toast.success('Usuário excluído definitivamente.');
+      }
+      closeDeleteDialog();
+    } catch (err: unknown) {
+      if (isRedirectError(err)) {
+        throw err;
+      }
+      toast.error('Ocorreu um erro ao executar a ação.');
     } finally {
-      setIsSaving(false);
+      setIsDeleteLoading(false);
     }
-  };
-
-  const handleCopyPassword = () => {
-    if (!createdUserCredentials?.randomPassword) return;
-    navigator.clipboard.writeText(createdUserCredentials.randomPassword);
-    setCopiedPassword(true);
-    toast.success('Senha copiada para a área de transferência!');
-    setTimeout(() => setCopiedPassword(false), 3000);
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    const confirm = window.confirm('Deseja realmente enviar este usuário para a lixeira?');
-    if (!confirm) return;
-
-    try {
-      await deleteUser({ id, path: pathname });
-      toast.success('Usuário enviado para a lixeira.');
-    } catch {
-      toast.error('Erro ao excluir usuário.');
-    }
-  };
-
-  const handleRestoreUser = async (id: string) => {
-    try {
-      await restoreUser({ id, path: pathname });
-      toast.success('Usuário restaurado com sucesso!');
-    } catch {
-      toast.error('Erro ao restaurar usuário.');
-    }
-  };
-
-  const handleHardDeleteUser = async (id: string) => {
-    const confirm = window.confirm(
-      'ATENÇÃO: Esta ação é definitiva e removerá permanentemente o usuário. Confirmar?'
-    );
-    if (!confirm) return;
-
-    try {
-      await hardDeleteUser({ id, path: pathname });
-      toast.success('Usuário excluído definitivamente.');
-    } catch {
-      toast.error('Erro ao excluir permanentemente.');
-    }
-  };
-
-  // Permissions management
-  const openPermissionsModal = async (user: User) => {
-    setSelectedUser(user);
-    setIsPermModalOpen(true);
-    setIsLoadingPerms(true);
-
-    try {
-      const userPerms = await getUserPermissions(user.id);
-      const permsMap = {
-        NOTICE: 'NONE' as PermissionLevel,
-        DECREE: 'NONE' as PermissionLevel,
-        ORDINANCE: 'NONE' as PermissionLevel,
-        LAW: 'NONE' as PermissionLevel,
-        CONTRACT: 'NONE' as PermissionLevel,
-      };
-      
-      userPerms.forEach((p) => {
-        permsMap[p.documentType] = p.level;
-      });
-
-      setPermissions(permsMap);
-    } catch {
-      toast.error('Erro ao buscar permissões do usuário.');
-      setIsPermModalOpen(false);
-    } finally {
-      setIsLoadingPerms(false);
-    }
-  };
-
-  const handleSavePermissions = async () => {
-    if (!selectedUser) return;
-    setIsSavingPerms(true);
-
-    try {
-      const permsArray = (Object.keys(permissions) as DocumentType[]).map((type) => ({
-        documentType: type,
-        level: permissions[type],
-      }));
-
-      await updateUserPermissions({
-        id: selectedUser.id,
-        permissions: permsArray,
-        path: pathname,
-      });
-
-      toast.success('Permissões atualizadas com sucesso!');
-      setIsPermModalOpen(false);
-    } catch {
-      toast.error('Erro ao atualizar permissões.');
-    } finally {
-      setIsSavingPerms(false);
-    }
-  };
-
-  const handlePermissionChange = (type: DocumentType, level: PermissionLevel) => {
-    setPermissions((prev) => ({ ...prev, [type]: level }));
-  };
-
-  const docTypesList: { value: DocumentType; label: string }[] = [
-    { value: 'NOTICE', label: 'Ofício' },
-    { value: 'DECREE', label: 'Decreto' },
-    { value: 'ORDINANCE', label: 'Portaria' },
-    { value: 'LAW', label: 'Lei' },
-    { value: 'CONTRACT', label: 'Contrato' },
-  ];
-
-  const permLevels: { value: PermissionLevel; label: string }[] = [
-    { value: 'NONE', label: 'Nenhum' },
-    { value: 'READ', label: 'Visualizar' },
-    { value: 'WRITE', label: 'Criar / Editar' },
-    { value: 'DELETE', label: 'Excluir' },
-  ];
+  }, [deleteDialogState, pathname]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -438,538 +303,73 @@ export const UsersContent: React.FC<UsersContentProps> = ({
 
       {/* Filter panel */}
       {!viewTrash && (
-        <div className="p-6 bg-card border border-border backdrop-blur-md rounded-2xl flex flex-col md:flex-row items-end gap-5 shadow-md relative overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-teal-600/5 blur-3xl rounded-full pointer-events-none" />
-
-          {/* Text Search */}
-          <div className="w-full md:flex-1 relative">
-            <Input
-              label="Buscar por nome ou e-mail"
-              placeholder="Digite o nome de usuário ou e-mail..."
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              className="pl-10"
-            />
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 bottom-3.5" />
-            {searchVal && (
-              <button
-                onClick={() => setSearchVal('')}
-                className="absolute right-3.5 bottom-3.5 text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted transition-all"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Role Filter */}
-          <div className="w-full md:w-48 flex flex-col gap-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Perfil (Role)</label>
-            <select
-              className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
-              value={roleFilter}
-              onChange={(e) => handleFilterChange('role', e.target.value)}
-            >
-              <option value="" className="bg-card text-foreground">Todos</option>
-              {isAdmin && <option value="ADMIN" className="bg-card text-foreground">Administrador</option>}
-              <option value="MOD" className="bg-card text-foreground">Moderador</option>
-              <option value="COMMON" className="bg-card text-foreground">Funcionário Comum</option>
-            </select>
-          </div>
-
-          {/* Municipality Filter (ADMIN only) */}
-          {isAdmin && (
-            <div className="w-full md:w-56 flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Município</label>
-              <select
-                className="w-full bg-background border border-border text-foreground px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 cursor-pointer h-10"
-                value={municipalityFilter}
-                onChange={(e) => handleFilterChange('municipalityId', e.target.value)}
-              >
-                <option value="" className="bg-card text-foreground">Todos</option>
-                {municipalities.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-card text-foreground">
-                    {m.name} ({m.uf})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <Button
-            variant="outline"
-            className="w-full md:w-auto h-10 border-border hover:bg-muted text-foreground font-semibold px-5 rounded-xl"
-            onClick={handleClearFilters}
-          >
-            Limpar Filtros
-          </Button>
-        </div>
+        <UserFilterBar
+          searchValue={searchVal}
+          onSearchChange={setSearchVal}
+          roleFilter={roleFilter}
+          onRoleChange={(val) => handleFilterChange('role', val)}
+          municipalityFilter={municipalityFilter}
+          onMunicipalityChange={(val) => handleFilterChange('municipalityId', val)}
+          municipalities={municipalities}
+          isAdmin={isAdmin}
+          onClearFilters={handleClearFilters}
+        />
       )}
 
       {/* Users table */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl relative">
-        {isPending && (
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center transition-all duration-300">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-2 border-teal-500/20 border-t-teal-500 animate-spin" />
-              <span className="text-teal-600 dark:text-teal-400 text-xs font-bold tracking-widest uppercase">
-                Atualizando dados...
-              </span>
-            </div>
-          </div>
-        )}
+      <UserTable
+        users={initialData.data}
+        currentUser={currentUser}
+        viewTrash={viewTrash}
+        isPending={isPending}
+        onEdit={openEditModal}
+        onDelete={(u) => openDeleteDialog(u, 'delete')}
+        onRestore={(u) => openDeleteDialog(u, 'restore')}
+        onHardDelete={(u) => openDeleteDialog(u, 'hardDelete')}
+        onPermissions={openPermissionsModal}
+        pagination={{
+          page: initialData.page,
+          pageSize: initialData.pageSize,
+          total: initialData.total,
+        }}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
-        {initialData.data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground mb-5 border border-border">
-              <Users className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground">Nenhum usuário encontrado</h3>
-            <p className="text-muted-foreground text-sm mt-2 max-w-sm">
-              Tente redefinir os filtros ou buscar por outros termos.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-border bg-muted/50 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
-                  <th className="px-6 py-4.5">Usuário</th>
-                  <th className="px-6 py-4.5">Perfil</th>
-                  <th className="px-6 py-4.5">Município</th>
-                  <th className="px-6 py-4.5">Último Acesso</th>
-                  <th className="px-6 py-4.5 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border text-sm text-foreground">
-                {initialData.data.map((usr) => (
-                  <tr key={usr.id} className="hover:bg-muted/40 transition-colors group">
-                    <td className="px-6 py-4.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground font-semibold uppercase text-xs">
-                          {usr.username.slice(0, 2)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                            {usr.username}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
-                            <Mail className="w-3 h-3 text-muted-foreground" />
-                            {usr.email}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4.5">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                          usr.role === 'ADMIN'
-                            ? 'bg-red-500/10 text-red-500 dark:text-red-400 border-red-500/20'
-                            : usr.role === 'MOD'
-                            ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
-                            : 'bg-muted text-muted-foreground border-border'
-                        }`}
-                      >
-                        {usr.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4.5">
-                      {usr.municipality ? (
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            {usr.municipality.name}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground ml-5">
-                            Estado: {usr.municipality.uf}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4.5 text-muted-foreground text-xs font-medium">
-                      {usr.lastLogin ? (
-                        <div className="flex items-center gap-1.5">
-                          <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                          {formatDateTime(usr.lastLogin)}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground italic">Nunca acessou</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4.5 text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger render={
-                          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all cursor-pointer">
-                            <MoreHorizontal className="w-4.5 h-4.5" />
-                          </button>
-                        } />
-                        <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground min-w-[170px]">
-                          {viewTrash ? (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => handleRestoreUser(usr.id)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-emerald-500 cursor-pointer focus:bg-muted focus:text-emerald-500 p-2 text-xs font-medium"
-                              >
-                                <RotateCcw className="w-4.5 h-4.5" />
-                                Restaurar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleHardDeleteUser(usr.id)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
-                              >
-                                <Trash className="w-4.5 h-4.5" />
-                                Excluir Definitivamente
-                              </DropdownMenuItem>
-                            </>
-                          ) : (
-                            <>
-                              {usr.role === 'COMMON' && (
-                                <DropdownMenuItem
-                                   onClick={() => openPermissionsModal(usr)}
-                                  className="flex items-center gap-2 hover:bg-muted hover:text-amber-500 cursor-pointer focus:bg-muted focus:text-amber-500 p-2 text-xs font-medium"
-                                >
-                                  <Shield className="w-4.5 h-4.5" />
-                                  Permissões
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => openEditModal(usr)}
-                                className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
-                              >
-                                <Edit2 className="w-4.5 h-4.5" />
-                                Editar
-                              </DropdownMenuItem>
-                              {usr.id !== currentUser.id && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteUser(usr.id)}
-                                  className="flex items-center gap-2 hover:bg-muted hover:text-red-500 cursor-pointer focus:bg-muted focus:text-red-500 p-2 text-xs font-medium"
-                                >
-                                  <Trash2 className="w-4.5 h-4.5" />
-                                  Mover para Lixeira
-                                </DropdownMenuItem>
-                              )}
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* User Create / Edit Dialog */}
+      <UserFormDialog
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        selectedUser={selectedUser}
+        currentUser={currentUser}
+        municipalities={municipalities}
+        onSave={handleSaveUser}
+      />
 
-        {/* Pagination bar */}
-        <PaginationBar
-          currentPage={initialData.page}
-          pageSize={initialData.pageSize}
-          total={initialData.total}
-          itemLabel="usuários"
-          isPending={isPending}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      </div>
+      {/* User Permissions Matrix Dialog */}
+      <UserPermissionsMatrix
+        isOpen={isPermModalOpen}
+        onClose={() => setIsPermModalOpen(false)}
+        user={selectedPermUser}
+        path={pathname}
+      />
 
-      {/* User Create/Edit Modal via shadcn/ui Dialog */}
-      <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="bg-card border border-border text-foreground max-w-lg rounded-2xl shadow-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground">
-              {selectedUser ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs mt-1">
-              Configure as credenciais e o escopo de acesso do usuário.
-            </DialogDescription>
-          </DialogHeader>
+      {/* User Created Success (Random Password display) Dialog */}
+      <UserCreatedSuccessDialog
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        credentials={createdUserCredentials}
+      />
 
-          <form onSubmit={handleSaveUser} className="flex flex-col gap-5 mt-4">
-            <Input
-              label="Nome de Usuário (Username)"
-              placeholder="Ex: joao.silva"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-
-            <Input
-              label="E-mail"
-              type="email"
-              placeholder="Ex: joao@prefeitura.gov.br"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            {selectedUser ? (
-              <Input
-                label="Senha (deixe em branco para não alterar)"
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            ) : (
-              <div className="p-3.5 bg-teal-500/10 border border-teal-500/20 rounded-xl flex items-start gap-3 text-xs text-teal-600 dark:text-teal-300">
-                <Key className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
-                <span>
-                  Uma <strong>senha temporária aleatória</strong> será gerada automaticamente pelo sistema após a criação. Você poderá visualizá-la e copiá-la na tela seguinte.
-                </span>
-              </div>
-            )}
-
-            {/* Perfil Selection via shadcn/ui Select */}
-            <div className="w-full flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Perfil de Acesso</label>
-              <Select value={role} onValueChange={(val) => setRole((val as Role) || 'COMMON')}>
-                <SelectTrigger className="w-full bg-background border-border text-foreground text-sm h-10 rounded-xl">
-                  <SelectValue placeholder="Selecione o perfil" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border text-popover-foreground">
-                  {isAdmin && <SelectItem value="ADMIN" label="Administrador Global">Administrador Global</SelectItem>}
-                  <SelectItem value="MOD" label="Moderador Municipal">Moderador Municipal</SelectItem>
-                  <SelectItem value="COMMON" label="Funcionário Comum">Funcionário Comum</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Municipality Selection (ADMIN only) via shadcn/ui Select */}
-            {isAdmin && (
-              <div className="w-full flex flex-col gap-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80">Município Vinculado</label>
-                <Select value={municipalityId} onValueChange={(val) => setMunicipalityId(val || '')}>
-                  <SelectTrigger className="w-full bg-background border-border text-foreground text-sm h-10 rounded-xl">
-                    <SelectValue placeholder="Selecione o município">
-                      {municipalityId
-                        ? (() => {
-                            const m = municipalities.find((m) => m.id === municipalityId);
-                            return m ? `${m.name} (${m.uf})` : municipalityId;
-                          })()
-                        : null}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border text-popover-foreground">
-                    {municipalities.map((m) => (
-                      <SelectItem key={m.id} value={m.id} label={`${m.name} (${m.uf})`}>
-                        {m.name} ({m.uf})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {isMod && (
-              <div className="p-3 bg-muted border border-border rounded-xl flex items-center gap-2">
-                <Building2 className="w-4.5 h-4.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Vinculado a: <strong className="text-foreground">{currentUser.municipality?.name} ({currentUser.municipality?.uf})</strong>
-                </span>
-              </div>
-            )}
-
-            {formError && (
-              <span className="text-xs text-red-500 font-semibold bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
-                {formError}
-              </span>
-            )}
-
-            <DialogFooter className="mt-4 gap-2 flex flex-row justify-end">
-              <DialogClose render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-border text-foreground hover:bg-muted rounded-xl"
-                  onClick={() => setIsUserModalOpen(false)}
-                >
-                  Cancelar
-                </Button>
-              } />
-              <Button
-                type="submit"
-                variant="default"
-                className="rounded-xl font-bold px-6"
-                isLoading={isSaving}
-              >
-                Salvar
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* User Permissions Modal via shadcn/ui Dialog */}
-      <Dialog open={isPermModalOpen} onOpenChange={setIsPermModalOpen}>
-        <DialogContent className="bg-card border border-border text-foreground max-w-2xl rounded-2xl shadow-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Shield className="w-5 h-5 text-amber-500" />
-              Permissões do Usuário: {selectedUser?.username}
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs mt-1">
-              Configure o nível de permissão que o funcionário comum terá para cada tipo de documento oficial.
-            </DialogDescription>
-          </DialogHeader>
-
-          {isLoadingPerms ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin" />
-              <span className="text-muted-foreground text-xs">Carregando permissões...</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6 mt-4">
-              <div className="border border-border rounded-xl overflow-hidden divide-y divide-border bg-card">
-                <div className="grid grid-cols-2 md:grid-cols-5 p-3.5 bg-muted/50 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  <div className="col-span-2">Tipo de Documento</div>
-                  <div className="col-span-3">Nível de Acesso</div>
-                </div>
-
-                {docTypesList.map((type) => (
-                  <div
-                    key={type.value}
-                    className="grid grid-cols-2 md:grid-cols-5 p-3.5 items-center gap-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="col-span-2 font-semibold text-foreground">
-                      {type.label}
-                    </div>
-                    <div className="col-span-3 flex items-center gap-1.5 md:gap-3 flex-wrap">
-                      {permLevels.map((lvl) => (
-                        <button
-                          key={lvl.value}
-                          type="button"
-                          onClick={() => handlePermissionChange(type.value, lvl.value)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            permissions[type.value] === lvl.value
-                              ? 'bg-amber-500/10 border border-amber-500/35 text-amber-600 dark:text-amber-400 font-bold'
-                              : 'bg-muted border border-border text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {lvl.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <DialogFooter className="gap-2 flex flex-row justify-end">
-                <DialogClose render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-border text-foreground hover:bg-muted rounded-xl"
-                    onClick={() => setIsPermModalOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                } />
-                <Button
-                  type="button"
-                  variant="default"
-                  className="rounded-xl font-bold bg-amber-500/20 border border-amber-500/35 text-amber-600 dark:text-amber-400 hover:bg-amber-500/30 hover:text-amber-700 dark:hover:text-amber-300 shadow-sm px-6"
-                  onClick={handleSavePermissions}
-                  isLoading={isSavingPerms}
-                >
-                  Salvar Permissões
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Success Modal after Creating User */}
-      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-        <DialogContent className="bg-card border border-border text-foreground max-w-lg rounded-2xl shadow-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-emerald-500" />
-              Usuário Criado com Sucesso!
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-xs mt-1">
-              Copie a senha temporária abaixo para enviar ao usuário.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-4 mt-3">
-            <div className="p-3.5 bg-muted/60 border border-border rounded-xl flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">Nome de Usuário:</span>
-                <span className="font-bold text-foreground">{createdUserCredentials?.username}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground font-medium">E-mail:</span>
-                <span className="font-medium text-foreground">{createdUserCredentials?.email}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5" />
-                Senha Temporária Gerada
-              </label>
-
-              <div className="relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  readOnly
-                  value={createdUserCredentials?.randomPassword || ''}
-                  className="w-full bg-muted/80 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-mono text-base px-4 py-3 rounded-xl pr-24 focus:outline-none focus:border-amber-500 select-all"
-                />
-                <div className="absolute right-2 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors"
-                    title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="h-8 px-3 text-xs bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg flex items-center gap-1.5 cursor-pointer"
-                    onClick={handleCopyPassword}
-                  >
-                    {copiedPassword ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-600 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <span>
-                <strong>Atenção:</strong> Por motivos de segurança, esta senha temporária não será exibida novamente. Certifique-se de copiá-la e enviá-la para o usuário agora.
-              </span>
-            </div>
-          </div>
-
-          <DialogFooter className="mt-4 flex justify-end">
-            <Button
-              type="button"
-              variant="default"
-              className="rounded-xl font-bold px-6"
-              onClick={() => setIsSuccessModalOpen(false)}
-            >
-              Concluído
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* User Delete / Restore / HardDelete Confirmation Dialog */}
+      <UserDeleteDialog
+        isOpen={deleteDialogState.isOpen}
+        onClose={closeDeleteDialog}
+        mode={deleteDialogState.mode}
+        user={deleteDialogState.user}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleteLoading}
+      />
     </div>
   );
 };

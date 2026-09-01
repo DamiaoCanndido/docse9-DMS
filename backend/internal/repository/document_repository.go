@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/google/uuid"
@@ -19,6 +20,43 @@ func NewDocumentRepository(db *gorm.DB) domain.DocumentRepository {
 
 func (r *documentRepository) Create(d *domain.Document) error {
 	return r.db.Create(d).Error
+}
+
+func (r *documentRepository) CreateWithNextOrder(d *domain.Document, year *int) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var lockKey string
+		if d.ContractType != nil {
+			lockKey = fmt.Sprintf("order:%s:%s:%s:%v", d.MunicipalityID, d.Type, *d.ContractType, year)
+		} else {
+			lockKey = fmt.Sprintf("order:%s:%s:%v", d.MunicipalityID, d.Type, year)
+		}
+
+		if tx.Dialector.Name() == "postgres" {
+			if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", lockKey).Error; err != nil {
+				return err
+			}
+		}
+
+		var lastOrder int
+		query := tx.Unscoped().Model(&domain.Document{}).
+			Select("COALESCE(MAX(documents.order), 0)").
+			Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
+
+		if d.Type == domain.TypeContract && d.ContractType != nil {
+			query = query.Where("contract_type = ?", *d.ContractType)
+		}
+
+		if year != nil {
+			query = query.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *year)
+		}
+
+		if err := query.Row().Scan(&lastOrder); err != nil {
+			return err
+		}
+
+		d.Order = lastOrder + 1
+		return tx.Create(d).Error
+	})
 }
 
 func (r *documentRepository) FindAll(filter domain.DocumentFilter, page, pageSize int) ([]domain.Document, int64, error) {

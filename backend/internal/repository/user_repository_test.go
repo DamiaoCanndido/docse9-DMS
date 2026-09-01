@@ -48,7 +48,10 @@ func (s *UserRepositorySuite) SetupSuite() {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	s.Require().NoError(err)
+	if err != nil {
+		s.T().Skip("Docker daemon não disponível, pulando suite de repositório:", err)
+		return
+	}
 	s.container = container
 
 	host, err := container.Host(ctx)
@@ -60,6 +63,7 @@ func (s *UserRepositorySuite) SetupSuite() {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	s.Require().NoError(err)
 
+	// pgcrypto para gen_random_uuid
 	s.Require().NoError(db.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto").Error)
 	s.Require().NoError(db.AutoMigrate(&domain.Municipality{}, &domain.User{}))
 
@@ -69,7 +73,9 @@ func (s *UserRepositorySuite) SetupSuite() {
 }
 
 func (s *UserRepositorySuite) TearDownSuite() {
-	_ = s.container.Terminate(context.Background())
+	if s.container != nil {
+		_ = s.container.Terminate(context.Background())
+	}
 }
 
 func (s *UserRepositorySuite) SetupTest() {
