@@ -35,13 +35,17 @@ describe('NotificationCenter Component', () => {
 
   const today = new Date();
   
-  // Contrato 1: Inicia há 11 meses e duração 12 meses -> vence em ~30 dias (crítico/urgente)
+  // Contrato 1: Inicia há 2 meses e duração 3 meses -> vence em ~30 dias (crítico/urgente no ano atual)
   const expiringStartDate = new Date(today);
-  expiringStartDate.setMonth(expiringStartDate.getMonth() - 11);
+  expiringStartDate.setMonth(expiringStartDate.getMonth() - 2);
 
-  // Contrato 2: Inicia há 10 meses e duração 12 meses -> vence em ~60 dias (atenção)
+  // Contrato 2: Inicia há 1 mês e duração 3 meses -> vence em ~60 dias (atenção no ano atual)
   const warningStartDate = new Date(today);
-  warningStartDate.setMonth(warningStartDate.getMonth() - 10);
+  warningStartDate.setMonth(warningStartDate.getMonth() - 1);
+
+  // Contrato 3: Contrato antigo de ano anterior (deve ser ignorado nas notificações)
+  const pastYearStartDate = new Date(today);
+  pastYearStartDate.setFullYear(pastYearStartDate.getFullYear() - 2);
 
   const mockContracts: Document[] = [
     {
@@ -54,7 +58,7 @@ describe('NotificationCenter Component', () => {
       municipalityId: mockUser.municipalityId,
       contractType: 'service',
       value: 120000,
-      duration: 12,
+      duration: 3,
       startIn: expiringStartDate.toISOString(),
       createdAt: expiringStartDate.toISOString(),
       updatedAt: expiringStartDate.toISOString(),
@@ -69,10 +73,25 @@ describe('NotificationCenter Component', () => {
       municipalityId: mockUser.municipalityId,
       contractType: 'bidding',
       value: 45000,
-      duration: 12,
+      duration: 3,
       startIn: warningStartDate.toISOString(),
       createdAt: warningStartDate.toISOString(),
       updatedAt: warningStartDate.toISOString(),
+    },
+    {
+      id: 'contract-past-year-3',
+      type: 'CONTRACT',
+      order: 99,
+      description: 'Contrato Antigo de Ano Anterior',
+      fileKey: '',
+      creatorId: mockUser.id,
+      municipalityId: mockUser.municipalityId,
+      contractType: 'service',
+      value: 30000,
+      duration: 12,
+      startIn: pastYearStartDate.toISOString(),
+      createdAt: pastYearStartDate.toISOString(),
+      updatedAt: pastYearStartDate.toISOString(),
     },
   ];
 
