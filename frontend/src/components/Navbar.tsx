@@ -10,6 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { NotificationCenter } from '@/components/NotificationCenter';
+import { APP_VERSION } from '@/lib/version';
+
 const MotionLink = motion.create(Link);
 const emptySubscribe = () => () => {};
 
@@ -78,6 +81,9 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Notification Center Mobile */}
+          <NotificationCenter />
+
           {/* Quick Theme Toggle Mobile */}
           {mounted && (
             <Button
@@ -124,6 +130,9 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Notification Center Desktop */}
+          <NotificationCenter />
+
           {/* Quick Theme Toggle Desktop */}
           {mounted && (
             <Button
@@ -200,7 +209,12 @@ export const Navbar: React.FC = () => {
                       />
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-md text-foreground leading-none">docseq</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-md text-foreground leading-none">docseq</span>
+                        <span className="text-[9px] font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 border border-teal-500/20 px-1.5 py-0.2 rounded-md">
+                          {APP_VERSION}
+                        </span>
+                      </div>
                       <span className="text-[9px] text-muted-foreground font-medium mt-1">SISTEMA MUNICIPAL</span>
                     </div>
                   </div>
