@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle } from 'lucide-react';
+import { APP_VERSION } from '@/lib/version';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'O usuário deve ter pelo menos 3 caracteres'),
@@ -75,9 +76,14 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground mt-2">
-              docseq
-            </h1>
+            <div className="flex items-center gap-2 mt-2">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                docseq
+              </h1>
+              <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full shadow-xs">
+                {APP_VERSION}
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground">
               Gerenciamento eletrônico de documentos
             </p>

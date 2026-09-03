@@ -2,6 +2,7 @@ import React from 'react';
 import { getMe } from '@/app/api/auth';
 import { Sidebar } from '@/components/Sidebar';
 import { Navbar } from '@/components/Navbar';
+import { WhatsNewAlertDialog } from '@/components/WhatsNewAlertDialog';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Executa no servidor para proteger as rotas internas e obter os dados do usuário logado
@@ -25,6 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </main>
       </div>
+
+      {/* First access what's new alert dialog */}
+      <WhatsNewAlertDialog />
     </div>
   );
 }

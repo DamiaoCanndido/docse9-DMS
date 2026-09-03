@@ -23,6 +23,7 @@ import {
   Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { APP_VERSION } from '@/lib/version';
 
 interface DocumentsContentProps {
   initialData: PaginatedResponse<Document>;
@@ -294,6 +295,9 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
           <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-semibold uppercase tracking-wider mb-1.5">
             <Sparkles className="w-4 h-4" />
             Painel de Documentos Municipais
+            <span className="text-[10px] font-bold bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full lowercase text-teal-600 dark:text-teal-400 tracking-normal shadow-xs">
+              {APP_VERSION}
+            </span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
             <FileText className="w-8 h-8 text-teal-600 dark:text-teal-500" />
