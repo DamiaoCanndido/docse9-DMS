@@ -137,11 +137,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
 
     let isMounted = true;
 
+    const currentYear = new Date().getFullYear();
+
     const timer = setTimeout(() => {
       if (!isMounted) return;
       setIsLoadingContracts(true);
 
-      getExpiringContracts()
+      getExpiringContracts(currentYear)
         .then((data) => {
           if (isMounted) {
             setContracts(data || []);
@@ -163,11 +165,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
     };
   }, [user]);
 
-  // Calcula notificações de contratos dinamicamente
+  // Calcula notificações de contratos dinamicamente para o ano atual
   const contractNotifications = useMemo<AppNotification[]>(() => {
     if (!contracts || contracts.length === 0) return [];
 
     const notifications: AppNotification[] = [];
+    const currentYear = new Date().getFullYear();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -176,6 +179,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
 
       const startDate = new Date(doc.startIn);
       if (isNaN(startDate.getTime())) return;
+
+      // Filtra estritamente contratos associados ao ano atual
+      const startYear = startDate.getFullYear();
+      const createdYear = doc.createdAt ? new Date(doc.createdAt).getFullYear() : startYear;
+      if (startYear !== currentYear && createdYear !== currentYear) {
+        return;
+      }
 
       const endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + doc.duration);
@@ -186,8 +196,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
       const typeLabel = doc.contractType ? contractTypeLabels[doc.contractType] || doc.contractType : 'Contrato';
       const endDateStr = formatDate(endDate);
 
-      // Alerta para contratos vencidos ou que vencem em até 90 dias
+      // Alerta para contratos vencidos recentemente no ano atual ou que vencem em até 90 dias
       if (diffDays < 0) {
+        if (Math.abs(diffDays) > 60 || endDate.getFullYear() < currentYear) {
+          return;
+        }
         const daysPast = Math.abs(diffDays);
         notifications.push({
           id: `contract_expired_${doc.id}`,

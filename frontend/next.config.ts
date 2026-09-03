@@ -1,15 +1,22 @@
 import type { NextConfig } from "next";
 import { execSync } from "child_process";
+import packageJson from "./package.json";
 
 function getAppVersion(): string {
   // 1. Variável explícita de ambiente (ex: Netlify ou CI/CD)
   if (process.env.NEXT_PUBLIC_APP_VERSION) {
-    return process.env.NEXT_PUBLIC_APP_VERSION;
+    const v = process.env.NEXT_PUBLIC_APP_VERSION;
+    return v.startsWith('v') ? v : `v${v}`;
   }
 
-  // 2. Tag do GitHub Actions (se acionado por tag push ou release)
+  // 2. Tag do Netlify ou GitHub Actions
+  if (process.env.TAG) {
+    const v = process.env.TAG;
+    return v.startsWith('v') ? v : `v${v}`;
+  }
   if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME) {
-    return process.env.GITHUB_REF_NAME;
+    const v = process.env.GITHUB_REF_NAME;
+    return v.startsWith('v') ? v : `v${v}`;
   }
 
   // 3. Tenta extrair a tag mais recente do Git local
@@ -19,26 +26,18 @@ function getAppVersion(): string {
       stdio: ["ignore", "pipe", "ignore"],
     }).trim();
     if (gitTag) {
-      return gitTag;
+      return gitTag.startsWith('v') ? gitTag : `v${gitTag}`;
     }
   } catch {
     // Continua se não houver tag localmente
   }
 
-  // 4. Se não houver tag, tenta usar a tag com hash do commit ou fallback
-  try {
-    const gitDescribe = execSync("git describe --tags --always", {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (gitDescribe) {
-      return gitDescribe.startsWith('v') ? gitDescribe : `v0.1.0 (${gitDescribe})`;
-    }
-  } catch {
-    // Fallback padrão
+  // 4. Versão oficial do package.json
+  if (packageJson && packageJson.version) {
+    return `v${packageJson.version}`;
   }
 
-  return "v0.1.0";
+  return "v1.0.0";
 }
 
 const appVersion = getAppVersion();

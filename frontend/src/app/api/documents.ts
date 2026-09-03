@@ -192,9 +192,10 @@ export async function hardDeleteDocument({ id, path }: { id: string; path: strin
   }
 }
 
-export async function getExpiringContracts(): Promise<Document[]> {
+export async function getExpiringContracts(year?: number): Promise<Document[]> {
   try {
-    const res = await getDocuments({ type: 'CONTRACT' }, 1, 100);
+    const targetYear = year ?? new Date().getFullYear();
+    const res = await getDocuments({ type: 'CONTRACT', year: targetYear }, 1, 100);
     return res.data || [];
   } catch (error) {
     console.error('Erro ao buscar contratos para alertas de notificação:', error);
