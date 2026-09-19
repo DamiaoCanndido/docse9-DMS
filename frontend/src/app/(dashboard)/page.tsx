@@ -39,10 +39,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     return redirect('/municipalities');
   }
 
-  // Busca os documentos (ativos ou excluídos na lixeira)
-  const documentsData = viewTrash
-    ? await getDocumentsTrash({ search, type, contractType, year }, page, pageSize)
-    : await getDocuments({ search, type, contractType, year }, page, pageSize);
+  // Se o usuário precisa trocar de senha no primeiro acesso, não busca documentos ainda
+  // (a requisição retornaria 403 do AuthMiddleware e a interface é bloqueada pelo modal ForceChangePassword)
+  const documentsData = user.mustChangePassword
+    ? { data: [], total: 0, page: 1, pageSize: 10 }
+    : (viewTrash
+        ? await getDocumentsTrash({ search, type, contractType, year }, page, pageSize)
+        : await getDocuments({ search, type, contractType, year }, page, pageSize));
 
   return (
     <DocumentsContent

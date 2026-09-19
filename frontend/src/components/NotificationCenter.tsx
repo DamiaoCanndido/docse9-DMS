@@ -131,7 +131,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
 
   // Busca contratos ativos para calcular alertas de vencimento (se o usuário pertence a um município)
   useEffect(() => {
-    if (!user || user.role === 'ADMIN' || !user.municipalityId) {
+    if (!user || user.role === 'ADMIN' || !user.municipalityId || user.mustChangePassword) {
       return;
     }
 
@@ -196,9 +196,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
       const typeLabel = doc.contractType ? contractTypeLabels[doc.contractType] || doc.contractType : 'Contrato';
       const endDateStr = formatDate(endDate);
 
-      // Alerta para contratos vencidos recentemente no ano atual ou que vencem em até 90 dias
+      // Alerta para contratos vencidos recentemente (no máximo 7 dias) ou que vencem em até 7 dias
       if (diffDays < 0) {
-        if (Math.abs(diffDays) > 60 || endDate.getFullYear() < currentYear) {
+        if (Math.abs(diffDays) > 7 || endDate.getFullYear() < currentYear) {
           return;
         }
         const daysPast = Math.abs(diffDays);
@@ -206,7 +206,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
           id: `contract_expired_${doc.id}`,
           category: 'EXPIRATION',
           title: `Contrato #${doc.order} Expirado`,
-          description: `Vigência do contrato de ${typeLabel} expirou há ${daysPast} dia(s) em ${endDateStr}.`,
+          description: `Vigência do contrato de ${typeLabel} expirou há ${daysPast} ${daysPast === 1 ? 'dia' : 'dias'} em ${endDateStr}.`,
           timestamp: doc.updatedAt || doc.createdAt,
           severity: 'critical',
           tag: 'Expirado',
@@ -218,49 +218,19 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
             endDateFormatted: endDateStr,
           },
         });
-      } else if (diffDays <= 30) {
+      } else if (diffDays <= 7) {
         notifications.push({
-          id: `contract_expiring_30_${doc.id}`,
+          id: `contract_expiring_7_${doc.id}`,
           category: 'EXPIRATION',
-          title: `Contrato #${doc.order} Vencendo em ${diffDays === 0 ? 'hoje' : `${diffDays} dias`}`,
-          description: `Faltam ${diffDays} dias para o término em ${endDateStr}. Necessário providenciar aditivo ou encerramento.`,
+          title: diffDays === 0
+            ? `Contrato #${doc.order} Vence Hoje`
+            : `Contrato #${doc.order} Vence em ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`,
+          description: diffDays === 0
+            ? `Hoje é o último dia de vigência do contrato (${endDateStr}). Necessário providenciar aditivo ou encerramento.`
+            : `Faltam ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'} para o término em ${endDateStr}. Necessário providenciar aditivo ou encerramento.`,
           timestamp: doc.updatedAt || doc.createdAt,
           severity: 'critical',
           tag: 'Urgente',
-          link: '/?type=CONTRACT',
-          contractData: {
-            order: doc.order,
-            contractType: doc.contractType,
-            daysRemaining: diffDays,
-            endDateFormatted: endDateStr,
-          },
-        });
-      } else if (diffDays <= 60) {
-        notifications.push({
-          id: `contract_expiring_60_${doc.id}`,
-          category: 'EXPIRATION',
-          title: `Contrato #${doc.order} Vence em ${diffDays} dias`,
-          description: `Término de vigência previsto para ${endDateStr} (${typeLabel}).`,
-          timestamp: doc.updatedAt || doc.createdAt,
-          severity: 'warning',
-          tag: 'Atenção',
-          link: '/?type=CONTRACT',
-          contractData: {
-            order: doc.order,
-            contractType: doc.contractType,
-            daysRemaining: diffDays,
-            endDateFormatted: endDateStr,
-          },
-        });
-      } else if (diffDays <= 90) {
-        notifications.push({
-          id: `contract_expiring_90_${doc.id}`,
-          category: 'EXPIRATION',
-          title: `Contrato #${doc.order} em Planejamento (${diffDays}d)`,
-          description: `Término de vigência em ${endDateStr}. Planeje renovação ou licitação com antecedência.`,
-          timestamp: doc.updatedAt || doc.createdAt,
-          severity: 'info',
-          tag: 'Planejamento',
           link: '/?type=CONTRACT',
           contractData: {
             order: doc.order,
@@ -280,10 +250,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
     });
   }, [contracts]);
 
-  // Lista consolidada de todas as notificações
+  // Novidades do sistema ativas (removidas do feed assim que forem marcadas como lidas)
+  const activeChangelogNotifications = useMemo<AppNotification[]>(() => {
+    return SYSTEM_CHANGELOG_NOTIFICATIONS.filter((n) => !readNotificationIds.includes(n.id));
+  }, [readNotificationIds]);
+
+  // Lista consolidada de todas as notificações do feed
   const allNotifications = useMemo<AppNotification[]>(() => {
-    return [...contractNotifications, ...SYSTEM_CHANGELOG_NOTIFICATIONS];
-  }, [contractNotifications]);
+    return [...contractNotifications, ...activeChangelogNotifications];
+  }, [contractNotifications, activeChangelogNotifications]);
 
   // Contagem de notificações não lidas
   const unreadCount = useMemo(() => {
@@ -295,15 +270,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
   }, [contractNotifications, readNotificationIds]);
 
   const unreadChangelogCount = useMemo(() => {
-    return SYSTEM_CHANGELOG_NOTIFICATIONS.filter((n) => !readNotificationIds.includes(n.id)).length;
-  }, [readNotificationIds]);
+    return activeChangelogNotifications.length;
+  }, [activeChangelogNotifications]);
 
   // Filtragem por aba
   const displayedNotifications = useMemo(() => {
     if (activeTab === 'expiration') return contractNotifications;
-    if (activeTab === 'changelog') return SYSTEM_CHANGELOG_NOTIFICATIONS;
+    if (activeTab === 'changelog') return activeChangelogNotifications;
     return allNotifications;
-  }, [activeTab, contractNotifications, allNotifications]);
+  }, [activeTab, contractNotifications, allNotifications, activeChangelogNotifications]);
 
   const handleMarkAsRead = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -404,7 +379,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
                 )}
               </h3>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                Vigência de contratos e novidades do sistema
+                Vigência de contratos (máx. 7 dias) e novidades do sistema
               </p>
             </div>
           </div>
@@ -504,7 +479,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
               <p className="text-xs font-semibold text-foreground">Tudo em dia por aqui!</p>
               <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
                 {activeTab === 'expiration'
-                  ? 'Nenhum contrato com vencimento próximo nos próximos 90 dias.'
+                  ? 'Nenhum contrato vencido recente ou com vencimento nos próximos 7 dias.'
                   : 'Nenhuma notificação pendente no momento.'}
               </p>
             </div>
@@ -556,7 +531,20 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
                       )}>
                         {item.title}
                       </h4>
-                      {getSeverityBadge(item.severity, item.tag)}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {getSeverityBadge(item.severity, item.tag)}
+                        {!isRead && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleMarkAsRead(item.id, e)}
+                            title="Marcar como lida"
+                            aria-label={`Marcar "${item.title}" como lida`}
+                            className="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-muted-foreground leading-relaxed">

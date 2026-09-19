@@ -37,7 +37,7 @@ function getAppVersion(): string {
     return `v${packageJson.version}`;
   }
 
-  return "v1.0.0";
+  return "v1.1.0";
 }
 
 const appVersion = getAppVersion();

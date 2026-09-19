@@ -63,7 +63,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
   const [isLoadedPermissions, setIsLoadedPermissions] = useState(currentUser.role !== 'COMMON');
 
   useEffect(() => {
-    if (currentUser.role === 'COMMON') {
+    if (currentUser.role === 'COMMON' && !currentUser.mustChangePassword) {
       getUserPermissions(currentUser.id)
         .then((perms) => {
           setUserPermissions(perms);

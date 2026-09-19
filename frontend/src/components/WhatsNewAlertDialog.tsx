@@ -25,7 +25,7 @@ export const WhatsNewAlertDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.mustChangePassword) return;
 
     // Chave única de visualização vinculada ao ID do usuário e à versão atual
     const storageKey = `docseq_whats_new_seen_${user.id}_${APP_VERSION}`;
