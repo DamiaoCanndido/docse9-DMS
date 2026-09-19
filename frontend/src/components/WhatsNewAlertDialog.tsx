@@ -111,7 +111,7 @@ export const WhatsNewAlertDialog: React.FC = () => {
                 </span>
               </h4>
               <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                O sistema monitora automaticamente o término da vigência de contratos, alertando com 30, 60 e 90 dias de antecedência para renovações e aditivos.
+                O sistema monitora automaticamente o término da vigência de contratos, alertando com uma semana de antecedência (7 dias) para renovações e aditivos.
               </p>
             </div>
           </div>
