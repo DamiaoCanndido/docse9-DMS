@@ -49,6 +49,7 @@ describe('WhatsNewAlertDialog Component', () => {
 
     expect(screen.getByText('Central de Notificações no Topo')).toBeInTheDocument();
     expect(screen.getByText('Alertas de Vigência de Contratos')).toBeInTheDocument();
+    expect(screen.getByText(/uma semana de antecedência/i)).toBeInTheDocument();
   });
 
   it('deve fechar o AlertDialog e salvar no localStorage ao clicar em "Entendi, vamos começar"', async () => {
