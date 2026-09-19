@@ -257,8 +257,13 @@ export async function getUserPermissions(id: string): Promise<UserPermission[]> 
     const data = Array.isArray(response.data) ? response.data : response.data.data;
     return parseStringify(data || []);
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      if (error.response?.status === 403) {
+        return [];
+      }
     }
     throw error;
   }

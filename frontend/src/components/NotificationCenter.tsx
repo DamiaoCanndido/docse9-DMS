@@ -131,7 +131,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ classNam
 
   // Busca contratos ativos para calcular alertas de vencimento (se o usuário pertence a um município)
   useEffect(() => {
-    if (!user || user.role === 'ADMIN' || !user.municipalityId) {
+    if (!user || user.role === 'ADMIN' || !user.municipalityId || user.mustChangePassword) {
       return;
     }
 
