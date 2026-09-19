@@ -34,16 +34,29 @@ describe('NotificationCenter Component', () => {
   };
 
   const today = new Date();
-  
-  // Contrato 1: Inicia há 2 meses e duração 3 meses -> vence em ~30 dias (crítico/urgente no ano atual)
-  const expiringStartDate = new Date(today);
-  expiringStartDate.setMonth(expiringStartDate.getMonth() - 2);
+  today.setHours(0, 0, 0, 0);
 
-  // Contrato 2: Inicia há 1 mês e duração 3 meses -> vence em ~60 dias (atenção no ano atual)
-  const warningStartDate = new Date(today);
-  warningStartDate.setMonth(warningStartDate.getMonth() - 1);
+  // Helper para criar data de início que resulta exatamente em X dias a partir de hoje
+  const createContractStartDate = (daysFromToday: number, durationMonths: number = 1): string => {
+    const start = new Date(today);
+    start.setMonth(start.getMonth() - durationMonths);
+    start.setDate(start.getDate() + daysFromToday);
+    return start.toISOString();
+  };
 
-  // Contrato 3: Contrato antigo de ano anterior (deve ser ignorado nas notificações)
+  // Contrato 1: Vence em 4 dias (dentro da janela de 7 dias) -> Deve aparecer
+  const expiring4DaysStart = createContractStartDate(4);
+
+  // Contrato 2: Expirou há 3 dias (dentro da janela de 7 dias) -> Deve aparecer
+  const expired3DaysStart = createContractStartDate(-3);
+
+  // Contrato 3: Vence em 20 dias (fora da janela de 7 dias) -> NÃO deve aparecer
+  const expiring20DaysStart = createContractStartDate(20);
+
+  // Contrato 4: Expirou há 15 dias (fora da janela de 7 dias) -> NÃO deve aparecer
+  const expired15DaysStart = createContractStartDate(-15);
+
+  // Contrato 5: Contrato antigo de ano anterior -> Deve ser ignorado
   const pastYearStartDate = new Date(today);
   pastYearStartDate.setFullYear(pastYearStartDate.getFullYear() - 2);
 
@@ -58,13 +71,13 @@ describe('NotificationCenter Component', () => {
       municipalityId: mockUser.municipalityId,
       contractType: 'service',
       value: 120000,
-      duration: 3,
-      startIn: expiringStartDate.toISOString(),
-      createdAt: expiringStartDate.toISOString(),
-      updatedAt: expiringStartDate.toISOString(),
+      duration: 1,
+      startIn: expiring4DaysStart,
+      createdAt: expiring4DaysStart,
+      updatedAt: expiring4DaysStart,
     },
     {
-      id: 'contract-warning-2',
+      id: 'contract-expired-2',
       type: 'CONTRACT',
       order: 102,
       description: 'Contrato de Manutenção de Software',
@@ -73,13 +86,43 @@ describe('NotificationCenter Component', () => {
       municipalityId: mockUser.municipalityId,
       contractType: 'bidding',
       value: 45000,
-      duration: 3,
-      startIn: warningStartDate.toISOString(),
-      createdAt: warningStartDate.toISOString(),
-      updatedAt: warningStartDate.toISOString(),
+      duration: 1,
+      startIn: expired3DaysStart,
+      createdAt: expired3DaysStart,
+      updatedAt: expired3DaysStart,
     },
     {
-      id: 'contract-past-year-3',
+      id: 'contract-far-future-3',
+      type: 'CONTRACT',
+      order: 103,
+      description: 'Contrato Vencendo em 20 dias',
+      fileKey: '',
+      creatorId: mockUser.id,
+      municipalityId: mockUser.municipalityId,
+      contractType: 'service',
+      value: 80000,
+      duration: 1,
+      startIn: expiring20DaysStart,
+      createdAt: expiring20DaysStart,
+      updatedAt: expiring20DaysStart,
+    },
+    {
+      id: 'contract-far-past-4',
+      type: 'CONTRACT',
+      order: 104,
+      description: 'Contrato Expirado há 15 dias',
+      fileKey: '',
+      creatorId: mockUser.id,
+      municipalityId: mockUser.municipalityId,
+      contractType: 'service',
+      value: 50000,
+      duration: 1,
+      startIn: expired15DaysStart,
+      createdAt: expired15DaysStart,
+      updatedAt: expired15DaysStart,
+    },
+    {
+      id: 'contract-past-year-5',
       type: 'CONTRACT',
       order: 99,
       description: 'Contrato Antigo de Ano Anterior',
@@ -118,9 +161,8 @@ describe('NotificationCenter Component', () => {
     const button = screen.getByRole('button', { name: /Notificações e Avisos de Vencimento/i });
     expect(button).toBeInTheDocument();
 
-    // Deve exibir o badge com a contagem de novidades + contratos calculados
+    // Deve exibir o badge com a contagem: 3 novidades do changelog + 2 contratos elegíveis (janela de 7 dias) = 5
     await waitFor(() => {
-      // 3 do changelog + 2 dos contratos
       expect(screen.getByText('5')).toBeInTheDocument();
     });
   });
@@ -138,18 +180,23 @@ describe('NotificationCenter Component', () => {
     expect(screen.getByRole('button', { name: /Novidades ✨/i })).toBeInTheDocument();
   });
 
-  it('deve exibir alertas de contratos a vencer com numeração e tags de urgência', async () => {
+  it('deve exibir apenas contratos dentro da janela de 7 dias e ignorar os demais', async () => {
     const user = userEvent.setup();
     render(<NotificationCenter />);
 
     const button = screen.getByRole('button', { name: /Notificações e Avisos de Vencimento/i });
     await user.click(button);
 
-    // Deve exibir os títulos dos contratos a vencer
+    // Contratos na janela de 7 dias devem aparecer
     await waitFor(() => {
       expect(screen.getByText(/Contrato #101/i)).toBeInTheDocument();
       expect(screen.getByText(/Contrato #102/i)).toBeInTheDocument();
     });
+
+    // Contratos fora da janela de 7 dias não devem estar no feed
+    expect(screen.queryByText(/Contrato #103/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Contrato #104/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Contrato #99/i)).not.toBeInTheDocument();
   });
 
   it('deve alternar para a aba "Novidades ✨" e exibir as notas de versão do sistema', async () => {
@@ -167,7 +214,35 @@ describe('NotificationCenter Component', () => {
     expect(screen.getByText('Lançamento do Docseq')).toBeInTheDocument();
   });
 
-  it('deve marcar todas como lidas ao clicar em "Ler todas"', async () => {
+  it('deve remover novidade do feed assim que for marcada como lida individualmente', async () => {
+    const user = userEvent.setup();
+    render(<NotificationCenter />);
+
+    const button = screen.getByRole('button', { name: /Notificações e Avisos de Vencimento/i });
+    await user.click(button);
+
+    const changelogTab = screen.getByRole('button', { name: /Novidades ✨/i });
+    await user.click(changelogTab);
+
+    // A novidade está visível
+    const changelogItem = screen.getByText('Central de Notificações & Alertas de Vigência');
+    expect(changelogItem).toBeInTheDocument();
+
+    // Clica no botão de marcar como lida da primeira novidade
+    const markReadBtn = screen.getByRole('button', { name: /Marcar "Central de Notificações & Alertas de Vigência" como lida/i });
+    await user.click(markReadBtn);
+
+    // Deve ser imediatamente removida do feed
+    await waitFor(() => {
+      expect(screen.queryByText('Central de Notificações & Alertas de Vigência')).not.toBeInTheDocument();
+    });
+
+    // As outras novidades não lidas continuam visíveis
+    expect(screen.getByText('Gestão Completa de Contratos Públicos')).toBeInTheDocument();
+    expect(screen.getByText('Lançamento do Docseq')).toBeInTheDocument();
+  });
+
+  it('deve remover todas as novidades do feed e desativar badge ao clicar em "Ler todas"', async () => {
     const user = userEvent.setup();
     render(<NotificationCenter />);
 
@@ -179,9 +254,18 @@ describe('NotificationCenter Component', () => {
 
     await user.click(markAllBtn);
 
-    // O badge deve desaparecer
+    // O badge de contagem desaparece
     await waitFor(() => {
       expect(screen.queryByText('5')).not.toBeInTheDocument();
     });
+
+    // Ao ir para a aba de novidades, todas as novidades foram removidas do feed
+    const changelogTab = screen.getByRole('button', { name: /Novidades ✨/i });
+    await user.click(changelogTab);
+
+    expect(screen.queryByText('Central de Notificações & Alertas de Vigência')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gestão Completa de Contratos Públicos')).not.toBeInTheDocument();
+    expect(screen.queryByText('Lançamento do Docseq')).not.toBeInTheDocument();
+    expect(screen.getByText('Tudo em dia por aqui!')).toBeInTheDocument();
   });
 });
