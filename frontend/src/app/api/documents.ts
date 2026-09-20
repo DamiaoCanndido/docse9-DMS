@@ -6,7 +6,7 @@ import { parseStringify } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import axios from 'axios';
-import { Document, CreateDocumentInput, UpdateDocumentInput, DocumentFilter, PaginatedResponse } from '@/types';
+import { Document, CreateDocumentInput, UpdateDocumentInput, DocumentFilter, PaginatedResponse, UploadURLResponse, FileURLResponse } from '@/types';
 
 async function getAuthHeader() {
   const token = await getToken();
@@ -202,4 +202,81 @@ export async function getExpiringContracts(year?: number): Promise<Document[]> {
     return [];
   }
 }
+
+export async function getDocumentUploadURL({
+  id,
+  fileName,
+  fileSize,
+}: {
+  id: string;
+  fileName: string;
+  fileSize: number;
+}): Promise<UploadURLResponse> {
+  try {
+    const headers = await getAuthHeader();
+    const response = await apiServer.post<{ success: boolean; data: UploadURLResponse }>(
+      `/documents/${id}/upload-url`,
+      { fileName, fileSize, contentType: 'application/pdf' },
+      { headers }
+    );
+    return parseStringify(response.data.data);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
+export async function confirmDocumentUpload({
+  id,
+  fileKey,
+  path,
+}: {
+  id: string;
+  fileKey: string;
+  path: string;
+}): Promise<Document> {
+  try {
+    const headers = await getAuthHeader();
+    const response = await apiServer.post<{ success: boolean; data: Document }>(
+      `/documents/${id}/confirm-upload`,
+      { fileKey },
+      { headers }
+    );
+    revalidatePath(path);
+    return parseStringify(response.data.data);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
+export async function getDocumentFileURL({
+  id,
+  download = false,
+}: {
+  id: string;
+  download?: boolean;
+}): Promise<FileURLResponse> {
+  try {
+    const headers = await getAuthHeader();
+    const response = await apiServer.get<{ success: boolean; data: FileURLResponse }>(
+      `/documents/${id}/file-url`,
+      {
+        headers,
+        params: { download },
+      }
+    );
+    return parseStringify(response.data.data);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
 

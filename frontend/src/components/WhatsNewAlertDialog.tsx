@@ -19,6 +19,7 @@ import {
   ArrowRight,
   FileSignature,
   KeyRound,
+  FileUp,
 } from 'lucide-react';
 
 export const WhatsNewAlertDialog: React.FC = () => {
@@ -86,6 +87,22 @@ export const WhatsNewAlertDialog: React.FC = () => {
 
         {/* Feature Highlights Body */}
         <div className="p-6 flex flex-col gap-3.5 max-h-[60vh] overflow-y-auto">
+          <div className="flex items-start gap-3.5 p-3 rounded-xl bg-muted/40 border border-border/70 hover:border-teal-500/30 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+              <FileUp className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                Anexo de PDF com OCR Obrigatório
+                <span className="text-[9px] font-extrabold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-1.5 py-0.2 rounded-md">
+                  v1.3.0
+                </span>
+              </h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                Anexe o arquivo oficial em PDF diretamente ao documento, com validação inteligente de camada de texto pesquisável (OCR) e armazenamento seguro no Cloudflare R2.
+              </p>
+            </div>
+          </div>
           <div className="flex items-start gap-3.5 p-3 rounded-xl bg-muted/40 border border-border/70 hover:border-teal-500/30 transition-colors">
             <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <KeyRound className="w-4.5 h-4.5" />

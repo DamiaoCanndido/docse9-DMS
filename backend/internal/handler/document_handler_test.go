@@ -696,4 +696,213 @@ func TestDocument_Handler_Errors(t *testing.T) {
 	})
 }
 
+func TestGenerateUploadURL_Handler(t *testing.T) {
+	munID := uuid.New()
+	userID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         userID,
+		MunicipalityID: munID,
+		Role:           string(domain.RoleMod),
+	}
+
+	t.Run("200 OK", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+		input := domain.UploadURLInput{
+			FileName:    "decreto.pdf",
+			FileSize:    1024 * 500,
+			ContentType: "application/pdf",
+		}
+		expectedRes := &domain.UploadURLResponse{
+			UploadURL:        "https://r2.example.com/upload",
+			FileKey:          "tenants/mun/file.pdf",
+			ExpiresInSeconds: 600,
+		}
+		svc.On("GenerateUploadURL", mock.Anything, docID, input).Return(expectedRes, nil)
+
+		body := map[string]any{
+			"fileName":    "decreto.pdf",
+			"fileSize":    1024 * 500,
+			"contentType": "application/pdf",
+		}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/upload-url", docID), body)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("400 Bad Request - Non PDF", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+
+		body := map[string]any{
+			"fileName":    "imagem.png",
+			"fileSize":    1024,
+			"contentType": "image/png",
+		}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/upload-url", docID), body)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestConfirmUpload_Handler(t *testing.T) {
+	munID := uuid.New()
+	userID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         userID,
+		MunicipalityID: munID,
+		Role:           string(domain.RoleMod),
+	}
+
+	t.Run("200 OK", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+		input := domain.ConfirmUploadInput{FileKey: "tenants/key.pdf"}
+		updatedDoc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			FileKey:        "tenants/key.pdf",
+		}
+		svc.On("ConfirmUpload", mock.Anything, docID, input).Return(updatedDoc, nil)
+
+		body := map[string]any{"fileKey": "tenants/key.pdf"}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/confirm-upload", docID), body)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("422 Unprocessable Entity - Missing OCR", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+		input := domain.ConfirmUploadInput{FileKey: "tenants/scanned_sem_ocr.pdf"}
+		svc.On("ConfirmUpload", mock.Anything, docID, input).Return(nil, domain.ErrPDFMissingOCR)
+
+		body := map[string]any{"fileKey": "tenants/scanned_sem_ocr.pdf"}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/confirm-upload", docID), body)
+		assert.Equal(t, 422, w.Code)
+	})
+
+	t.Run("400 Bad Request - Invalid FileKey", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+		input := domain.ConfirmUploadInput{FileKey: "invalid_key.pdf"}
+		svc.On("ConfirmUpload", mock.Anything, docID, input).Return(nil, domain.ErrInvalidFileKey)
+
+		body := map[string]any{"fileKey": "invalid_key.pdf"}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/confirm-upload", docID), body)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestGenerateFileURL_Handler(t *testing.T) {
+	munID := uuid.New()
+	userID := uuid.New()
+	claims := &security.UserClaims{
+		UserID:         userID,
+		MunicipalityID: munID,
+		Role:           string(domain.RoleMod),
+	}
+
+	t.Run("200 OK", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+			FileKey:        "tenants/key.pdf",
+		}
+
+		svc.On("GetByIDUnscoped", docID).Return(doc, nil)
+		res := &domain.FileURLResponse{
+			URL:              "https://r2.example.com/download",
+			ExpiresInSeconds: 900,
+		}
+		svc.On("GenerateFileURL", mock.Anything, docID, false).Return(res, nil)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, fmt.Sprintf("/api/v1/documents/%s/file-url", docID), nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("200 OK - Soft Deleted Document in Trash", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+			FileKey:        "tenants/trashed.pdf",
+			DeletedAt:      gorm.DeletedAt{Time: time.Now(), Valid: true},
+		}
+
+		svc.On("GetByIDUnscoped", docID).Return(doc, nil)
+		res := &domain.FileURLResponse{
+			URL:              "https://r2.example.com/download-trashed",
+			ExpiresInSeconds: 900,
+		}
+		svc.On("GenerateFileURL", mock.Anything, docID, false).Return(res, nil)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, fmt.Sprintf("/api/v1/documents/%s/file-url", docID), nil)
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("404 NotFound - No File", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+			FileKey:        "",
+		}
+
+		svc.On("GetByIDUnscoped", docID).Return(doc, nil)
+		svc.On("GenerateFileURL", mock.Anything, docID, false).Return(nil, domain.ErrFileNotFound)
+
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodGet, fmt.Sprintf("/api/v1/documents/%s/file-url", docID), nil)
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+
 

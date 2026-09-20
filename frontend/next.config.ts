@@ -37,7 +37,7 @@ function getAppVersion(): string {
     // Continua se não houver tag localmente
   }
 
-  return "v1.2.0";
+  return "v1.3.0";
 }
 
 const appVersion = getAppVersion();

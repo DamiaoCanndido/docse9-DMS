@@ -18,6 +18,9 @@ import {
   Trash2,
   RotateCcw,
   Trash,
+  FileText,
+  Eye,
+  Download,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/date';
 
@@ -34,6 +37,8 @@ interface DocumentTableProps {
   onDelete: (doc: Document) => void;
   onRestore: (doc: Document) => void;
   onHardDelete: (doc: Document) => void;
+  onViewAttachment?: (doc: Document) => void;
+  onDownloadAttachment?: (doc: Document) => void;
   pagination: {
     page: number;
     pageSize: number;
@@ -63,6 +68,8 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
   onDelete,
   onRestore,
   onHardDelete,
+  onViewAttachment,
+  onDownloadAttachment,
   pagination,
   onPageChange,
   onPageSizeChange,
@@ -128,7 +135,24 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                       #{doc.order}
                     </td>
                     <td className="px-6 py-4.5 max-w-xs md:max-w-md font-medium text-foreground">
-                      {doc.description}
+                      <div className="flex flex-col gap-1">
+                        <span>{doc.description}</span>
+                        {doc.fileKey ? (
+                          <button
+                            type="button"
+                            onClick={() => onViewAttachment?.(doc)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-600 dark:text-teal-400 hover:underline w-fit cursor-pointer"
+                            title="Visualizar anexo em PDF com OCR"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            PDF Anexado (OCR)
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground/60 italic">
+                            Sem anexo
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {activeTab === 'CONTRACT' ? (
                       <>
@@ -179,6 +203,24 @@ export const DocumentTable: React.FC<DocumentTableProps> = ({
                           align="end"
                           className="bg-popover border-border text-popover-foreground min-w-[170px]"
                         >
+                          {doc.fileKey && onViewAttachment && (
+                            <DropdownMenuItem
+                              onClick={() => onViewAttachment(doc)}
+                              className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Visualizar PDF
+                            </DropdownMenuItem>
+                          )}
+                          {doc.fileKey && onDownloadAttachment && (
+                            <DropdownMenuItem
+                              onClick={() => onDownloadAttachment(doc)}
+                              className="flex items-center gap-2 hover:bg-muted hover:text-teal-600 dark:hover:text-teal-400 cursor-pointer focus:bg-muted focus:text-teal-600 dark:focus:text-teal-400 p-2 text-xs font-medium"
+                            >
+                              <Download className="w-4 h-4" />
+                              Baixar PDF
+                            </DropdownMenuItem>
+                          )}
                           {showEdit && (
                             <DropdownMenuItem
                               onClick={() => onEdit(doc)}

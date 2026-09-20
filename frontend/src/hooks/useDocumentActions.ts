@@ -9,7 +9,11 @@ import {
   deleteDocument,
   restoreDocument,
   hardDeleteDocument,
+  getDocumentUploadURL,
+  confirmDocumentUpload,
+  getDocumentFileURL,
 } from '@/app/api/documents';
+import axios from 'axios';
 import { toast } from 'sonner';
 import { isRedirectError } from '@/lib/utils';
 
@@ -166,6 +170,82 @@ export function useDocumentActions() {
     }
   }, [deleteDialogState, handleDelete, handleRestore, handleHardDelete]);
 
+  const handleUploadAttachment = useCallback(
+    async (
+      docId: string,
+      file: File,
+      onProgress?: (pct: number) => void
+    ): Promise<Document> => {
+      setIsMutating(true);
+      try {
+        // 1. Solicita Presigned URL para upload direto
+        const { uploadUrl, fileKey } = await getDocumentUploadURL({
+          id: docId,
+          fileName: file.name,
+          fileSize: file.size,
+        });
+
+        // 2. Upload direto via PUT no Cloudflare R2 (sem passar pela API)
+        await axios.put(uploadUrl, file, {
+          headers: {
+            'Content-Type': 'application/pdf',
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              onProgress?.(pct);
+            }
+          },
+        });
+
+        // 3. Confirma o upload e valida OCR no backend
+        const updated = await confirmDocumentUpload({
+          id: docId,
+          fileKey,
+          path: pathname,
+        });
+
+        toast.success('Arquivo PDF anexado e validado com sucesso!');
+        return updated;
+      } catch (err: unknown) {
+        if (isRedirectError(err)) {
+          throw err;
+        }
+        let errorMsg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          (err as Error)?.message ||
+          'Erro ao realizar upload do anexo.';
+        if (errorMsg === 'Network Error') {
+          errorMsg = 'Falha de rede ou CORS ao enviar o arquivo para o armazenamento (R2).';
+        }
+        toast.error(errorMsg);
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [pathname]
+  );
+
+  const handleGetFileURL = useCallback(
+    async (docId: string, download = false): Promise<string> => {
+      try {
+        const res = await getDocumentFileURL({ id: docId, download });
+        return res.url;
+      } catch (err: unknown) {
+        if (isRedirectError(err)) {
+          throw err;
+        }
+        const errorMsg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          'Erro ao obter link do documento anexo.';
+        toast.error(errorMsg);
+        throw err;
+      }
+    },
+    []
+  );
+
   return {
     isMutating,
     deleteDialogState,
@@ -177,5 +257,7 @@ export function useDocumentActions() {
     handleDelete,
     handleRestore,
     handleHardDelete,
+    handleUploadAttachment,
+    handleGetFileURL,
   };
 }

@@ -75,7 +75,6 @@ export interface CreateDocumentInput {
 
 export interface UpdateDocumentInput {
   description?: string;
-  fileKey?: string;
   createdAt?: string;
   duration?: number;
   contractType?: ContractType;
@@ -97,4 +96,16 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
 }
+
+export interface UploadURLResponse {
+  uploadUrl: string;
+  fileKey: string;
+  expiresInSeconds: number;
+}
+
+export interface FileURLResponse {
+  url: string;
+  expiresInSeconds: number;
+}
+
 

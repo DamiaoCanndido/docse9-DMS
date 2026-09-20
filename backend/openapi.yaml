@@ -1024,6 +1024,177 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /documents/{id}/upload-url:
+    post:
+      summary: Gerar URL pré-assinada para upload direto de PDF no Cloudflare R2
+      operationId: generateDocumentUploadURL
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, fileSize, contentType]
+              properties:
+                fileName:
+                  type: string
+                  example: oficio-10-2026.pdf
+                fileSize:
+                  type: integer
+                  format: int64
+                  example: 1048576
+                  description: Tamanho do arquivo em bytes (máximo 25MB)
+                contentType:
+                  type: string
+                  enum: [application/pdf]
+                  example: application/pdf
+      responses:
+        '200':
+          description: Presigned upload URL gerada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      uploadUrl:
+                        type: string
+                        format: uri
+                      fileKey:
+                        type: string
+                      expiresInSeconds:
+                        type: integer
+                        example: 600
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /documents/{id}/confirm-upload:
+    post:
+      summary: Confirmar upload e validar OCR (camada de texto pesquisável)
+      operationId: confirmDocumentUpload
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileKey]
+              properties:
+                fileKey:
+                  type: string
+                  example: tenants/mun-uuid/NOTICE/2026/doc-uuid/file-uuid.pdf
+      responses:
+        '200':
+          description: Upload confirmado e associado com sucesso ao documento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Arquivo PDF sem camada de texto pesquisável (OCR)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/{id}/file-url:
+    get:
+      summary: Obter URL pré-assinada temporária para visualização ou download do anexo
+      operationId: getDocumentFileURL
+      tags: [documents]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: download
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Se true, força o download do arquivo em vez de exibição inline
+      responses:
+        '200':
+          description: URL pré-assinada emitida com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                      expiresInSeconds:
+                        type: integer
+                        example: 900
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Documento não encontrado ou sem anexo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
 # ═══════════════════════════════════════════════
 # COMPONENTS
 # ═══════════════════════════════════════════════
@@ -1351,9 +1522,6 @@ components:
           type: string
           minLength: 3
           example: "Edital retificado."
-        fileKey:
-          type: string
-          example: "uploads/docs/notice_updated.pdf"
         createdAt:
           type: string
           format: date-time
