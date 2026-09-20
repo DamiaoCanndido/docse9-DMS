@@ -19,7 +19,12 @@ function getAppVersion(): string {
     return v.startsWith('v') ? v : `v${v}`;
   }
 
-  // 3. Tenta extrair a tag mais recente do Git local
+  // 3. Versão oficial do package.json
+  if (packageJson && packageJson.version) {
+    return `v${packageJson.version}`;
+  }
+
+  // 4. Tenta extrair a tag mais recente do Git local
   try {
     const gitTag = execSync("git describe --tags --abbrev=0", {
       encoding: "utf8",
@@ -32,12 +37,7 @@ function getAppVersion(): string {
     // Continua se não houver tag localmente
   }
 
-  // 4. Versão oficial do package.json
-  if (packageJson && packageJson.version) {
-    return `v${packageJson.version}`;
-  }
-
-  return "v1.1.0";
+  return "v1.2.0";
 }
 
 const appVersion = getAppVersion();
