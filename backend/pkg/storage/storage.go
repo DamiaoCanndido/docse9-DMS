@@ -23,7 +23,7 @@ var (
 
 // StorageService define a interface para interagir com o Cloudflare R2 / S3.
 type StorageService interface {
-	GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, expiresIn time.Duration) (string, error)
+	GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, contentLength int64, expiresIn time.Duration) (string, error)
 	GeneratePresignedDownloadURL(ctx context.Context, key string, filename string, download bool, expiresIn time.Duration) (string, error)
 	ValidatePDFOCR(ctx context.Context, key string, minChars int) (bool, int, error)
 	DeleteObject(ctx context.Context, key string) error
@@ -98,12 +98,13 @@ func NewR2StorageService(cfg Config) (*R2StorageService, error) {
 	}, nil
 }
 
-// GeneratePresignedUploadURL gera uma URL pré-assinada para upload direto via HTTP PUT.
-func (s *R2StorageService) GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, expiresIn time.Duration) (string, error) {
+// GeneratePresignedUploadURL gera uma URL pré-assinada para upload direto via HTTP PUT com Content-Length assinado.
+func (s *R2StorageService) GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, contentLength int64, expiresIn time.Duration) (string, error) {
 	putInput := &s3.PutObjectInput{
-		Bucket:      aws.String(s.bucketName),
-		Key:         aws.String(key),
-		ContentType: aws.String(contentType),
+		Bucket:        aws.String(s.bucketName),
+		Key:           aws.String(key),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(contentLength),
 	}
 
 	req, err := s.presignClient.PresignPutObject(ctx, putInput, s3.WithPresignExpires(expiresIn))
@@ -117,8 +118,9 @@ func (s *R2StorageService) GeneratePresignedUploadURL(ctx context.Context, key s
 // GeneratePresignedDownloadURL gera uma URL pré-assinada para download ou preview inline do arquivo.
 func (s *R2StorageService) GeneratePresignedDownloadURL(ctx context.Context, key string, filename string, download bool, expiresIn time.Duration) (string, error) {
 	getInput := &s3.GetObjectInput{
-		Bucket: aws.String(s.bucketName),
-		Key:    aws.String(key),
+		Bucket:              aws.String(s.bucketName),
+		Key:                 aws.String(key),
+		ResponseContentType: aws.String("application/pdf"),
 	}
 
 	if filename != "" {
@@ -139,7 +141,8 @@ func (s *R2StorageService) GeneratePresignedDownloadURL(ctx context.Context, key
 	return req.URL, nil
 }
 
-// ValidatePDFOCR baixa os bytes do arquivo no R2 e valida se possui texto pesquisável (OCR).
+// ValidatePDFOCR baixa os bytes do arquivo no R2 e valida se possui texto pesquisável (OCR),
+// impondo limite estrito de 25MB para proteger o container contra DoS / OOM.
 func (s *R2StorageService) ValidatePDFOCR(ctx context.Context, key string, minChars int) (bool, int, error) {
 	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucketName),
@@ -150,9 +153,18 @@ func (s *R2StorageService) ValidatePDFOCR(ctx context.Context, key string, minCh
 	}
 	defer out.Body.Close()
 
-	buf, err := io.ReadAll(out.Body)
+	const maxAllowedBytes = int64(25 * 1024 * 1024) // 25 MB
+	if out.ContentLength != nil && *out.ContentLength > maxAllowedBytes {
+		return false, 0, errors.New("o arquivo excede o limite máximo permitido de 25 MB")
+	}
+
+	buf, err := io.ReadAll(io.LimitReader(out.Body, maxAllowedBytes+1))
 	if err != nil {
 		return false, 0, fmt.Errorf("erro ao ler corpo do arquivo: %w", err)
+	}
+
+	if int64(len(buf)) > maxAllowedBytes {
+		return false, 0, errors.New("o arquivo excede o limite máximo permitido de 25 MB")
 	}
 
 	if !IsPDFHeader(buf) {

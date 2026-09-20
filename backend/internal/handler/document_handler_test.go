@@ -810,6 +810,25 @@ func TestConfirmUpload_Handler(t *testing.T) {
 		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/confirm-upload", docID), body)
 		assert.Equal(t, 422, w.Code)
 	})
+
+	t.Run("400 Bad Request - Invalid FileKey", func(t *testing.T) {
+		svc := new(handlerMocks.DocumentService)
+		permRepo := new(handlerMocks.UserPermissionRepository)
+		docID := uuid.New()
+		doc := &domain.Document{
+			ID:             docID,
+			MunicipalityID: munID,
+			Type:           domain.TypeNotice,
+		}
+
+		svc.On("GetByID", docID).Return(doc, nil)
+		input := domain.ConfirmUploadInput{FileKey: "invalid_key.pdf"}
+		svc.On("ConfirmUpload", mock.Anything, docID, input).Return(nil, domain.ErrInvalidFileKey)
+
+		body := map[string]any{"fileKey": "invalid_key.pdf"}
+		w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, fmt.Sprintf("/api/v1/documents/%s/confirm-upload", docID), body)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestGenerateFileURL_Handler(t *testing.T) {

@@ -19,7 +19,15 @@ var (
 
 // ValidatePDFText inspeciona um leitor de PDF e conta o número de caracteres alfanuméricos
 // de texto pesquisável extraíveis. Retorna true se a contagem for maior ou igual a minChars.
-func ValidatePDFText(r io.ReaderAt, size int64, minChars int) (bool, int, error) {
+func ValidatePDFText(r io.ReaderAt, size int64, minChars int) (valid bool, chars int, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			valid = false
+			chars = 0
+			err = fmt.Errorf("falha ao interpretar estrutura interna do PDF: %v", rec)
+		}
+	}()
+
 	if size <= 0 {
 		return false, 0, ErrEmptyPDF
 	}
@@ -34,10 +42,16 @@ func ValidatePDFText(r io.ReaderAt, size int64, minChars int) (bool, int, error)
 		return false, 0, ErrPDFMissingOCR
 	}
 
+	// Limita a inspeção às primeiras 50 páginas para mitigar DoS de CPU (PDF bomb)
+	maxPagesToCheck := numPages
+	if maxPagesToCheck > 50 {
+		maxPagesToCheck = 50
+	}
+
 	totalTextChars := 0
 	var b bytes.Buffer
 
-	for pageIndex := 1; pageIndex <= numPages; pageIndex++ {
+	for pageIndex := 1; pageIndex <= maxPagesToCheck; pageIndex++ {
 		page := reader.Page(pageIndex)
 		if page.V.IsNull() {
 			continue

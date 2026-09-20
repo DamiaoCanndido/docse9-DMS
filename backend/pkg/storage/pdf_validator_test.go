@@ -120,3 +120,15 @@ func TestIsPDFHeader(t *testing.T) {
 	assert.False(t, storage.IsPDFHeader([]byte("")))
 	assert.False(t, storage.IsPDFHeader([]byte(strings.Repeat("a", 3))))
 }
+
+func TestValidatePDFText_CorruptXrefDoesNotPanic(t *testing.T) {
+	corruptData := []byte("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\nxref\n0 99999\nstartxref\n10\n%%EOF")
+	reader := bytes.NewReader(corruptData)
+
+	assert.NotPanics(t, func() {
+		valid, count, err := storage.ValidatePDFText(reader, int64(len(corruptData)), 50)
+		assert.False(t, valid)
+		assert.Equal(t, 0, count)
+		assert.Error(t, err)
+	})
+}

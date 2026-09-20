@@ -448,12 +448,10 @@ func TestUpdateDocument_Contract_Fields_All(t *testing.T) {
 	newDuration := 24
 	newCType := domain.ContractBidding
 	newVal := 10000.0
-	newFileKey := "docs/contract1.pdf"
 	newDesc := "Contrato Novo"
 
 	input := domain.UpdateDocumentInput{
 		Description:  &newDesc,
-		FileKey:      &newFileKey,
 		Duration:     &newDuration,
 		ContractType: &newCType,
 		Value:        &newVal,
@@ -464,7 +462,6 @@ func TestUpdateDocument_Contract_Fields_All(t *testing.T) {
 	docRepo.On("FindByID", id).Return(&domain.Document{
 		ID:           id,
 		Description:  newDesc,
-		FileKey:      newFileKey,
 		Type:         domain.TypeContract,
 		Duration:     &newDuration,
 		ContractType: &newCType,
@@ -474,7 +471,6 @@ func TestUpdateDocument_Contract_Fields_All(t *testing.T) {
 	res, err := svc.Update(id, input)
 	require.NoError(t, err)
 	assert.Equal(t, newDesc, res.Description)
-	assert.Equal(t, newFileKey, res.FileKey)
 	assert.Equal(t, &newDuration, res.Duration)
 	assert.Equal(t, &newCType, res.ContractType)
 	assert.Equal(t, &newVal, res.Value)
@@ -755,13 +751,17 @@ func TestGenerateUploadURL_FileTooLarge(t *testing.T) {
 
 func TestConfirmUpload_Success_WithOCR(t *testing.T) {
 	svc, docRepo, _, _, storageSvc := newDocumentServiceWithStorage(t)
+	munID := uuid.New()
 	docID := uuid.New()
 	doc := &domain.Document{
-		ID:      docID,
-		FileKey: "",
+		ID:             docID,
+		MunicipalityID: munID,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		FileKey:        "",
 	}
 
-	key := "tenants/mun1/NOTICE/2026/doc1/arquivo.pdf"
+	key := fmt.Sprintf("tenants/%s/NOTICE/2026/%s/arquivo.pdf", munID, docID)
 	validPDF := buildTestPDFBytes("Prefeitura Municipal de Teste Estado de Sergipe Publicacao Oficial Comprovada")
 	storageSvc.PutTestObject(key, validPDF)
 
@@ -779,13 +779,17 @@ func TestConfirmUpload_Success_WithOCR(t *testing.T) {
 
 func TestConfirmUpload_Fails_MissingOCR(t *testing.T) {
 	svc, docRepo, _, _, storageSvc := newDocumentServiceWithStorage(t)
+	munID := uuid.New()
 	docID := uuid.New()
 	doc := &domain.Document{
-		ID:      docID,
-		FileKey: "",
+		ID:             docID,
+		MunicipalityID: munID,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		FileKey:        "",
 	}
 
-	key := "tenants/mun1/NOTICE/2026/doc1/scanned_sem_ocr.pdf"
+	key := fmt.Sprintf("tenants/%s/NOTICE/2026/%s/scanned_sem_ocr.pdf", munID, docID)
 	scannedWithoutOCR := buildTestPDFBytes("") // PDF vazio sem texto
 	storageSvc.PutTestObject(key, scannedWithoutOCR)
 
@@ -800,6 +804,86 @@ func TestConfirmUpload_Fails_MissingOCR(t *testing.T) {
 	// Garante que o arquivo sem OCR foi excluído do storage
 	exists, _ := storageSvc.ObjectExists(context.Background(), key)
 	assert.False(t, exists)
+}
+
+func TestConfirmUpload_Fails_CrossTenantKey(t *testing.T) {
+	svc, docRepo, _, _, storageSvc := newDocumentServiceWithStorage(t)
+	munID1 := uuid.New()
+	munID2 := uuid.New()
+	docID1 := uuid.New()
+	docID2 := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID1,
+		MunicipalityID: munID1,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		FileKey:        "",
+	}
+
+	// Chave que pertence a outro município (munID2)
+	crossTenantKey := fmt.Sprintf("tenants/%s/NOTICE/2026/%s/arquivo.pdf", munID2, docID2)
+	validPDF := buildTestPDFBytes("Documento confidencial de outro municipio")
+	storageSvc.PutTestObject(crossTenantKey, validPDF)
+
+	docRepo.On("FindByID", docID1).Return(doc, nil)
+
+	input := domain.ConfirmUploadInput{FileKey: crossTenantKey}
+	res, err := svc.ConfirmUpload(context.Background(), docID1, input)
+
+	assert.ErrorIs(t, err, domain.ErrInvalidFileKey)
+	assert.Nil(t, res)
+
+	// Garante que o arquivo de outro tenant NÃO foi deletado
+	exists, _ := storageSvc.ObjectExists(context.Background(), crossTenantKey)
+	assert.True(t, exists)
+}
+
+func TestConfirmUpload_Fails_InvalidExtension(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	munID := uuid.New()
+	docID := uuid.New()
+	doc := &domain.Document{
+		ID:             docID,
+		MunicipalityID: munID,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		FileKey:        "",
+	}
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+
+	invalidKey := fmt.Sprintf("tenants/%s/NOTICE/2026/%s/malware.exe", munID, docID)
+	input := domain.ConfirmUploadInput{FileKey: invalidKey}
+	res, err := svc.ConfirmUpload(context.Background(), docID, input)
+
+	assert.ErrorIs(t, err, domain.ErrInvalidFileKey)
+	assert.Nil(t, res)
+}
+
+func TestConfirmUpload_Fails_WrongDocumentKey(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	munID := uuid.New()
+	docID1 := uuid.New()
+	docID2 := uuid.New()
+
+	doc := &domain.Document{
+		ID:             docID1,
+		MunicipalityID: munID,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		FileKey:        "",
+	}
+
+	docRepo.On("FindByID", docID1).Return(doc, nil)
+
+	// Mesmo município, mas ID de outro documento
+	wrongDocKey := fmt.Sprintf("tenants/%s/NOTICE/2026/%s/arquivo.pdf", munID, docID2)
+	input := domain.ConfirmUploadInput{FileKey: wrongDocKey}
+	res, err := svc.ConfirmUpload(context.Background(), docID1, input)
+
+	assert.ErrorIs(t, err, domain.ErrInvalidFileKey)
+	assert.Nil(t, res)
 }
 
 func TestGenerateFileURL_Success(t *testing.T) {

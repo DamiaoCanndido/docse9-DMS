@@ -1522,9 +1522,6 @@ components:
           type: string
           minLength: 3
           example: "Edital retificado."
-        fileKey:
-          type: string
-          example: "uploads/docs/notice_updated.pdf"
         createdAt:
           type: string
           format: date-time

@@ -27,8 +27,8 @@ func (m *MockStorageService) PutTestObject(key string, data []byte) {
 	m.objects[key] = data
 }
 
-func (m *MockStorageService) GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, expiresIn time.Duration) (string, error) {
-	return fmt.Sprintf("https://mock-r2.cloudflarestorage.com/upload?key=%s&expires=%d", key, time.Now().Add(expiresIn).Unix()), nil
+func (m *MockStorageService) GeneratePresignedUploadURL(ctx context.Context, key string, contentType string, contentLength int64, expiresIn time.Duration) (string, error) {
+	return fmt.Sprintf("https://mock-r2.cloudflarestorage.com/upload?key=%s&contentLength=%d&expires=%d", key, contentLength, time.Now().Add(expiresIn).Unix()), nil
 }
 
 func (m *MockStorageService) GeneratePresignedDownloadURL(ctx context.Context, key string, filename string, download bool, expiresIn time.Duration) (string, error) {

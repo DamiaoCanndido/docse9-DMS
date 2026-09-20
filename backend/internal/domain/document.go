@@ -20,6 +20,7 @@ var (
 	ErrInvalidContentType     = errors.New("somente arquivos no formato PDF são permitidos")
 	ErrFileTooLarge           = errors.New("arquivo excede o tamanho máximo permitido de 25MB")
 	ErrPDFMissingOCR          = errors.New("o arquivo PDF não possui camada de texto pesquisável (OCR)")
+	ErrInvalidFileKey         = errors.New("fileKey inválido ou não pertence a este documento")
 )
 
 // DocumentType representa o tipo de documento.
@@ -120,7 +121,6 @@ type CreateDocumentInput struct {
 
 type UpdateDocumentInput struct {
 	Description *string        `json:"description" binding:"omitempty,min=3"`
-	FileKey     *string        `json:"fileKey"     binding:"omitempty"`
 	CreatedAt   *time.Time     `json:"createdAt"   binding:"omitempty"`
 
 	// Campos exclusivos para Contrato

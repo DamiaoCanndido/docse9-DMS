@@ -160,16 +160,7 @@ func (s *documentService) Update(id uuid.UUID, input domain.UpdateDocumentInput)
 		doc.Description = strings.TrimSpace(*input.Description)
 	}
 
-	// 3. Atualizar fileKey se fornecido
-	if input.FileKey != nil {
-		newKey := strings.TrimSpace(*input.FileKey)
-		if doc.FileKey != "" && doc.FileKey != newKey && s.storageSvc != nil {
-			_ = s.storageSvc.DeleteObject(context.Background(), doc.FileKey)
-		}
-		doc.FileKey = newKey
-	}
-
-	// 4. Se não for contrato, atualiza createdAt se fornecido
+	// 3. Se não for contrato, atualiza createdAt se fornecido
 	if doc.Type != domain.TypeContract && input.CreatedAt != nil {
 		doc.CreatedAt = *input.CreatedAt
 	}
@@ -277,7 +268,7 @@ func (s *documentService) GenerateUploadURL(ctx context.Context, docID uuid.UUID
 	key := fmt.Sprintf("tenants/%s/%s/%d/%s/%s.pdf", doc.MunicipalityID, doc.Type, year, doc.ID, uuid.New().String())
 	expiresIn := 10 * time.Minute
 
-	uploadURL, err := s.storageSvc.GeneratePresignedUploadURL(ctx, key, input.ContentType, expiresIn)
+	uploadURL, err := s.storageSvc.GeneratePresignedUploadURL(ctx, key, input.ContentType, input.FileSize, expiresIn)
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +294,17 @@ func (s *documentService) ConfirmUpload(ctx context.Context, docID uuid.UUID, in
 		return nil, errors.New("fileKey é obrigatório")
 	}
 
+	year := doc.CreatedAt.Year()
+	if year <= 0 {
+		year = time.Now().Year()
+	}
+
+	// Validação estrita multi-tenant: o fileKey deve pertencer exclusivamente a este município e documento
+	expectedPrefix := fmt.Sprintf("tenants/%s/%s/%d/%s/", doc.MunicipalityID, doc.Type, year, doc.ID)
+	if !strings.HasPrefix(cleanKey, expectedPrefix) || !strings.HasSuffix(strings.ToLower(cleanKey), ".pdf") {
+		return nil, domain.ErrInvalidFileKey
+	}
+
 	if s.storageSvc == nil {
 		return nil, storage.ErrStorageUnavailable
 	}
@@ -310,7 +312,7 @@ func (s *documentService) ConfirmUpload(ctx context.Context, docID uuid.UUID, in
 	// Validação obrigatória de OCR no R2 (mínimo de 50 caracteres alfanuméricos)
 	valid, _, err := s.storageSvc.ValidatePDFOCR(ctx, cleanKey, 50)
 	if err != nil || !valid {
-		// Remove imediatamente o arquivo sem OCR do R2 para evitar armazenamento indevido
+		// Remove o arquivo inválido do R2 (apenas agora que sabemos que pertence a este documento)
 		_ = s.storageSvc.DeleteObject(ctx, cleanKey)
 		if errors.Is(err, storage.ErrPDFMissingOCR) || !valid {
 			return nil, domain.ErrPDFMissingOCR

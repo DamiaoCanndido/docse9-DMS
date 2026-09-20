@@ -51,7 +51,7 @@ func handleDocumentError(c *gin.Context, err error) {
 		response.BadRequest(c, err.Error())
 	case errors.Is(err, domain.ErrFileNotFound):
 		response.NotFound(c, err.Error())
-	case errors.Is(err, domain.ErrInvalidContentType) || errors.Is(err, domain.ErrFileTooLarge):
+	case errors.Is(err, domain.ErrInvalidContentType) || errors.Is(err, domain.ErrFileTooLarge) || errors.Is(err, domain.ErrInvalidFileKey):
 		response.BadRequest(c, err.Error())
 	case errors.Is(err, domain.ErrPDFMissingOCR):
 		response.Error(c, 422, err.Error()) // 422 Unprocessable Entity
