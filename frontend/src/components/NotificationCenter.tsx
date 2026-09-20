@@ -57,6 +57,15 @@ const contractTypeLabels: Record<string, string> = {
 // Feed de notas de versão e novidades do sistema ("O que há de novo")
 const SYSTEM_CHANGELOG_NOTIFICATIONS: AppNotification[] = [
   {
+    id: 'changelog_jwt_one_week_session',
+    category: 'CHANGELOG',
+    title: 'Sessão Estendida de 7 Dias',
+    description: 'O token JWT de autenticação agora é válido por 1 semana (7 dias), mantendo você conectado sem interrupções diárias.',
+    timestamp: '2026-09-19T21:00:00Z',
+    severity: 'success',
+    tag: `Versão ${APP_VERSION}`,
+  },
+  {
     id: 'changelog_notifications_and_contracts',
     category: 'CHANGELOG',
     title: 'Central de Notificações & Alertas de Vigência',

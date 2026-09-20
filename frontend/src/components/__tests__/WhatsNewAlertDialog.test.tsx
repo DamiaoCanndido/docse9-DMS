@@ -47,6 +47,8 @@ describe('WhatsNewAlertDialog Component', () => {
       expect(screen.getByText('Bem-vindo às novidades do Docseq!')).toBeInTheDocument();
     });
 
+    expect(screen.getByText('Sessão Estendida de 7 Dias')).toBeInTheDocument();
+    expect(screen.getByText(/duração de uma semana \(7 dias\)/i)).toBeInTheDocument();
     expect(screen.getByText('Central de Notificações no Topo')).toBeInTheDocument();
     expect(screen.getByText('Alertas de Vigência de Contratos')).toBeInTheDocument();
     expect(screen.getByText(/uma semana de antecedência/i)).toBeInTheDocument();

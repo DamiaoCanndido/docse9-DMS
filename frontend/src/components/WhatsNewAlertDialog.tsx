@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ArrowRight,
   FileSignature,
+  KeyRound,
 } from 'lucide-react';
 
 export const WhatsNewAlertDialog: React.FC = () => {
@@ -84,7 +85,24 @@ export const WhatsNewAlertDialog: React.FC = () => {
         </div>
 
         {/* Feature Highlights Body */}
-        <div className="p-6 flex flex-col gap-4">
+        <div className="p-6 flex flex-col gap-3.5 max-h-[60vh] overflow-y-auto">
+          <div className="flex items-start gap-3.5 p-3 rounded-xl bg-muted/40 border border-border/70 hover:border-teal-500/30 transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <KeyRound className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                Sessão Estendida de 7 Dias
+                <span className="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.2 rounded-md">
+                  Novo
+                </span>
+              </h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                O token de autenticação agora tem duração de uma semana (7 dias). Você permanece conectado com total segurança sem precisar realizar login diariamente.
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-start gap-3.5 p-3 rounded-xl bg-muted/40 border border-border/70 hover:border-teal-500/30 transition-colors">
             <div className="w-9 h-9 rounded-xl bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
               <Bell className="w-4.5 h-4.5" />

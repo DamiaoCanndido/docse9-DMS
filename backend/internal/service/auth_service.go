@@ -59,8 +59,8 @@ func (s *authService) Login(input domain.LoginInput) (*domain.LoginResponse, err
 		return nil, err
 	}
 
-	// 4. Gerar Token JWT (duração de 24 horas por padrão)
-	token, err := security.GenerateToken(u.ID, u.Username, string(u.Role), u.MunicipalityID, u.MustChangePassword, 24*time.Hour)
+	// 4. Gerar Token JWT (duração de 1 semana por padrão)
+	token, err := security.GenerateToken(u.ID, u.Username, string(u.Role), u.MunicipalityID, u.MustChangePassword, 7*24*time.Hour)
 	if err != nil {
 		return nil, err
 	}
