@@ -161,9 +161,9 @@ describe('NotificationCenter Component', () => {
     const button = screen.getByRole('button', { name: /Notificações e Avisos de Vencimento/i });
     expect(button).toBeInTheDocument();
 
-    // Deve exibir o badge com a contagem: 3 novidades do changelog + 2 contratos elegíveis (janela de 7 dias) = 5
+    // Deve exibir o badge com a contagem: 4 novidades do changelog + 2 contratos elegíveis (janela de 7 dias) = 6
     await waitFor(() => {
-      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.getByText('6')).toBeInTheDocument();
     });
   });
 
@@ -209,6 +209,7 @@ describe('NotificationCenter Component', () => {
     const changelogTab = screen.getByRole('button', { name: /Novidades ✨/i });
     await user.click(changelogTab);
 
+    expect(screen.getByText('Sessão Estendida de 7 Dias')).toBeInTheDocument();
     expect(screen.getByText('Central de Notificações & Alertas de Vigência')).toBeInTheDocument();
     expect(screen.getByText('Gestão Completa de Contratos Públicos')).toBeInTheDocument();
     expect(screen.getByText('Lançamento do Docseq')).toBeInTheDocument();

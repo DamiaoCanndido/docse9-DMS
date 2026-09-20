@@ -55,21 +55,21 @@ export async function loginUser({ form }: { form: { username: string; password: 
 
     const cookieStore = await cookies();
     
-    // Set token cookie
+    // Set token cookie (1 week)
     cookieStore.set('token', loginData.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 1 day
+      maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
       path: '/',
     });
 
-    // Set user cookie
+    // Set user cookie (1 week)
     cookieStore.set('user', JSON.stringify(loginData.user), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 1 day
+      maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
       path: '/',
     });
 
@@ -119,21 +119,21 @@ export async function changePassword(form: { currentPassword: string; newPasswor
 
     const cookieStore = await cookies();
     
-    // Update token cookie
+    // Update token cookie (1 week)
     cookieStore.set('token', data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 1 day
+      maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
       path: '/',
     });
 
-    // Update user cookie
+    // Update user cookie (1 week)
     cookieStore.set('user', JSON.stringify(data.user), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 1 day
+      maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
       path: '/',
     });
 
@@ -176,7 +176,7 @@ export async function updateUserProfile(form: { username: string; email: string 
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60, // 1 day
+      maxAge: 7 * 24 * 60 * 60, // 7 days (1 week)
       path: '/',
     });
 

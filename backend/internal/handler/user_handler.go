@@ -392,8 +392,8 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	// Gerar novo Token JWT com MustChangePassword = false
-	token, err := security.GenerateToken(u.ID, u.Username, string(u.Role), u.MunicipalityID, false, 24*time.Hour)
+	// Gerar novo Token JWT com MustChangePassword = false (duração de 1 semana)
+	token, err := security.GenerateToken(u.ID, u.Username, string(u.Role), u.MunicipalityID, false, 7*24*time.Hour)
 	if err != nil {
 		response.InternalError(c)
 		return

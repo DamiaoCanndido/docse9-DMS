@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
@@ -35,6 +36,13 @@ func TestLogin_Success_ByUsername(t *testing.T) {
 	assert.NotEmpty(t, resp.Token)
 	assert.Equal(t, u.Username, resp.User.Username)
 	assert.NotNil(t, resp.User.LastLogin)
+
+	// Validar que o token expira em 1 semana (~7 dias)
+	claims, err := security.ValidateToken(resp.Token)
+	require.NoError(t, err)
+	diff := time.Until(claims.ExpiresAt.Time)
+	assert.True(t, diff > 6*24*time.Hour && diff <= 7*24*time.Hour)
+
 	userRepo.AssertExpectations(t)
 }
 
