@@ -161,9 +161,9 @@ describe('NotificationCenter Component', () => {
     const button = screen.getByRole('button', { name: /Notificações e Avisos de Vencimento/i });
     expect(button).toBeInTheDocument();
 
-    // Deve exibir o badge com a contagem: 4 novidades do changelog + 2 contratos elegíveis (janela de 7 dias) = 6
+    // Deve exibir o badge com a contagem: 5 novidades do changelog + 2 contratos elegíveis (janela de 7 dias) = 7
     await waitFor(() => {
-      expect(screen.getByText('6')).toBeInTheDocument();
+      expect(screen.getByText('7')).toBeInTheDocument();
     });
   });
 

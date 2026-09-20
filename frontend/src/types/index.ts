@@ -98,3 +98,15 @@ export interface PaginatedResponse<T> {
   pageSize: number;
 }
 
+export interface UploadURLResponse {
+  uploadUrl: string;
+  fileKey: string;
+  expiresInSeconds: number;
+}
+
+export interface FileURLResponse {
+  url: string;
+  expiresInSeconds: number;
+}
+
+

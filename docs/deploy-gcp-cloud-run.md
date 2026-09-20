@@ -80,6 +80,44 @@ openssl rand -base64 32 | tr -d '\n' | \
 # 3. Senha inicial do Administrador padrão
 echo -n "SuaSenhaAdminSegura123!" | \
   gcloud secrets create DOCSEQ_ADMIN_PASSWORD --data-file=- --project $PROJECT_ID
+
+# 4. Cloudflare R2 - Access Key ID
+echo -n "SEU_R2_ACCESS_KEY_ID" | \
+  gcloud secrets create DOCSEQ_R2_ACCESS_KEY_ID --data-file=- --project $PROJECT_ID
+
+# 5. Cloudflare R2 - Secret Access Key
+echo -n "SEU_R2_SECRET_ACCESS_KEY" | \
+  gcloud secrets create DOCSEQ_R2_SECRET_ACCESS_KEY --data-file=- --project $PROJECT_ID
+```
+
+### 3.3.1. Configurar CORS no Bucket Cloudflare R2 (Obrigatório para Uploads Diretos)
+Como os arquivos PDF são enviados diretamente do navegador para o R2 via URLs pré-assinadas, o bucket R2 **deve** possuir uma política de CORS habilitada:
+1. No dashboard da Cloudflare, acesse **R2** > selecione o bucket criado (ex: `dockse9`).
+2. Acesse a aba **Settings** e desça até a seção **CORS Policy**.
+3. Adicione a seguinte regra JSON:
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://docseq.netlify.app"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "PUT",
+      "HEAD",
+      "POST"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]
 ```
 
 ### 3.4. Criar Service Account para o GitHub Actions (Menor Privilégio)
@@ -123,6 +161,16 @@ gcloud secrets add-iam-policy-binding DOCSEQ_ADMIN_PASSWORD \
   --role="roles/secretmanager.secretAccessor" \
   --project $PROJECT_ID
 
+gcloud secrets add-iam-policy-binding DOCSEQ_R2_ACCESS_KEY_ID \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project $PROJECT_ID
+
+gcloud secrets add-iam-policy-binding DOCSEQ_R2_SECRET_ACCESS_KEY \
+  --member="serviceAccount:${COMPUTE_SA}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project $PROJECT_ID
+
 # 4. Gerar chave JSON para colocar no GitHub Secrets
 gcloud iam service-accounts keys create gcp-key.json \
   --iam-account="${SA_EMAIL}" \
@@ -150,6 +198,8 @@ Acesse o repositório no GitHub: **Settings -> Secrets and variables -> Actions*
 | `GCP_REGION` | `southamerica-east1` (ou `us-east4`) |
 | `GAR_REPOSITORY` | `docseq-artifacts` |
 | `CLOUD_RUN_SERVICE`| `docseq-backend-api` |
+| `R2_ACCOUNT_ID` | `c1a2b3d4e5f6...` (Cloudflare Account ID) |
+| `R2_BUCKET_NAME` | `docseq-documents` |
 
 ---
 

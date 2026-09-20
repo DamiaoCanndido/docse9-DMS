@@ -49,6 +49,12 @@ func handleDocumentError(c *gin.Context, err error) {
 	case errors.Is(err, service.ErrMunicipalityNotFound) || errors.Is(err, domain.ErrUserNotFound):
 		// Foreign keys inválidas na criação de documentos
 		response.BadRequest(c, err.Error())
+	case errors.Is(err, domain.ErrFileNotFound):
+		response.NotFound(c, err.Error())
+	case errors.Is(err, domain.ErrInvalidContentType) || errors.Is(err, domain.ErrFileTooLarge):
+		response.BadRequest(c, err.Error())
+	case errors.Is(err, domain.ErrPDFMissingOCR):
+		response.Error(c, 422, err.Error()) // 422 Unprocessable Entity
 	default:
 		response.InternalError(c)
 	}

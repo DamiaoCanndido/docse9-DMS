@@ -1,6 +1,9 @@
 package service_test
 
 import (
+	"bytes"
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -8,6 +11,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service/mocks"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/testhelper"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/storage"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,8 +24,19 @@ func newDocumentService(t *testing.T) (domain.DocumentService, *mocks.DocumentRe
 	docRepo := new(mocks.DocumentRepository)
 	userRepo := new(mocks.UserRepository)
 	munRepo := new(mocks.MunicipalityRepository)
-	svc := service.NewDocumentService(docRepo, userRepo, munRepo)
+	storageSvc := storage.NewMockStorageService()
+	svc := service.NewDocumentService(docRepo, userRepo, munRepo, storageSvc)
 	return svc, docRepo, userRepo, munRepo
+}
+
+func newDocumentServiceWithStorage(t *testing.T) (domain.DocumentService, *mocks.DocumentRepository, *mocks.UserRepository, *mocks.MunicipalityRepository, *storage.MockStorageService) {
+	t.Helper()
+	docRepo := new(mocks.DocumentRepository)
+	userRepo := new(mocks.UserRepository)
+	munRepo := new(mocks.MunicipalityRepository)
+	storageSvc := storage.NewMockStorageService()
+	svc := service.NewDocumentService(docRepo, userRepo, munRepo, storageSvc)
+	return svc, docRepo, userRepo, munRepo, storageSvc
 }
 
 func TestCreateDocument_Success_Notice(t *testing.T) {
@@ -628,4 +643,218 @@ func TestHardDeleteDocument_NotFound(t *testing.T) {
 	err := svc.HardDelete(id)
 	assert.ErrorIs(t, err, domain.ErrDocumentNotFound)
 }
+
+// ──────────────────────────────────────────────
+// Testes de Anexo e Storage (Cloudflare R2 / OCR)
+// ──────────────────────────────────────────────
+
+func buildTestPDFBytes(textContent string) []byte {
+	var body bytes.Buffer
+	body.WriteString("%PDF-1.4\n")
+
+	var offsets []int
+
+	offsets = append(offsets, body.Len())
+	body.WriteString("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n")
+
+	offsets = append(offsets, body.Len())
+	body.WriteString("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
+
+	if textContent != "" {
+		offsets = append(offsets, body.Len())
+		body.WriteString("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n")
+
+		offsets = append(offsets, body.Len())
+		body.WriteString("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n")
+
+		streamContent := fmt.Sprintf("BT\n/F1 12 Tf\n72 712 Td\n(%s) Tj\nET\n", textContent)
+		offsets = append(offsets, body.Len())
+		body.WriteString(fmt.Sprintf("5 0 obj\n<< /Length %d >>\nstream\n%sendstream\nendobj\n", len(streamContent), streamContent))
+	} else {
+		offsets = append(offsets, body.Len())
+		body.WriteString("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n")
+
+		offsets = append(offsets, body.Len())
+		body.WriteString("4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n")
+	}
+
+	startXref := body.Len()
+	numObjs := len(offsets) + 1
+
+	body.WriteString(fmt.Sprintf("xref\n0 %d\n0000000000 65535 f \n", numObjs))
+	for _, off := range offsets {
+		body.WriteString(fmt.Sprintf("%010d 00000 n \n", off))
+	}
+
+	body.WriteString(fmt.Sprintf("trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", numObjs, startXref))
+
+	return body.Bytes()
+}
+
+func TestGenerateUploadURL_Success(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	munID := uuid.New()
+	doc := &domain.Document{
+		ID:             docID,
+		MunicipalityID: munID,
+		Type:           domain.TypeNotice,
+		CreatedAt:      time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+
+	input := domain.UploadURLInput{
+		FileName:    "oficio-01.pdf",
+		FileSize:    1024 * 1024, // 1MB
+		ContentType: "application/pdf",
+	}
+
+	res, err := svc.GenerateUploadURL(context.Background(), docID, input)
+	require.NoError(t, err)
+	assert.NotEmpty(t, res.UploadURL)
+	assert.Contains(t, res.FileKey, fmt.Sprintf("tenants/%s/NOTICE/2026/%s/", munID, docID))
+	assert.Equal(t, 600, res.ExpiresInSeconds)
+}
+
+func TestGenerateUploadURL_InvalidContentType(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{ID: docID}
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+
+	input := domain.UploadURLInput{
+		FileName:    "foto.png",
+		FileSize:    1024,
+		ContentType: "image/png",
+	}
+
+	res, err := svc.GenerateUploadURL(context.Background(), docID, input)
+	assert.ErrorIs(t, err, domain.ErrInvalidContentType)
+	assert.Nil(t, res)
+}
+
+func TestGenerateUploadURL_FileTooLarge(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{ID: docID}
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+
+	input := domain.UploadURLInput{
+		FileName:    "grande.pdf",
+		FileSize:    30 * 1024 * 1024, // 30MB (> 25MB)
+		ContentType: "application/pdf",
+	}
+
+	res, err := svc.GenerateUploadURL(context.Background(), docID, input)
+	assert.ErrorIs(t, err, domain.ErrFileTooLarge)
+	assert.Nil(t, res)
+}
+
+func TestConfirmUpload_Success_WithOCR(t *testing.T) {
+	svc, docRepo, _, _, storageSvc := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{
+		ID:      docID,
+		FileKey: "",
+	}
+
+	key := "tenants/mun1/NOTICE/2026/doc1/arquivo.pdf"
+	validPDF := buildTestPDFBytes("Prefeitura Municipal de Teste Estado de Sergipe Publicacao Oficial Comprovada")
+	storageSvc.PutTestObject(key, validPDF)
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+	docRepo.On("Update", mock.MatchedBy(func(d *domain.Document) bool {
+		return d.FileKey == key
+	})).Return(nil)
+
+	input := domain.ConfirmUploadInput{FileKey: key}
+	res, err := svc.ConfirmUpload(context.Background(), docID, input)
+
+	require.NoError(t, err)
+	assert.Equal(t, key, res.FileKey)
+}
+
+func TestConfirmUpload_Fails_MissingOCR(t *testing.T) {
+	svc, docRepo, _, _, storageSvc := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{
+		ID:      docID,
+		FileKey: "",
+	}
+
+	key := "tenants/mun1/NOTICE/2026/doc1/scanned_sem_ocr.pdf"
+	scannedWithoutOCR := buildTestPDFBytes("") // PDF vazio sem texto
+	storageSvc.PutTestObject(key, scannedWithoutOCR)
+
+	docRepo.On("FindByID", docID).Return(doc, nil)
+
+	input := domain.ConfirmUploadInput{FileKey: key}
+	res, err := svc.ConfirmUpload(context.Background(), docID, input)
+
+	assert.ErrorIs(t, err, domain.ErrPDFMissingOCR)
+	assert.Nil(t, res)
+
+	// Garante que o arquivo sem OCR foi excluído do storage
+	exists, _ := storageSvc.ObjectExists(context.Background(), key)
+	assert.False(t, exists)
+}
+
+func TestGenerateFileURL_Success(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{
+		ID:        docID,
+		Type:      domain.TypeNotice,
+		Order:     42,
+		CreatedAt: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC),
+		FileKey:   "tenants/mun1/NOTICE/2026/doc1/arquivo.pdf",
+	}
+
+	docRepo.On("FindByIDUnscoped", docID).Return(doc, nil)
+
+	res, err := svc.GenerateFileURL(context.Background(), docID, false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, res.URL)
+	assert.Equal(t, 900, res.ExpiresInSeconds)
+}
+
+func TestGenerateFileURL_SoftDeletedInTrash_Success(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	deletedAt := gorm.DeletedAt{Time: time.Now(), Valid: true}
+	doc := &domain.Document{
+		ID:        docID,
+		Type:      domain.TypeNotice,
+		Order:     42,
+		CreatedAt: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC),
+		DeletedAt: deletedAt,
+		FileKey:   "tenants/mun1/NOTICE/2026/doc1/arquivo.pdf",
+	}
+
+	docRepo.On("FindByIDUnscoped", docID).Return(doc, nil)
+
+	res, err := svc.GenerateFileURL(context.Background(), docID, false)
+	require.NoError(t, err)
+	assert.NotEmpty(t, res.URL)
+	assert.Equal(t, 900, res.ExpiresInSeconds)
+}
+
+func TestGenerateFileURL_FileNotFound(t *testing.T) {
+	svc, docRepo, _, _, _ := newDocumentServiceWithStorage(t)
+	docID := uuid.New()
+	doc := &domain.Document{
+		ID:      docID,
+		FileKey: "", // sem anexo
+	}
+
+	docRepo.On("FindByIDUnscoped", docID).Return(doc, nil)
+
+	res, err := svc.GenerateFileURL(context.Background(), docID, false)
+	assert.ErrorIs(t, err, domain.ErrFileNotFound)
+	assert.Nil(t, res)
+}
+
 

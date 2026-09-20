@@ -1,10 +1,14 @@
 package service
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/storage"
 	"github.com/google/uuid"
 )
 
@@ -12,6 +16,7 @@ type documentService struct {
 	docRepo          domain.DocumentRepository
 	userRepo         domain.UserRepository
 	municipalityRepo domain.MunicipalityRepository
+	storageSvc       storage.StorageService
 }
 
 // NewDocumentService cria uma nova instância do serviço de documentos.
@@ -19,11 +24,13 @@ func NewDocumentService(
 	docRepo domain.DocumentRepository,
 	userRepo domain.UserRepository,
 	municipalityRepo domain.MunicipalityRepository,
+	storageSvc storage.StorageService,
 ) domain.DocumentService {
 	return &documentService{
 		docRepo:          docRepo,
 		userRepo:         userRepo,
 		municipalityRepo: municipalityRepo,
+		storageSvc:       storageSvc,
 	}
 }
 
@@ -155,7 +162,11 @@ func (s *documentService) Update(id uuid.UUID, input domain.UpdateDocumentInput)
 
 	// 3. Atualizar fileKey se fornecido
 	if input.FileKey != nil {
-		doc.FileKey = strings.TrimSpace(*input.FileKey)
+		newKey := strings.TrimSpace(*input.FileKey)
+		if doc.FileKey != "" && doc.FileKey != newKey && s.storageSvc != nil {
+			_ = s.storageSvc.DeleteObject(context.Background(), doc.FileKey)
+		}
+		doc.FileKey = newKey
 	}
 
 	// 4. Se não for contrato, atualiza createdAt se fornecido
@@ -229,5 +240,125 @@ func (s *documentService) HardDelete(id uuid.UUID) error {
 	if doc == nil {
 		return domain.ErrDocumentNotFound
 	}
+	if doc.FileKey != "" && s.storageSvc != nil {
+		_ = s.storageSvc.DeleteObject(context.Background(), doc.FileKey)
+	}
 	return s.docRepo.HardDelete(id)
 }
+
+func (s *documentService) GenerateUploadURL(ctx context.Context, docID uuid.UUID, input domain.UploadURLInput) (*domain.UploadURLResponse, error) {
+	doc, err := s.docRepo.FindByID(docID)
+	if err != nil {
+		return nil, err
+	}
+	if doc == nil {
+		return nil, domain.ErrDocumentNotFound
+	}
+
+	if input.ContentType != "application/pdf" {
+		return nil, domain.ErrInvalidContentType
+	}
+
+	if input.FileSize <= 0 || input.FileSize > 25*1024*1024 {
+		return nil, domain.ErrFileTooLarge
+	}
+
+	if s.storageSvc == nil {
+		return nil, storage.ErrStorageUnavailable
+	}
+
+	year := doc.CreatedAt.Year()
+	if year <= 0 {
+		year = time.Now().Year()
+	}
+
+	// Formato multi-tenant seguro da chave:
+	// tenants/{municipalityId}/{documentType}/{year}/{documentId}/{uuid}.pdf
+	key := fmt.Sprintf("tenants/%s/%s/%d/%s/%s.pdf", doc.MunicipalityID, doc.Type, year, doc.ID, uuid.New().String())
+	expiresIn := 10 * time.Minute
+
+	uploadURL, err := s.storageSvc.GeneratePresignedUploadURL(ctx, key, input.ContentType, expiresIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.UploadURLResponse{
+		UploadURL:        uploadURL,
+		FileKey:          key,
+		ExpiresInSeconds: int(expiresIn.Seconds()),
+	}, nil
+}
+
+func (s *documentService) ConfirmUpload(ctx context.Context, docID uuid.UUID, input domain.ConfirmUploadInput) (*domain.Document, error) {
+	doc, err := s.docRepo.FindByID(docID)
+	if err != nil {
+		return nil, err
+	}
+	if doc == nil {
+		return nil, domain.ErrDocumentNotFound
+	}
+
+	cleanKey := strings.TrimSpace(input.FileKey)
+	if cleanKey == "" {
+		return nil, errors.New("fileKey é obrigatório")
+	}
+
+	if s.storageSvc == nil {
+		return nil, storage.ErrStorageUnavailable
+	}
+
+	// Validação obrigatória de OCR no R2 (mínimo de 50 caracteres alfanuméricos)
+	valid, _, err := s.storageSvc.ValidatePDFOCR(ctx, cleanKey, 50)
+	if err != nil || !valid {
+		// Remove imediatamente o arquivo sem OCR do R2 para evitar armazenamento indevido
+		_ = s.storageSvc.DeleteObject(ctx, cleanKey)
+		if errors.Is(err, storage.ErrPDFMissingOCR) || !valid {
+			return nil, domain.ErrPDFMissingOCR
+		}
+		return nil, err
+	}
+
+	// Se havia arquivo anterior e a chave mudou, exclui o anterior do R2
+	if doc.FileKey != "" && doc.FileKey != cleanKey {
+		_ = s.storageSvc.DeleteObject(ctx, doc.FileKey)
+	}
+
+	doc.FileKey = cleanKey
+	if err := s.docRepo.Update(doc); err != nil {
+		return nil, err
+	}
+
+	return s.docRepo.FindByID(docID)
+}
+
+func (s *documentService) GenerateFileURL(ctx context.Context, docID uuid.UUID, download bool) (*domain.FileURLResponse, error) {
+	doc, err := s.docRepo.FindByIDUnscoped(docID)
+	if err != nil {
+		return nil, err
+	}
+	if doc == nil {
+		return nil, domain.ErrDocumentNotFound
+	}
+
+	if doc.FileKey == "" {
+		return nil, domain.ErrFileNotFound
+	}
+
+	if s.storageSvc == nil {
+		return nil, storage.ErrStorageUnavailable
+	}
+
+	filename := fmt.Sprintf("%s_%d_%d.pdf", strings.ToLower(string(doc.Type)), doc.Order, doc.CreatedAt.Year())
+	expiresIn := 15 * time.Minute
+
+	fileURL, err := s.storageSvc.GeneratePresignedDownloadURL(ctx, doc.FileKey, filename, download, expiresIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.FileURLResponse{
+		URL:              fileURL,
+		ExpiresInSeconds: int(expiresIn.Seconds()),
+	}, nil
+}
+

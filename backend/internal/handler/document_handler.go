@@ -29,6 +29,11 @@ func (h *DocumentHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		g.PATCH("/:id/restore", h.Restore)
 		g.DELETE("/:id/hard", h.HardDelete)
 		g.DELETE("/:id", h.Delete)
+
+		// Rotas de Gestão de Anexos (Cloudflare R2)
+		g.POST("/:id/upload-url", h.GenerateUploadURL)
+		g.POST("/:id/confirm-upload", h.ConfirmUpload)
+		g.GET("/:id/file-url", h.GenerateFileURL)
 	}
 }
 
@@ -349,6 +354,99 @@ func (h *DocumentHandler) HardDelete(c *gin.Context) {
 	}
 
 	response.NoContent(c)
+}
+
+// GenerateUploadURL gera uma presigned URL para upload direto do PDF no Cloudflare R2
+func (h *DocumentHandler) GenerateUploadURL(c *gin.Context) {
+	id, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+
+	d, err := h.svc.GetByID(id)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	// Somente MOD ou COMMON com permissão WRITE/DELETE do mesmo município podem fazer upload
+	if !h.checkAccess(c, d, "update") {
+		return
+	}
+
+	var input domain.UploadURLInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	res, err := h.svc.GenerateUploadURL(c.Request.Context(), id, input)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, res)
+}
+
+// ConfirmUpload valida o OCR do arquivo no R2 e associa o fileKey ao documento
+func (h *DocumentHandler) ConfirmUpload(c *gin.Context) {
+	id, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+
+	d, err := h.svc.GetByID(id)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	if !h.checkAccess(c, d, "update") {
+		return
+	}
+
+	var input domain.ConfirmUploadInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	updated, err := h.svc.ConfirmUpload(c.Request.Context(), id, input)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, updated)
+}
+
+// GenerateFileURL emite uma presigned URL para visualização inline ou download do anexo
+func (h *DocumentHandler) GenerateFileURL(c *gin.Context) {
+	id, ok := parseUUID(c, "id")
+	if !ok {
+		return
+	}
+
+	d, err := h.svc.GetByIDUnscoped(id)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	// Permissão de leitura (READ, WRITE, DELETE) no município do usuário
+	if !h.checkAccess(c, d, "view") {
+		return
+	}
+
+	download := c.Query("download") == "true"
+	res, err := h.svc.GenerateFileURL(c.Request.Context(), id, download)
+	if err != nil {
+		handleDocumentError(c, err)
+		return
+	}
+
+	response.OK(c, res)
 }
 
 func (h *DocumentHandler) checkAccess(c *gin.Context, doc *domain.Document, action string) bool {

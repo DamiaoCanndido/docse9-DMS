@@ -114,6 +114,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     confirmDeleteDialogAction,
     handleCreate,
     handleUpdate,
+    handleUploadAttachment,
+    handleGetFileURL,
   } = useDocumentActions();
 
   // Form modal state
@@ -249,16 +251,43 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
     id,
     createInput,
     updateInput,
+    file,
+    onProgress,
   }: {
     isEdit: boolean;
     id?: string;
     createInput?: Parameters<typeof handleCreate>[0];
     updateInput?: Parameters<typeof handleUpdate>[1];
+    file?: File;
+    onProgress?: (pct: number) => void;
   }) => {
+    let savedDoc: Document | null = null;
     if (isEdit && id && updateInput) {
-      await handleUpdate(id, updateInput);
+      savedDoc = await handleUpdate(id, updateInput);
     } else if (createInput) {
-      await handleCreate(createInput);
+      savedDoc = await handleCreate(createInput);
+    }
+
+    if (savedDoc && file) {
+      await handleUploadAttachment(savedDoc.id, file, onProgress);
+    }
+  };
+
+  const handleViewAttachment = async (doc: Document) => {
+    try {
+      const url = await handleGetFileURL(doc.id, false);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.error('Erro ao abrir anexo do documento:', err);
+    }
+  };
+
+  const handleDownloadAttachment = async (doc: Document) => {
+    try {
+      const url = await handleGetFileURL(doc.id, true);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Erro ao baixar anexo do documento:', err);
     }
   };
 
@@ -390,6 +419,8 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         onDelete={(doc) => openDeleteDialog(doc, 'delete')}
         onRestore={(doc) => openDeleteDialog(doc, 'restore')}
         onHardDelete={(doc) => openDeleteDialog(doc, 'hardDelete')}
+        onViewAttachment={handleViewAttachment}
+        onDownloadAttachment={handleDownloadAttachment}
         pagination={{
           page: initialData.page,
           pageSize: initialData.pageSize,

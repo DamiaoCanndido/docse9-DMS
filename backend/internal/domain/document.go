@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -15,6 +16,10 @@ var (
 	ErrInvalidDocumentType    = errors.New("tipo de documento inválido")
 	ErrInvalidContractType    = errors.New("tipo de contrato inválido")
 	ErrContractFieldsRequired = errors.New("campos de contrato (duration, type, value, startIn) são obrigatórios para contratos")
+	ErrFileNotFound           = errors.New("documento não possui anexo")
+	ErrInvalidContentType     = errors.New("somente arquivos no formato PDF são permitidos")
+	ErrFileTooLarge           = errors.New("arquivo excede o tamanho máximo permitido de 25MB")
+	ErrPDFMissingOCR          = errors.New("o arquivo PDF não possui camada de texto pesquisável (OCR)")
 )
 
 // DocumentType representa o tipo de documento.
@@ -125,6 +130,27 @@ type UpdateDocumentInput struct {
 	StartIn      *time.Time    `json:"startIn"      binding:"omitempty"`
 }
 
+type UploadURLInput struct {
+	FileName    string `json:"fileName"    binding:"required"`
+	FileSize    int64  `json:"fileSize"    binding:"required,gt=0,lte=26214400"` // máx 25MB
+	ContentType string `json:"contentType" binding:"required,eq=application/pdf"`
+}
+
+type UploadURLResponse struct {
+	UploadURL        string `json:"uploadUrl"`
+	FileKey          string `json:"fileKey"`
+	ExpiresInSeconds int    `json:"expiresInSeconds"`
+}
+
+type ConfirmUploadInput struct {
+	FileKey string `json:"fileKey" binding:"required"`
+}
+
+type FileURLResponse struct {
+	URL              string `json:"url"`
+	ExpiresInSeconds int    `json:"expiresInSeconds"`
+}
+
 // ──────────────────────────────────────────────
 // Repository interface (porta de saída)
 // ──────────────────────────────────────────────
@@ -160,4 +186,9 @@ type DocumentService interface {
 	Delete(id uuid.UUID) error
 	Restore(id uuid.UUID) (*Document, error)
 	HardDelete(id uuid.UUID) error
+
+	// Gestão de Anexos e Storage (Cloudflare R2 / S3)
+	GenerateUploadURL(ctx context.Context, docID uuid.UUID, input UploadURLInput) (*UploadURLResponse, error)
+	ConfirmUpload(ctx context.Context, docID uuid.UUID, input ConfirmUploadInput) (*Document, error)
+	GenerateFileURL(ctx context.Context, docID uuid.UUID, download bool) (*FileURLResponse, error)
 }

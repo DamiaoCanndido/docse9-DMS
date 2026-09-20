@@ -1,6 +1,8 @@
 package mocks
 
 import (
+	"context"
+
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
@@ -78,3 +80,28 @@ func (m *DocumentService) HardDelete(id uuid.UUID) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
+
+func (m *DocumentService) GenerateUploadURL(ctx context.Context, docID uuid.UUID, input domain.UploadURLInput) (*domain.UploadURLResponse, error) {
+	args := m.Called(ctx, docID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.UploadURLResponse), args.Error(1)
+}
+
+func (m *DocumentService) ConfirmUpload(ctx context.Context, docID uuid.UUID, input domain.ConfirmUploadInput) (*domain.Document, error) {
+	args := m.Called(ctx, docID, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Document), args.Error(1)
+}
+
+func (m *DocumentService) GenerateFileURL(ctx context.Context, docID uuid.UUID, download bool) (*domain.FileURLResponse, error) {
+	args := m.Called(ctx, docID, download)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.FileURLResponse), args.Error(1)
+}
+

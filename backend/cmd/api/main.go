@@ -18,6 +18,7 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/database"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/logger"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/security"
+	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -69,8 +70,25 @@ func main() {
 	userSvc := service.NewUserService(userRepo, municipalityRepo, permissionRepo)
 	userHnd := handler.NewUserHandler(userSvc)
 
+	// ── Storage (Cloudflare R2 / S3) ────────────────
+	r2Cfg := storage.LoadConfigFromEnv()
+	var storageSvc storage.StorageService
+	if r2Cfg.IsConfigured() {
+		var err error
+		storageSvc, err = storage.NewR2StorageService(r2Cfg)
+		if err != nil {
+			slog.Warn("Falha ao inicializar Cloudflare R2 storage service", slog.String("error", err.Error()))
+			storageSvc = storage.NewMockStorageService()
+		} else {
+			slog.Info("Cloudflare R2 storage conectado com sucesso", slog.String("bucket", r2Cfg.BucketName))
+		}
+	} else {
+		slog.Warn("Cloudflare R2 não configurado. Utilizando MockStorageService para ambiente local")
+		storageSvc = storage.NewMockStorageService()
+	}
+
 	docRepo := repository.NewDocumentRepository(db)
-	docSvc := service.NewDocumentService(docRepo, userRepo, municipalityRepo)
+	docSvc := service.NewDocumentService(docRepo, userRepo, municipalityRepo, storageSvc)
 	docHnd := handler.NewDocumentHandler(docSvc, permissionRepo)
 
 	authSvc := service.NewAuthService(userRepo)

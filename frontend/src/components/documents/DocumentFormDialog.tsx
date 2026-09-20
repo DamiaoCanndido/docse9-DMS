@@ -27,8 +27,20 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { motion } from 'framer-motion';
-import { Calendar as CalendarIcon, Clock, FileCheck } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  FileCheck,
+  FileText,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Loader2,
+} from 'lucide-react';
 import { formatDate, formatTime, parseDateSafe, combineDateAndTime, ptBR } from '@/lib/date';
+import { validatePDFClientSide } from '@/lib/pdf-validator';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 
@@ -60,6 +72,8 @@ interface DocumentFormDialogProps {
     id?: string;
     createInput?: CreateDocumentInput;
     updateInput?: UpdateDocumentInput;
+    file?: File;
+    onProgress?: (pct: number) => void;
   }) => Promise<void>;
   creatorId: string;
   municipalityId: string;
@@ -77,6 +91,8 @@ interface DocumentFormContentProps {
     id?: string;
     createInput?: CreateDocumentInput;
     updateInput?: UpdateDocumentInput;
+    file?: File;
+    onProgress?: (pct: number) => void;
   }) => Promise<void>;
   creatorId: string;
   municipalityId: string;
@@ -126,6 +142,40 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
 
   const [createdAtDate, setCreatedAtDate] = useState<Date | undefined>(initialCreatedAtDate);
   const [createdAtTime, setCreatedAtTime] = useState(initialCreatedAtTime);
+
+  // Estados para anexo de arquivo PDF e validação de OCR
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isValidatingFile, setIsValidatingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsValidatingFile(true);
+    setFileError(null);
+
+    const result = await validatePDFClientSide(file);
+    setIsValidatingFile(false);
+
+    if (!result.valid) {
+      const msg = result.error || 'Arquivo PDF inválido.';
+      setFileError(msg);
+      toast.error(msg);
+      setSelectedFile(null);
+      e.target.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    toast.success('Arquivo PDF e camada de OCR validados com sucesso!');
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setFileError(null);
+  };
 
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -178,7 +228,13 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           updateInput.createdAt = combineDateAndTime(createdAtDate, createdAtTime);
         }
 
-        await onSave({ isEdit: true, id: editingDocument.id, updateInput });
+        await onSave({
+          isEdit: true,
+          id: editingDocument.id,
+          updateInput,
+          file: selectedFile || undefined,
+          onProgress: (pct) => setUploadProgress(pct),
+        });
       } else {
         const createInput: CreateDocumentInput = {
           type,
@@ -193,7 +249,12 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           createInput.startIn = combineDateAndTime(startInDate, startInTime);
         }
 
-        await onSave({ isEdit: false, createInput });
+        await onSave({
+          isEdit: false,
+          createInput,
+          file: selectedFile || undefined,
+          onProgress: (pct) => setUploadProgress(pct),
+        });
       }
       onClose();
     } catch (err: unknown) {
@@ -258,6 +319,106 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           onChange={(e) => setDescription(e.target.value)}
           required
         />
+      </div>
+
+      {/* Seção de Anexo Oficial (PDF com OCR Obrigatório) */}
+      <div className="w-full flex flex-col gap-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-foreground/80 flex items-center justify-between">
+          <span>Anexo Oficial (PDF com OCR Obrigatório)</span>
+          <span className="text-[10px] text-muted-foreground font-normal lowercase">
+            estritamente 1 arquivo • máx. 25 MB
+          </span>
+        </label>
+
+        {selectedFile ? (
+          <div className="flex items-center justify-between p-3.5 bg-teal-500/10 border border-teal-500/30 rounded-xl">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-xs">
+                  {selectedFile.name}
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-muted-foreground">
+                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] text-teal-600 dark:text-teal-400 font-semibold">
+                    <CheckCircle2 className="w-3 h-3" />
+                    OCR Detectado
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRemoveFile}
+              className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 h-8 w-8 p-0 rounded-lg"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="relative border-2 border-dashed border-border hover:border-teal-500/50 rounded-xl p-4 transition-all bg-muted/20 hover:bg-muted/40 text-center flex flex-col items-center justify-center gap-2">
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={handleFileChange}
+              disabled={isValidatingFile || isSaving}
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full disabled:cursor-not-allowed"
+            />
+            {isValidatingFile ? (
+              <div className="flex items-center gap-2 text-teal-600 dark:text-teal-400 text-xs font-semibold py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Validando estrutura e camada de OCR do PDF...
+              </div>
+            ) : (
+              <>
+                <div className="w-8 h-8 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                  <UploadCloud className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-semibold text-foreground">
+                    Clique para selecionar ou arraste o arquivo PDF aqui
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    O arquivo deve conter texto pesquisável (OCR ativo). Scans sem texto serão recusados.
+                  </span>
+                </div>
+                {editingDocument?.fileKey && (
+                  <span className="text-[11px] font-medium text-amber-500 mt-1">
+                    ⚠️ Este documento já possui um anexo. O envio de um novo PDF substituirá o arquivo atual no Cloudflare R2.
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {fileError && (
+          <div className="flex items-center gap-1.5 text-xs text-red-500 font-medium bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-xl">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{fileError}</span>
+          </div>
+        )}
+
+        {uploadProgress !== null && (
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex justify-between text-[11px] text-muted-foreground font-semibold">
+              <span>Enviando para o Cloudflare R2...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-teal-500 h-full transition-all duration-300 rounded-full"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Specific fields for CONTRACT */}
