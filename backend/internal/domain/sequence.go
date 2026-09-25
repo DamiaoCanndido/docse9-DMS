@@ -16,6 +16,7 @@ var (
 	ErrInvalidSequenceContractType = errors.New("tipo de contrato é obrigatório para contratos")
 	ErrManualOrderForbidden        = errors.New("apenas moderadores podem definir número manual de documento")
 	ErrSequenceAccessForbidden     = errors.New("acesso restrito a moderadores do município")
+	ErrChronologicalOrderInvalid   = errors.New("inconsistência cronológica de numeração na série documental")
 )
 
 // SequenceOffset representa a configuração de marco inicial numérico para um tipo de documento/ano.

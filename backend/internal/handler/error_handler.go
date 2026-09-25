@@ -28,6 +28,7 @@ func handleDomainError(c *gin.Context, err error) bool {
 	case errors.Is(err, domain.ErrEmailAlreadyExists) ||
 		errors.Is(err, domain.ErrUsernameAlreadyExists) ||
 		errors.Is(err, domain.ErrOrderAlreadyExists) ||
+		errors.Is(err, domain.ErrChronologicalOrderInvalid) ||
 		errors.Is(err, service.ErrMunicipalityNameConflict):
 		response.Conflict(c, err.Error())
 	case errors.Is(err, domain.ErrInvalidDocumentType) ||

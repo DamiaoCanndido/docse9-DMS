@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/domain"
 	"github.com/google/uuid"
@@ -58,56 +59,59 @@ func (r *documentRepository) CreateWithNextOrder(d *domain.Document, year *int) 
 			if count > 0 {
 				return fmt.Errorf("%w: o número %d já está cadastrado para este tipo e ano", domain.ErrOrderAlreadyExists, d.Order)
 			}
+		} else {
+			// Geração automática de número sequencial
+			var lastOrder int
+			query := tx.Unscoped().Model(&domain.Document{}).
+				Select("COALESCE(MAX(documents.order), 0)").
+				Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
 
-			return tx.Create(d).Error
+			if d.Type == domain.TypeContract && d.ContractType != nil {
+				query = query.Where("contract_type = ?", *d.ContractType)
+			}
+
+			if year != nil {
+				query = query.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *year)
+			}
+
+			if err := query.Row().Scan(&lastOrder); err != nil {
+				return err
+			}
+
+			// Busca marco inicial (initial_order) configurado em sequence_offsets
+			initialOrder := 1
+			offsetQuery := tx.Model(&domain.SequenceOffset{}).
+				Select("initial_order").
+				Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
+
+			if d.Type == domain.TypeContract && d.ContractType != nil {
+				offsetQuery = offsetQuery.Where("contract_type = ?", *d.ContractType)
+			} else {
+				offsetQuery = offsetQuery.Where("contract_type IS NULL")
+			}
+
+			if year != nil {
+				offsetQuery = offsetQuery.Where("year = ?", *year)
+			} else {
+				offsetQuery = offsetQuery.Where("year IS NULL")
+			}
+
+			var foundInitial int
+			if err := offsetQuery.Row().Scan(&foundInitial); err == nil && foundInitial >= 1 {
+				initialOrder = foundInitial
+			}
+
+			nextOrder := lastOrder
+			if initialOrder-1 > nextOrder {
+				nextOrder = initialOrder - 1
+			}
+			d.Order = nextOrder + 1
 		}
 
-		// Geração automática de número sequencial
-		var lastOrder int
-		query := tx.Unscoped().Model(&domain.Document{}).
-			Select("COALESCE(MAX(documents.order), 0)").
-			Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
-
-		if d.Type == domain.TypeContract && d.ContractType != nil {
-			query = query.Where("contract_type = ?", *d.ContractType)
-		}
-
-		if year != nil {
-			query = query.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *year)
-		}
-
-		if err := query.Row().Scan(&lastOrder); err != nil {
+		// Validação de consistência cronológica estrita da numeração
+		if err := validateChronology(tx, d, year); err != nil {
 			return err
 		}
-
-		// Busca marco inicial (initial_order) configurado em sequence_offsets
-		initialOrder := 1
-		offsetQuery := tx.Model(&domain.SequenceOffset{}).
-			Select("initial_order").
-			Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
-
-		if d.Type == domain.TypeContract && d.ContractType != nil {
-			offsetQuery = offsetQuery.Where("contract_type = ?", *d.ContractType)
-		} else {
-			offsetQuery = offsetQuery.Where("contract_type IS NULL")
-		}
-
-		if year != nil {
-			offsetQuery = offsetQuery.Where("year = ?", *year)
-		} else {
-			offsetQuery = offsetQuery.Where("year IS NULL")
-		}
-
-		var foundInitial int
-		if err := offsetQuery.Row().Scan(&foundInitial); err == nil && foundInitial >= 1 {
-			initialOrder = foundInitial
-		}
-
-		nextOrder := lastOrder
-		if initialOrder-1 > nextOrder {
-			nextOrder = initialOrder - 1
-		}
-		d.Order = nextOrder + 1
 
 		return tx.Create(d).Error
 	})
@@ -186,7 +190,134 @@ func (r *documentRepository) FindByIDUnscoped(id uuid.UUID) (*domain.Document, e
 }
 
 func (r *documentRepository) Update(d *domain.Document) error {
-	return r.db.Omit("CreatedBy", "Municipality").Save(d).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var year *int
+		if d.Type != domain.TypeLaw {
+			recifeLoc, err := time.LoadLocation("America/Recife")
+			if err != nil {
+				recifeLoc = time.FixedZone("BRT", -3*3600)
+			}
+			y := d.CreatedAt.In(recifeLoc).Year()
+			year = &y
+		}
+
+		if err := validateChronology(tx, d, year); err != nil {
+			return err
+		}
+
+		return tx.Omit("CreatedBy", "Municipality").Save(d).Error
+	})
+}
+
+func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
+	recifeLoc, err := time.LoadLocation("America/Recife")
+	if err != nil {
+		recifeLoc = time.FixedZone("BRT", -3*3600)
+	}
+	docDateStr := d.CreatedAt.In(recifeLoc).Format("2006-01-02")
+	docDateFormatted := d.CreatedAt.In(recifeLoc).Format("02/01/2006")
+
+	type chronoRecord struct {
+		Order     int
+		CreatedAt time.Time
+	}
+
+	dateExpr := "DATE(created_at AT TIME ZONE 'America/Recife')"
+	yearExpr := "EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife')"
+	if tx.Dialector.Name() != "postgres" {
+		dateExpr = "DATE(created_at)"
+		yearExpr = "CAST(strftime('%Y', created_at) AS INTEGER)"
+	}
+
+	// 1. Verificar se existe ato com data estritamente anterior e número maior ou igual
+	var preceding chronoRecord
+	precedingQuery := tx.Unscoped().Model(&domain.Document{}).
+		Select("documents.order, created_at").
+		Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type).
+		Where(fmt.Sprintf("%s < ?", dateExpr), docDateStr)
+
+	if d.Type == domain.TypeContract {
+		if d.ContractType != nil {
+			precedingQuery = precedingQuery.Where("contract_type = ?", *d.ContractType)
+		} else {
+			precedingQuery = precedingQuery.Where("contract_type IS NULL")
+		}
+	}
+	if year != nil {
+		precedingQuery = precedingQuery.Where(fmt.Sprintf("%s = ?", yearExpr), *year)
+	}
+	if d.ID != uuid.Nil {
+		precedingQuery = precedingQuery.Where("id != ?", d.ID)
+	}
+
+	if err := precedingQuery.Order("documents.order DESC, created_at DESC").Limit(1).Scan(&preceding).Error; err == nil && preceding.Order > 0 {
+		if d.Order <= preceding.Order {
+			precDate := preceding.CreatedAt.In(recifeLoc).Format("02/01/2006")
+			var typeName string
+			switch d.Type {
+			case domain.TypeLaw:
+				typeName = "a Lei"
+			case domain.TypeDecree:
+				typeName = "o Decreto"
+			case domain.TypeOrdinance:
+				typeName = "a Portaria"
+			case domain.TypeNotice:
+				typeName = "o Ofício"
+			case domain.TypeContract:
+				typeName = "o Contrato"
+			default:
+				typeName = "o ato"
+			}
+			return fmt.Errorf("%w: existe %s nº %d com data anterior (%s). Para a data informada (%s), o número deve ser superior a %d",
+				domain.ErrChronologicalOrderInvalid, typeName, preceding.Order, precDate, docDateFormatted, preceding.Order)
+		}
+	}
+
+	// 2. Verificar se existe ato com data estritamente posterior e número menor ou igual
+	var succeeding chronoRecord
+	succeedingQuery := tx.Unscoped().Model(&domain.Document{}).
+		Select("documents.order, created_at").
+		Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type).
+		Where(fmt.Sprintf("%s > ?", dateExpr), docDateStr)
+
+	if d.Type == domain.TypeContract {
+		if d.ContractType != nil {
+			succeedingQuery = succeedingQuery.Where("contract_type = ?", *d.ContractType)
+		} else {
+			succeedingQuery = succeedingQuery.Where("contract_type IS NULL")
+		}
+	}
+	if year != nil {
+		succeedingQuery = succeedingQuery.Where(fmt.Sprintf("%s = ?", yearExpr), *year)
+	}
+	if d.ID != uuid.Nil {
+		succeedingQuery = succeedingQuery.Where("id != ?", d.ID)
+	}
+
+	if err := succeedingQuery.Order("documents.order ASC, created_at ASC").Limit(1).Scan(&succeeding).Error; err == nil && succeeding.Order > 0 {
+		if d.Order >= succeeding.Order {
+			succDate := succeeding.CreatedAt.In(recifeLoc).Format("02/01/2006")
+			var typeName string
+			switch d.Type {
+			case domain.TypeLaw:
+				typeName = "a Lei"
+			case domain.TypeDecree:
+				typeName = "o Decreto"
+			case domain.TypeOrdinance:
+				typeName = "a Portaria"
+			case domain.TypeNotice:
+				typeName = "o Ofício"
+			case domain.TypeContract:
+				typeName = "o Contrato"
+			default:
+				typeName = "o ato"
+			}
+			return fmt.Errorf("%w: existe %s nº %d com data posterior (%s). Para a data informada (%s), o número deve ser inferior a %d",
+				domain.ErrChronologicalOrderInvalid, typeName, succeeding.Order, succDate, docDateFormatted, succeeding.Order)
+		}
+	}
+
+	return nil
 }
 
 func (r *documentRepository) Delete(id uuid.UUID) error {

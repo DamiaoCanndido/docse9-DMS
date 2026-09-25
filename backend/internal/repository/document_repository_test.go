@@ -442,3 +442,135 @@ func (s *DocumentRepositorySuite) TestCreateWithNextOrder_LawPerpetual_WithOffse
 	s.Equal(51, law2.Order)
 }
 
+func (s *DocumentRepositorySuite) TestCreateWithNextOrder_ChronologicalIntegrity() {
+	// Cenário do usuário:
+	// 1. Lei criada em 1970 com a numeração 400
+	law1970 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          400,
+		Description:    "Lei Municipal Histórica de 1970",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1970, 5, 10, 12, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law1970, nil))
+	s.Equal(400, law1970.Order)
+
+	// 2. Tentativa de criar Lei em 1990 com a numeração 300 (< 400, data posterior) -> Erro de inconsistência cronológica
+	law1990Invalid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          300,
+		Description:    "Lei de 1990 inválida com número inferior à de 1970",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1990, 8, 15, 12, 0, 0, 0, time.UTC),
+	}
+	err := s.repo.CreateWithNextOrder(law1990Invalid, nil)
+	s.Require().Error(err)
+	s.ErrorIs(err, domain.ErrChronologicalOrderInvalid)
+
+	// 3. Criar Lei em 1990 com numeração 450 (> 400) -> Sucesso
+	law1990Valid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          450,
+		Description:    "Lei de 1990 válida com número superior à de 1970",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1990, 8, 15, 12, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law1990Valid, nil))
+	s.Equal(450, law1990Valid.Order)
+
+	// 4. Tentativa reversa: Criar Lei em 1960 com numeração 500 (> 450 de 1990, data anterior) -> Erro
+	law1960Invalid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          500,
+		Description:    "Lei de 1960 inválida com número superior à de 1990",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1960, 1, 1, 12, 0, 0, 0, time.UTC),
+	}
+	err = s.repo.CreateWithNextOrder(law1960Invalid, nil)
+	s.Require().Error(err)
+	s.ErrorIs(err, domain.ErrChronologicalOrderInvalid)
+
+	// 5. Mesma data (mesmo dia): Múltiplos atos no mesmo dia permitidos
+	sameDayDate := time.Date(1980, 3, 15, 10, 0, 0, 0, time.UTC)
+	law1 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          410,
+		Description:    "Lei 410 no dia 15/03/1980",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      sameDayDate,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law1, nil))
+
+	law2 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Order:          411,
+		Description:    "Lei 411 no mesmo dia 15/03/1980",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      sameDayDate,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law2, nil))
+
+	// 6. Atos Anuais (ex: DECREE): anos diferentes são independentes
+	yr1970 := 1970
+	yr1990 := 1990
+	dec1970 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          400,
+		Description:    "Decreto 400 de 1970",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1970, 5, 10, 12, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(dec1970, &yr1970))
+
+	dec1990 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          300,
+		Description:    "Decreto 300 de 1990 (permitido pois o ciclo é anual)",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(1990, 8, 15, 12, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(dec1990, &yr1990))
+
+	// 7. Atos Anuais: dentro do mesmo exercício anual (2026), inconsistência de ordem e data é bloqueada
+	yr2026 := 2026
+	decJan := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          50,
+		Description:    "Decreto 50 em 10/01/2026",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 1, 10, 12, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(decJan, &yr2026))
+
+	decFebInvalid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          30, // < 50 em data posterior (fevereiro) -> inconsistência
+		Description:    "Decreto 30 em 20/02/2026 inválido",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 2, 20, 12, 0, 0, 0, time.UTC),
+	}
+	err = s.repo.CreateWithNextOrder(decFebInvalid, &yr2026)
+	s.Require().Error(err)
+	s.ErrorIs(err, domain.ErrChronologicalOrderInvalid)
+}
+

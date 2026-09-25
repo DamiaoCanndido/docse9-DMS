@@ -199,6 +199,35 @@ func TestCreateDocument_Handler_409_ConflictOrderAlreadyExists(t *testing.T) {
 	svc.AssertExpectations(t)
 }
 
+func TestCreateDocument_Handler_409_ConflictChronologicalOrderInvalid(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	userID := uuid.New()
+	manualOrder := 300
+
+	input := domain.CreateDocumentInput{
+		Type:           domain.TypeLaw,
+		Description:    "Lei de 1990 com número inferior a lei de 1970",
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		ManualOrder:    &manualOrder,
+	}
+
+	svc.On("Create", input).Return(nil, domain.ErrChronologicalOrderInvalid)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	svc.AssertExpectations(t)
+}
+
 func TestGetDocumentByID_Handler_200(t *testing.T) {
 	svc := new(handlerMocks.DocumentService)
 	permRepo := new(handlerMocks.UserPermissionRepository)
