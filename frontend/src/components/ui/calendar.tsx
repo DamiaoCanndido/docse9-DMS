@@ -16,8 +16,10 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = "label",
+  captionLayout = "dropdown",
   buttonVariant = "ghost",
+  startMonth = new Date(1920, 0),
+  endMonth = new Date(2050, 11),
   locale,
   formatters,
   components,
@@ -37,10 +39,15 @@ function Calendar({
         className
       )}
       captionLayout={captionLayout}
+      startMonth={startMonth}
+      endMonth={endMonth}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString(locale?.code, { month: "short" }),
+        formatMonthDropdown: (date) => {
+          const m = date.toLocaleString(locale?.code || 'pt-BR', { month: "short" });
+          return m.charAt(0).toUpperCase() + m.slice(1);
+        },
+        formatYearDropdown: (date) => date.getFullYear().toString(),
         ...formatters,
       }}
       classNames={{
@@ -51,7 +58,7 @@ function Calendar({
         ),
         month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
         nav: cn(
-          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 z-10 pointer-events-none [&>button]:pointer-events-auto",
           defaultClassNames.nav
         ),
         button_previous: cn(
@@ -69,22 +76,19 @@ function Calendar({
           defaultClassNames.month_caption
         ),
         dropdowns: cn(
-          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
+          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-xs font-semibold",
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
-          "relative rounded-(--cell-radius)",
+          "relative inline-flex items-center rounded-md border border-border/70 bg-muted/40 hover:bg-muted transition-colors py-0.5 px-1.5 cursor-pointer shadow-2xs",
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(
-          "absolute inset-0 bg-popover opacity-0",
+          "absolute inset-0 bg-transparent opacity-0 cursor-pointer w-full h-full z-20 text-foreground",
           defaultClassNames.dropdown
         ),
         caption_label: cn(
-          "font-medium select-none",
-          captionLayout === "label"
-            ? "text-sm"
-            : "flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+          "font-semibold select-none flex items-center gap-1 rounded-md text-xs text-foreground [&>svg]:size-3 [&>svg]:text-muted-foreground",
           defaultClassNames.caption_label
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),

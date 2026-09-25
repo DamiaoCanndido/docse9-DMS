@@ -163,6 +163,89 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
 
   const [createdAtDate, setCreatedAtDate] = useState<Date | undefined>(initialCreatedAtDate);
   const [createdAtTime, setCreatedAtTime] = useState(initialCreatedAtTime);
+  const [createdAtText, setCreatedAtText] = useState(
+    initialCreatedAtDate ? formatDate(initialCreatedAtDate) : ''
+  );
+  const [isCreatedAtCalendarOpen, setIsCreatedAtCalendarOpen] = useState(false);
+
+  const [startInText, setStartInText] = useState(
+    initialStartInDate ? formatDate(initialStartInDate) : ''
+  );
+  const [isStartInCalendarOpen, setIsStartInCalendarOpen] = useState(false);
+
+  const handleCreatedAtTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let masked = '';
+    if (digits.length <= 2) {
+      masked = digits;
+    } else if (digits.length <= 4) {
+      masked = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else {
+      masked = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    }
+    setCreatedAtText(masked);
+
+    if (digits.length === 8) {
+      const parsed = parseDateSafe(masked);
+      if (parsed) {
+        setCreatedAtDate(parsed);
+      }
+    }
+  };
+
+  const handleCreatedAtTextBlur = () => {
+    if (!createdAtText.trim()) {
+      setCreatedAtDate(undefined);
+      return;
+    }
+    const parsed = parseDateSafe(createdAtText);
+    if (parsed) {
+      setCreatedAtDate(parsed);
+      setCreatedAtText(formatDate(parsed));
+    } else if (createdAtDate) {
+      setCreatedAtText(formatDate(createdAtDate));
+    } else {
+      setCreatedAtText('');
+      setCreatedAtDate(undefined);
+    }
+  };
+
+  const handleStartInTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+    let masked = '';
+    if (digits.length <= 2) {
+      masked = digits;
+    } else if (digits.length <= 4) {
+      masked = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else {
+      masked = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    }
+    setStartInText(masked);
+
+    if (digits.length === 8) {
+      const parsed = parseDateSafe(masked);
+      if (parsed) {
+        setStartInDate(parsed);
+      }
+    }
+  };
+
+  const handleStartInTextBlur = () => {
+    if (!startInText.trim()) {
+      setStartInDate(undefined);
+      return;
+    }
+    const parsed = parseDateSafe(startInText);
+    if (parsed) {
+      setStartInDate(parsed);
+      setStartInText(formatDate(parsed));
+    } else if (startInDate) {
+      setStartInText(formatDate(startInDate));
+    } else {
+      setStartInText('');
+      setStartInDate(undefined);
+    }
+  };
 
   // Estados para anexo de arquivo PDF e validação de OCR
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -465,33 +548,45 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
 
               <div className="grid grid-cols-2 gap-2 items-end">
                 <div className="w-full flex flex-col gap-1">
-                  <label className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-                    Data do Ato
-                  </label>
-                  <Popover>
-                    <PopoverTrigger render={
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-background border-border text-foreground text-xs h-9 rounded-xl px-2.5",
-                          !createdAtDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="truncate">
-                          {createdAtDate ? formatDate(createdAtDate) : 'Selecionar data'}
-                        </span>
-                      </Button>
-                    } />
-                    <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={createdAtDate}
-                        onSelect={(date) => setCreatedAtDate(date || undefined)}
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Input
+                    label="Data do Ato"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    value={createdAtText}
+                    onChange={handleCreatedAtTextChange}
+                    onBlur={handleCreatedAtTextBlur}
+                    maxLength={10}
+                    className="text-xs py-1.5 h-9 font-mono"
+                    trailingElement={
+                      <Popover open={isCreatedAtCalendarOpen} onOpenChange={setIsCreatedAtCalendarOpen}>
+                        <PopoverTrigger render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+                            title="Abrir calendário para selecionar data"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        } />
+                        <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground shadow-xl" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={createdAtDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                setCreatedAtDate(date);
+                                setCreatedAtText(formatDate(date));
+                                setIsCreatedAtCalendarOpen(false);
+                              }
+                            }}
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    }
+                  />
                 </div>
 
                 <Input
@@ -633,35 +728,47 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
                   />
                 </div>
 
-                {/* Start Date via Popover + Calendar */}
-                <div className="w-full flex flex-col gap-1 sm:col-span-1">
-                  <label className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-                    Data de Início
-                  </label>
-                  <Popover>
-                    <PopoverTrigger render={
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal bg-background border-border text-foreground text-xs h-9 rounded-xl px-2",
-                          !startInDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-1 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="truncate">
-                          {startInDate ? formatDate(startInDate) : 'Selecionar'}
-                        </span>
-                      </Button>
-                    } />
-                    <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startInDate}
-                        onSelect={(date) => setStartInDate(date || undefined)}
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                {/* Start Date via Input + Popover + Calendar */}
+                <div className="w-full sm:col-span-1">
+                  <Input
+                    label="Data de Início"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    value={startInText}
+                    onChange={handleStartInTextChange}
+                    onBlur={handleStartInTextBlur}
+                    maxLength={10}
+                    className="text-xs py-1.5 h-9 font-mono"
+                    trailingElement={
+                      <Popover open={isStartInCalendarOpen} onOpenChange={setIsStartInCalendarOpen}>
+                        <PopoverTrigger render={
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+                            title="Abrir calendário para selecionar data"
+                          >
+                            <CalendarIcon className="h-4 w-4" />
+                          </Button>
+                        } />
+                        <PopoverContent className="w-auto p-0 bg-popover border-border text-popover-foreground shadow-xl" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startInDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                setStartInDate(date);
+                                setStartInText(formatDate(date));
+                                setIsStartInCalendarOpen(false);
+                              }
+                            }}
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    }
+                  />
                 </div>
 
                 {/* Start Time (HH:mm) */}

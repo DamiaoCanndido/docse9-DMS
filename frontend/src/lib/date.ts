@@ -28,6 +28,18 @@ export function parseDateSafe(value: string | Date | undefined | null): Date | u
       return isValid(d) ? d : undefined;
     }
 
+    // Handle Brazilian date format (DD/MM/YYYY)
+    const brDateMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (brDateMatch) {
+      const day = parseInt(brDateMatch[1], 10);
+      const month = parseInt(brDateMatch[2], 10) - 1;
+      const year = parseInt(brDateMatch[3], 10);
+      const d = new Date(year, month, day, 12, 0, 0);
+      return isValid(d) && d.getDate() === day && d.getMonth() === month && d.getFullYear() === year
+        ? d
+        : undefined;
+    }
+
     // Normalize SQL format "YYYY-MM-DD HH:mm:ss" to ISO "YYYY-MM-DDTHH:mm:ss"
     const normalized = trimmed.includes(' ') && !trimmed.includes('T')
       ? trimmed.replace(' ', 'T')

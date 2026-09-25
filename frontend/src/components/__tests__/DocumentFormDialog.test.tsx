@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { DocumentFormDialog, DocumentTypeOption } from '../documents/DocumentFormDialog';
 import { ContractType } from '@/types';
 
@@ -158,5 +159,47 @@ describe('DocumentFormDialog Component', () => {
     expect(
       screen.queryByText('Lançamento de documento de acervo físico / Número manual')
     ).not.toBeInTheDocument();
+  });
+
+  it('deve permitir digitar data retroativa antiga (ex: 15/03/1980) diretamente no campo Data do Ato', async () => {
+    const user = userEvent.setup();
+    const handleSave = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="LAW"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={handleSave}
+        creatorId="user-1"
+        municipalityId="mun-1"
+      />
+    );
+
+    const dateInput = screen.getByLabelText('Data do Ato');
+    await user.clear(dateInput);
+    await user.type(dateInput, '15/03/1980');
+    expect(dateInput).toHaveValue('15/03/1980');
+
+    // Preenche descrição e submete
+    const descInput = screen.getByPlaceholderText(/Descreva o conteúdo do documento/i);
+    await user.type(descInput, 'Lei Municipal Histórica nº 10 de 1980');
+
+    const submitBtn = screen.getByRole('button', { name: /Salvar/i });
+    await user.click(submitBtn);
+
+    expect(handleSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createInput: expect.objectContaining({
+          type: 'LAW',
+          description: 'Lei Municipal Histórica nº 10 de 1980',
+          createdAt: expect.stringContaining('1980-03-15'),
+        }),
+      })
+    );
   });
 });

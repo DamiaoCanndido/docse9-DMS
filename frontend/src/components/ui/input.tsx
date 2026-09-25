@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils"
 interface InputProps extends React.ComponentProps<"input"> {
   label?: string;
   error?: string;
+  trailingElement?: React.ReactNode;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, type, id, ...props }, ref) => {
+  ({ className, label, error, type, id, trailingElement, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id || generatedId;
     const [showPassword, setShowPassword] = React.useState(false);
@@ -33,12 +34,17 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             data-slot="input"
             className={cn(
               "h-10 w-full min-w-0 rounded-xl border border-border bg-background text-foreground px-3.5 py-2 text-sm transition-all outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-teal-500 focus-visible:ring-1 focus-visible:ring-teal-500 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-50 md:text-sm",
-              isPasswordType ? 'pr-10' : '',
+              isPasswordType || trailingElement ? 'pr-10' : '',
               error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : '',
               className
             )}
             {...props}
           />
+          {trailingElement && (
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
+              {trailingElement}
+            </div>
+          )}
           {isPasswordType && (
             <button
               type="button"
