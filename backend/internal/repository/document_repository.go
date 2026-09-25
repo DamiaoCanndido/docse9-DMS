@@ -250,7 +250,10 @@ func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
 		precedingQuery = precedingQuery.Where("id != ?", d.ID)
 	}
 
-	if err := precedingQuery.Order("documents.order DESC, created_at DESC").Limit(1).Scan(&preceding).Error; err == nil && preceding.Order > 0 {
+	if err := precedingQuery.Order("documents.order DESC, created_at DESC").Limit(1).Scan(&preceding).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if preceding.Order > 0 {
 		if d.Order <= preceding.Order {
 			precDate := preceding.CreatedAt.In(recifeLoc).Format("02/01/2006")
 			var typeName string
@@ -294,7 +297,10 @@ func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
 		succeedingQuery = succeedingQuery.Where("id != ?", d.ID)
 	}
 
-	if err := succeedingQuery.Order("documents.order ASC, created_at ASC").Limit(1).Scan(&succeeding).Error; err == nil && succeeding.Order > 0 {
+	if err := succeedingQuery.Order("documents.order ASC, created_at ASC").Limit(1).Scan(&succeeding).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	if succeeding.Order > 0 {
 		if d.Order >= succeeding.Order {
 			succDate := succeeding.CreatedAt.In(recifeLoc).Format("02/01/2006")
 			var typeName string

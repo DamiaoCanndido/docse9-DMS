@@ -377,7 +377,7 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
       onClose();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { error?: string } } };
-      let errorMsg = axiosErr?.response?.data?.error;
+      let errorMsg = axiosErr?.response?.data?.error || (err as Error)?.message;
       if (axiosErr?.response?.status === 409) {
         errorMsg = errorMsg || 'O número informado já está cadastrado para este tipo e ano.';
       } else if (!errorMsg) {

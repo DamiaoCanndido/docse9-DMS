@@ -55,14 +55,24 @@ export function useDocumentActions() {
       setIsMutating(true);
       try {
         const result = await createDocument({ input, path: pathname });
+        if (!result.success) {
+          const errorMsg = result.error || 'Erro ao criar o documento.';
+          const err = new Error(errorMsg);
+          (err as unknown as { response: { status?: number; data: { error: string } } }).response = {
+            status: result.status,
+            data: { error: errorMsg },
+          };
+          throw err;
+        }
         toast.success('Documento criado com sucesso!');
-        return result;
+        return result.data || null;
       } catch (err: unknown) {
         if (isRedirectError(err)) {
           throw err;
         }
         const errorMsg =
           (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          (err as Error)?.message ||
           'Erro ao criar o documento.';
         toast.error(errorMsg);
         throw err;
@@ -78,14 +88,24 @@ export function useDocumentActions() {
       setIsMutating(true);
       try {
         const result = await updateDocument({ id, input, path: pathname });
+        if (!result.success) {
+          const errorMsg = result.error || 'Erro ao salvar o documento.';
+          const err = new Error(errorMsg);
+          (err as unknown as { response: { status?: number; data: { error: string } } }).response = {
+            status: result.status,
+            data: { error: errorMsg },
+          };
+          throw err;
+        }
         toast.success('Documento atualizado com sucesso!');
-        return result;
+        return result.data || null;
       } catch (err: unknown) {
         if (isRedirectError(err)) {
           throw err;
         }
         const errorMsg =
           (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+          (err as Error)?.message ||
           'Erro ao salvar o documento.';
         toast.error(errorMsg);
         throw err;
@@ -100,14 +120,18 @@ export function useDocumentActions() {
     async (id: string): Promise<void> => {
       setIsMutating(true);
       try {
-        await deleteDocument({ id, path: pathname });
+        const result = await deleteDocument({ id, path: pathname });
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao excluir documento.');
+        }
         toast.success('Documento enviado para a lixeira com sucesso!');
         closeDeleteDialog();
       } catch (err: unknown) {
         if (isRedirectError(err)) {
           throw err;
         }
-        toast.error('Erro ao excluir documento.');
+        const msg = (err as Error)?.message || 'Erro ao excluir documento.';
+        toast.error(msg);
       } finally {
         setIsMutating(false);
       }
@@ -119,14 +143,18 @@ export function useDocumentActions() {
     async (id: string): Promise<void> => {
       setIsMutating(true);
       try {
-        await restoreDocument({ id, path: pathname });
+        const result = await restoreDocument({ id, path: pathname });
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao restaurar documento.');
+        }
         toast.success('Documento restaurado com sucesso!');
         closeDeleteDialog();
       } catch (err: unknown) {
         if (isRedirectError(err)) {
           throw err;
         }
-        toast.error('Erro ao restaurar documento.');
+        const msg = (err as Error)?.message || 'Erro ao restaurar documento.';
+        toast.error(msg);
       } finally {
         setIsMutating(false);
       }
@@ -138,14 +166,18 @@ export function useDocumentActions() {
     async (id: string): Promise<void> => {
       setIsMutating(true);
       try {
-        await hardDeleteDocument({ id, path: pathname });
+        const result = await hardDeleteDocument({ id, path: pathname });
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao excluir definitivamente.');
+        }
         toast.success('Documento deletado permanentemente.');
         closeDeleteDialog();
       } catch (err: unknown) {
         if (isRedirectError(err)) {
           throw err;
         }
-        toast.error('Erro ao excluir definitivamente.');
+        const msg = (err as Error)?.message || 'Erro ao excluir definitivamente.';
+        toast.error(msg);
       } finally {
         setIsMutating(false);
       }

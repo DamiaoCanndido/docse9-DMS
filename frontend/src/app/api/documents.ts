@@ -78,58 +78,143 @@ export async function getDocumentByID(id: string): Promise<Document> {
   }
 }
 
-export async function createDocument({ input, path }: { input: CreateDocumentInput; path: string }): Promise<Document> {
+export interface DocumentActionResult<T = Document> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  status?: number;
+}
+
+export async function createDocument({
+  input,
+  path,
+}: {
+  input: CreateDocumentInput;
+  path: string;
+}): Promise<DocumentActionResult> {
   try {
     const headers = await getAuthHeader();
     const response = await apiServer.post<{ success: boolean; data: Document }>('/documents', input, { headers });
     revalidatePath(path);
-    return parseStringify(response.data.data);
+    return {
+      success: true,
+      data: parseStringify(response.data.data),
+    };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Erro ao criar o documento.',
+        status: error.response?.status || 500,
+      };
     }
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha na conexão com o servidor.',
+      status: 500,
+    };
   }
 }
 
-export async function updateDocument({ id, input, path }: { id: string; input: UpdateDocumentInput; path: string }): Promise<Document> {
+export async function updateDocument({
+  id,
+  input,
+  path,
+}: {
+  id: string;
+  input: UpdateDocumentInput;
+  path: string;
+}): Promise<DocumentActionResult> {
   try {
     const headers = await getAuthHeader();
     const response = await apiServer.patch<{ success: boolean; data: Document }>(`/documents/${id}`, input, { headers });
     revalidatePath(path);
-    return parseStringify(response.data.data);
+    return {
+      success: true,
+      data: parseStringify(response.data.data),
+    };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Erro ao salvar o documento.',
+        status: error.response?.status || 500,
+      };
     }
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha na conexão com o servidor.',
+      status: 500,
+    };
   }
 }
 
-export async function deleteDocument({ id, path }: { id: string; path: string }): Promise<void> {
+export async function deleteDocument({
+  id,
+  path,
+}: {
+  id: string;
+  path: string;
+}): Promise<{ success: boolean; error?: string }> {
   try {
     const headers = await getAuthHeader();
     await apiServer.delete(`/documents/${id}`, { headers });
     revalidatePath(path);
+    return { success: true };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Erro ao excluir documento.',
+      };
     }
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha na conexão com o servidor.',
+    };
   }
 }
 
-export async function restoreDocument({ id, path }: { id: string; path: string }): Promise<Document> {
+export async function restoreDocument({
+  id,
+  path,
+}: {
+  id: string;
+  path: string;
+}): Promise<DocumentActionResult> {
   try {
     const headers = await getAuthHeader();
     const response = await apiServer.patch<{ success: boolean; data: Document }>(`/documents/${id}/restore`, {}, { headers });
     revalidatePath(path);
-    return parseStringify(response.data.data);
+    return {
+      success: true,
+      data: parseStringify(response.data.data),
+    };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Erro ao restaurar documento.',
+        status: error.response?.status || 500,
+      };
     }
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha na conexão com o servidor.',
+      status: 500,
+    };
   }
 }
 
@@ -179,16 +264,32 @@ export async function getDocumentsTrash(filter?: DocumentFilter, page = 1, pageS
   }
 }
 
-export async function hardDeleteDocument({ id, path }: { id: string; path: string }): Promise<void> {
+export async function hardDeleteDocument({
+  id,
+  path,
+}: {
+  id: string;
+  path: string;
+}): Promise<{ success: boolean; error?: string }> {
   try {
     const headers = await getAuthHeader();
     await apiServer.delete(`/documents/${id}/hard`, { headers });
     revalidatePath(path);
+    return { success: true };
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-      return redirect('/login');
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        return redirect('/login');
+      }
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Erro ao excluir permanentemente o documento.',
+      };
     }
-    throw error;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Falha na conexão com o servidor.',
+    };
   }
 }
 
