@@ -54,30 +54,33 @@ describe('Sidebar Component (RBAC Navigation)', () => {
     vi.clearAllMocks()
   })
 
-  it('deve exibir Documentos, Municípios e Usuários para usuário ADMIN', () => {
+  it('deve exibir Documentos, Municípios e Usuários para usuário ADMIN (e NÃO Sequências)', () => {
     renderComponent('ADMIN')
 
     expect(screen.getByText('Documentos Oficiais')).toBeInTheDocument()
     expect(screen.getByText('Municípios')).toBeInTheDocument()
     expect(screen.getByText('Usuários')).toBeInTheDocument()
+    expect(screen.queryByText('Sequências')).not.toBeInTheDocument()
     expect(screen.getByText('Meu Perfil')).toBeInTheDocument()
   })
 
-  it('deve exibir Documentos e Usuários, mas NÃO Municípios para usuário MOD', () => {
+  it('deve exibir Documentos, Usuários e Sequências, mas NÃO Municípios para usuário MOD', () => {
     renderComponent('MOD')
 
     expect(screen.getByText('Documentos Oficiais')).toBeInTheDocument()
     expect(screen.getByText('Usuários')).toBeInTheDocument()
+    expect(screen.getByText('Sequências')).toBeInTheDocument()
     expect(screen.queryByText('Municípios')).not.toBeInTheDocument()
     expect(screen.getByText('Meu Perfil')).toBeInTheDocument()
   })
 
-  it('deve exibir APENAS Documentos e Perfil para usuário COMMON', () => {
+  it('deve exibir APENAS Documentos e Perfil para usuário COMMON (sem Sequências)', () => {
     renderComponent('COMMON')
 
     expect(screen.getByText('Documentos Oficiais')).toBeInTheDocument()
     expect(screen.queryByText('Municípios')).not.toBeInTheDocument()
     expect(screen.queryByText('Usuários')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sequências')).not.toBeInTheDocument()
     expect(screen.getByText('Meu Perfil')).toBeInTheDocument()
   })
 

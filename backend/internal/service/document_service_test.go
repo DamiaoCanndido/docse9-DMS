@@ -83,6 +83,99 @@ func TestCreateDocument_Success_Notice(t *testing.T) {
 	docRepo.AssertExpectations(t)
 }
 
+func TestCreateDocument_Success_RetroactiveDate(t *testing.T) {
+	svc, docRepo, userRepo, munRepo := newDocumentService(t)
+
+	mun := testhelper.MakePassagem()
+	user := testhelper.MakeUserCommon(mun.ID)
+
+	pastDate := time.Date(2024, 5, 10, 14, 30, 0, 0, time.UTC)
+	expectedYear := 2024
+
+	input := domain.CreateDocumentInput{
+		Type:           domain.TypeDecree,
+		Description:    "Decreto retroativo de 2024",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+		CreatedAt:      &pastDate,
+	}
+
+	munRepo.On("FindByID", mun.ID).Return(&mun, nil)
+	userRepo.On("FindByID", user.ID).Return(&user, nil)
+
+	// O ano passado na chamada deve ser o ano da data retroativa (2024), não o atual
+	docRepo.On("CreateWithNextOrder", mock.MatchedBy(func(d *domain.Document) bool {
+		return d.CreatedAt.Equal(pastDate) && d.Type == domain.TypeDecree
+	}), &expectedYear).Return(nil)
+
+	expectedDoc := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          1,
+		Description:    "Decreto retroativo de 2024",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+		CreatedAt:      pastDate,
+	}
+	docRepo.On("FindByID", mock.Anything).Return(expectedDoc, nil)
+
+	result, err := svc.Create(input)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, pastDate, result.CreatedAt)
+
+	munRepo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
+	docRepo.AssertExpectations(t)
+}
+
+func TestCreateDocument_Success_ManualOrder(t *testing.T) {
+	svc, docRepo, userRepo, munRepo := newDocumentService(t)
+
+	mun := testhelper.MakePassagem()
+	user := testhelper.MakeUserCommon(mun.ID)
+
+	manualOrder := 85
+	currentYear := time.Now().Year()
+
+	input := domain.CreateDocumentInput{
+		Type:           domain.TypeDecree,
+		Description:    "Decreto físico com número manual",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+		ManualOrder:    &manualOrder,
+	}
+
+	munRepo.On("FindByID", mun.ID).Return(&mun, nil)
+	userRepo.On("FindByID", user.ID).Return(&user, nil)
+
+	// doc.Order deve receber o manualOrder (85) antes de chamar CreateWithNextOrder
+	docRepo.On("CreateWithNextOrder", mock.MatchedBy(func(d *domain.Document) bool {
+		return d.Order == 85 && d.Type == domain.TypeDecree
+	}), &currentYear).Return(nil)
+
+	expectedDoc := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Order:          85,
+		Description:    "Decreto físico com número manual",
+		CreatorID:      user.ID,
+		MunicipalityID: mun.ID,
+	}
+	docRepo.On("FindByID", mock.Anything).Return(expectedDoc, nil)
+
+	result, err := svc.Create(input)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, 85, result.Order)
+
+	munRepo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
+	docRepo.AssertExpectations(t)
+}
+
 func TestCreateDocument_Success_Law(t *testing.T) {
 	svc, docRepo, userRepo, munRepo := newDocumentService(t)
 

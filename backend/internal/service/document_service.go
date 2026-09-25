@@ -86,17 +86,33 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		startIn = input.StartIn
 	}
 
-	// 5. Determinar o ano de numeração (para LAW o ano é nil pois a numeração é perpétua)
+	// 5. Determinar a data oficial e o ano de numeração (para LAW o ano é nil pois a numeração é perpétua)
+	var docCreatedAt time.Time
+	if input.CreatedAt != nil && !input.CreatedAt.IsZero() {
+		docCreatedAt = *input.CreatedAt
+	} else {
+		docCreatedAt = time.Now()
+	}
+
 	var year *int
 	if input.Type != domain.TypeLaw {
-		currentYear := time.Now().Year()
-		year = &currentYear
+		docYear := docCreatedAt.Year()
+		year = &docYear
+	}
+
+	var order int
+	if input.ManualOrder != nil {
+		if *input.ManualOrder <= 0 {
+			return nil, errors.New("número manual deve ser maior que zero")
+		}
+		order = *input.ManualOrder
 	}
 
 	// 6. Criar e persistir o documento com numeração transacional atômica
 	doc := &domain.Document{
 		ID:             uuid.New(),
 		Type:           input.Type,
+		Order:          order,
 		Description:    strings.TrimSpace(input.Description),
 		FileKey:        "", // em branco por padrão
 		CreatorID:      input.CreatorID,
@@ -105,6 +121,7 @@ func (s *documentService) Create(input domain.CreateDocumentInput) (*domain.Docu
 		ContractType:   contractType,
 		Value:          value,
 		StartIn:        startIn,
+		CreatedAt:      docCreatedAt,
 	}
 
 	if err := s.docRepo.CreateWithNextOrder(doc, year); err != nil {

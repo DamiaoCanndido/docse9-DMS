@@ -302,6 +302,82 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # ─────────────────────────────────────────────
+  # /municipalities/:id/sequences
+  # ─────────────────────────────────────────────
+  /municipalities/{id}/sequences:
+    parameters:
+      - $ref: '#/components/parameters/MunicipalityID'
+
+    get:
+      summary: Listar marcos iniciais e status de sequências do município
+      operationId: getMunicipalitySequences
+      tags: [municipalities, documents]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Ano de exercício (padrão ano atual)
+      responses:
+        '200':
+          description: Lista de status de sequências por tipo de documento
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SequenceItemResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      summary: Definir ou atualizar o marco inicial de um tipo de ato
+      operationId: setMunicipalitySequenceOffset
+      tags: [municipalities, documents]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetSequenceOffsetInput'
+      responses:
+        '200':
+          description: Marco inicial configurado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SequenceOffset'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # ─────────────────────────────────────────────
   # GET /municipalities/uf/:uf
   # ─────────────────────────────────────────────
   /municipalities/uf/{uf}:
@@ -1513,6 +1589,93 @@ components:
           type: string
           format: date-time
           example: "2025-01-15T10:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora oficial do documento (padrão momento da criação)
+          example: "2025-01-15T10:30:00Z"
+        manualOrder:
+          type: integer
+          minimum: 1
+          description: Número manual oficial do documento para acervos legados (exclusivo para perfil MOD)
+          example: 85
+
+    SequenceOffset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        municipalityId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        contractType:
+          type: string
+          nullable: true
+          enum: [publicinterest, bidding, service]
+        year:
+          type: integer
+          nullable: true
+          example: 2026
+        initialOrder:
+          type: integer
+          minimum: 1
+          example: 85
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SequenceItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: true
+        type:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        contractType:
+          type: string
+          nullable: true
+          enum: [publicinterest, bidding, service]
+        year:
+          type: integer
+          nullable: true
+          example: 2026
+        initialOrder:
+          type: integer
+          example: 85
+        currentOrder:
+          type: integer
+          example: 84
+        nextOrder:
+          type: integer
+          example: 85
+
+    SetSequenceOffsetInput:
+      type: object
+      required: [type, initialOrder]
+      properties:
+        type:
+          type: string
+          enum: [NOTICE, DECREE, ORDINANCE, LAW, CONTRACT]
+        contractType:
+          type: string
+          enum: [publicinterest, bidding, service]
+        year:
+          type: integer
+          example: 2026
+        initialOrder:
+          type: integer
+          minimum: 1
+          example: 85
 
     UpdateDocumentInput:
       type: object

@@ -6,7 +6,7 @@ import { parseStringify } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import axios from 'axios';
-import { Document, CreateDocumentInput, UpdateDocumentInput, DocumentFilter, PaginatedResponse, UploadURLResponse, FileURLResponse } from '@/types';
+import { Document, CreateDocumentInput, UpdateDocumentInput, DocumentFilter, PaginatedResponse, UploadURLResponse, FileURLResponse, SequenceItemResponse, SequenceOffset, SetSequenceOffsetInput } from '@/types';
 
 async function getAuthHeader() {
   const token = await getToken();
@@ -270,6 +270,50 @@ export async function getDocumentFileURL({
         params: { download },
       }
     );
+    return parseStringify(response.data.data);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
+export async function getMunicipalitySequences(municipalityId: string, year?: number): Promise<SequenceItemResponse[]> {
+  try {
+    const headers = await getAuthHeader();
+    const params = new URLSearchParams();
+    if (year) params.append('year', year.toString());
+
+    const response = await apiServer.get<{ success: boolean; data: SequenceItemResponse[] }>(
+      `/municipalities/${municipalityId}/sequences`,
+      {
+        headers,
+        params,
+      }
+    );
+    return parseStringify(response.data.data);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return redirect('/login');
+    }
+    throw error;
+  }
+}
+
+export async function setMunicipalitySequenceOffset(
+  municipalityId: string,
+  input: SetSequenceOffsetInput,
+  path = '/sequences'
+): Promise<SequenceOffset> {
+  try {
+    const headers = await getAuthHeader();
+    const response = await apiServer.put<{ success: boolean; data: SequenceOffset }>(
+      `/municipalities/${municipalityId}/sequences`,
+      input,
+      { headers }
+    );
+    revalidatePath(path);
     return parseStringify(response.data.data);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {

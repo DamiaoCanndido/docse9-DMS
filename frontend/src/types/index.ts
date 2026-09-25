@@ -71,6 +71,36 @@ export interface CreateDocumentInput {
   contractType?: ContractType;
   value?: number;
   startIn?: string;
+  createdAt?: string;
+  manualOrder?: number;
+}
+
+export interface SequenceOffset {
+  id?: string;
+  municipalityId: string;
+  type: DocumentType;
+  contractType?: ContractType | null;
+  year?: number | null;
+  initialOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SequenceItemResponse {
+  id?: string;
+  type: DocumentType;
+  contractType?: ContractType | null;
+  year?: number | null;
+  initialOrder: number;
+  currentOrder: number;
+  nextOrder: number;
+}
+
+export interface SetSequenceOffsetInput {
+  type: DocumentType;
+  contractType?: ContractType | null;
+  year?: number | null;
+  initialOrder: number;
 }
 
 export interface UpdateDocumentInput {

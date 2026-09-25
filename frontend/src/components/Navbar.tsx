@@ -4,7 +4,7 @@ import React, { useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
-import { LogOut, Menu, X, FileText, Building2, User, Users, Sun, Moon } from 'lucide-react';
+import { LogOut, Menu, X, FileText, Building2, User, Users, Sun, Moon, ListOrdered } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -39,6 +39,7 @@ export const Navbar: React.FC = () => {
   const getPageTitle = () => {
     if (pathname.startsWith('/municipalities')) return 'Gestão de Municípios';
     if (pathname.startsWith('/users')) return 'Gestão de Usuários';
+    if (pathname.startsWith('/sequences')) return 'Sequências & Numeração';
     if (pathname.startsWith('/profile')) return 'Meu Perfil';
     return 'Documentos Oficiais';
   };
@@ -274,6 +275,22 @@ export const Navbar: React.FC = () => {
                     >
                       <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
                       Usuários
+                    </MotionLink>
+                  )}
+
+                  {isMod && (
+                    <MotionLink
+                      whileHover={{ x: 4 }}
+                      href="/sequences"
+                      onClick={closeMenu}
+                      className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                        pathname.startsWith('/sequences')
+                          ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
+                          : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <ListOrdered className={`w-5 h-5 ${pathname.startsWith('/sequences') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
+                      Sequências
                     </MotionLink>
                   )}
 

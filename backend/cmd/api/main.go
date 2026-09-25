@@ -91,6 +91,10 @@ func main() {
 	docSvc := service.NewDocumentService(docRepo, userRepo, municipalityRepo, storageSvc)
 	docHnd := handler.NewDocumentHandler(docSvc, permissionRepo)
 
+	sequenceRepo := repository.NewSequenceRepository(db)
+	sequenceSvc := service.NewSequenceService(sequenceRepo, docRepo)
+	sequenceHnd := handler.NewSequenceHandler(sequenceSvc)
+
 	authSvc := service.NewAuthService(userRepo)
 	authHnd := handler.NewAuthHandler(authSvc)
 
@@ -128,6 +132,7 @@ func main() {
 		municipalityHnd.RegisterRoutes(protected)
 		userHnd.RegisterRoutes(protected, authRateLimiter)
 		docHnd.RegisterRoutes(protected)
+		sequenceHnd.RegisterRoutes(protected)
 	}
 
 	port := os.Getenv("APP_PORT")

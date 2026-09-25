@@ -66,7 +66,8 @@ func (s *DocumentRepositorySuite) SetupSuite() {
 	s.Require().NoError(err)
 
 	s.Require().NoError(db.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto").Error)
-	s.Require().NoError(db.AutoMigrate(&domain.Municipality{}, &domain.User{}, &domain.Document{}))
+	s.Require().NoError(db.AutoMigrate(&domain.Municipality{}, &domain.User{}, &domain.Document{}, &domain.SequenceOffset{}))
+	_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_sequence_offsets_unique ON sequence_offsets (municipality_id, type, COALESCE(contract_type, ''), COALESCE(year, 0))")
 
 	s.db = db
 	s.munRepo = repository.NewMunicipalityRepository(db)
@@ -82,6 +83,7 @@ func (s *DocumentRepositorySuite) TearDownSuite() {
 
 func (s *DocumentRepositorySuite) SetupTest() {
 	s.db.Exec("TRUNCATE TABLE documents RESTART IDENTITY CASCADE")
+	s.db.Exec("TRUNCATE TABLE sequence_offsets RESTART IDENTITY CASCADE")
 	s.db.Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE")
 	s.db.Exec("TRUNCATE TABLE municipalities RESTART IDENTITY CASCADE")
 
@@ -325,5 +327,118 @@ func (s *DocumentRepositorySuite) TestCreateWithNextOrder_Atomic_Concurrency() {
 		orderMap[ord] = true
 	}
 	s.Len(orderMap, concurrency)
+}
+
+func (s *DocumentRepositorySuite) TestCreateWithNextOrder_WithOffset() {
+	year := 2026
+
+	// 1. Configurar marco inicial de Decretos 2026 no número 85
+	offset := &domain.SequenceOffset{
+		ID:             uuid.New(),
+		MunicipalityID: s.mun.ID,
+		Type:           domain.TypeDecree,
+		Year:           &year,
+		InitialOrder:   85,
+	}
+	s.Require().NoError(s.db.Create(offset).Error)
+
+	// 2. Primeiro decreto criado automaticamente deve receber order 85
+	doc1 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Description:    "Primeiro decreto após marco inicial",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(doc1, &year))
+	s.Equal(85, doc1.Order)
+
+	// 3. Segundo decreto criado automaticamente deve receber order 86
+	doc2 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeDecree,
+		Description:    "Segundo decreto subsequente",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(doc2, &year))
+	s.Equal(86, doc2.Order)
+}
+
+func (s *DocumentRepositorySuite) TestCreateWithNextOrder_ManualOrder_AndConflict() {
+	year := 2026
+
+	// 1. Inserir documento com número manual (ex: 14)
+	docManual := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          14,
+		Description:    "Ofício legado papel nº 14",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(docManual, &year))
+	s.Equal(14, docManual.Order)
+
+	// 2. Tentar inserir outro documento manual com o mesmo número 14 -> Conflito 409
+	docDup := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          14,
+		Description:    "Tentativa duplicada do nº 14",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+	}
+	err := s.repo.CreateWithNextOrder(docDup, &year)
+	s.Require().Error(err)
+	s.ErrorIs(err, domain.ErrOrderAlreadyExists)
+
+	// 3. Geração automática subsequente deve saltar para o próximo livre (15)
+	docAuto := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          0, // automático
+		Description:    "Ofício automático seguinte",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(docAuto, &year))
+	s.Equal(15, docAuto.Order)
+}
+
+func (s *DocumentRepositorySuite) TestCreateWithNextOrder_LawPerpetual_WithOffset() {
+	// 1. Configurar marco inicial de Leis (perpétuo, year = nil) no número 50
+	offset := &domain.SequenceOffset{
+		ID:             uuid.New(),
+		MunicipalityID: s.mun.ID,
+		Type:           domain.TypeLaw,
+		Year:           nil,
+		InitialOrder:   50,
+	}
+	s.Require().NoError(s.db.Create(offset).Error)
+
+	// 2. Lei no ano de 2025
+	law1 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Description:    "Lei Municipal em 2025",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law1, nil))
+	s.Equal(50, law1.Order)
+
+	// 3. Próxima lei no ano de 2026 deve continuar a sequência perpétua (51)
+	law2 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeLaw,
+		Description:    "Lei Municipal em 2026",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(law2, nil))
+	s.Equal(51, law2.Order)
 }
 

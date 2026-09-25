@@ -17,12 +17,17 @@ func handleDomainError(c *gin.Context, err error) bool {
 	}
 
 	switch {
-	case errors.Is(err, domain.ErrDocumentNotFound):
+	case errors.Is(err, domain.ErrDocumentNotFound) ||
+		errors.Is(err, domain.ErrSequenceOffsetNotFound):
 		response.NotFound(c, err.Error())
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		response.Unauthorized(c, err.Error())
+	case errors.Is(err, domain.ErrManualOrderForbidden) ||
+		errors.Is(err, domain.ErrSequenceAccessForbidden):
+		response.Forbidden(c, err.Error())
 	case errors.Is(err, domain.ErrEmailAlreadyExists) ||
 		errors.Is(err, domain.ErrUsernameAlreadyExists) ||
+		errors.Is(err, domain.ErrOrderAlreadyExists) ||
 		errors.Is(err, service.ErrMunicipalityNameConflict):
 		response.Conflict(c, err.Error())
 	case errors.Is(err, domain.ErrInvalidDocumentType) ||
@@ -31,6 +36,9 @@ func handleDomainError(c *gin.Context, err error) bool {
 		errors.Is(err, domain.ErrIncorrectCurrentPassword) ||
 		errors.Is(err, domain.ErrInvalidUsername) ||
 		errors.Is(err, domain.ErrInvalidEmail) ||
+		errors.Is(err, domain.ErrInvalidInitialOrder) ||
+		errors.Is(err, domain.ErrInvalidSequenceYear) ||
+		errors.Is(err, domain.ErrInvalidSequenceContractType) ||
 		errors.Is(err, service.ErrInvalidUF):
 		response.BadRequest(c, err.Error())
 	default:

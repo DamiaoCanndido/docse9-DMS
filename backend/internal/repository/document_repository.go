@@ -37,6 +37,32 @@ func (r *documentRepository) CreateWithNextOrder(d *domain.Document, year *int) 
 			}
 		}
 
+		if d.Order > 0 {
+			// Lançamento com número manual informado
+			var count int64
+			dupQuery := tx.Unscoped().Model(&domain.Document{}).
+				Where("municipality_id = ? AND type = ? AND documents.order = ?", d.MunicipalityID, d.Type, d.Order)
+
+			if d.Type == domain.TypeContract && d.ContractType != nil {
+				dupQuery = dupQuery.Where("contract_type = ?", *d.ContractType)
+			}
+
+			if year != nil {
+				dupQuery = dupQuery.Where("EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife') = ?", *year)
+			}
+
+			if err := dupQuery.Count(&count).Error; err != nil {
+				return err
+			}
+
+			if count > 0 {
+				return fmt.Errorf("%w: o número %d já está cadastrado para este tipo e ano", domain.ErrOrderAlreadyExists, d.Order)
+			}
+
+			return tx.Create(d).Error
+		}
+
+		// Geração automática de número sequencial
 		var lastOrder int
 		query := tx.Unscoped().Model(&domain.Document{}).
 			Select("COALESCE(MAX(documents.order), 0)").
@@ -54,7 +80,35 @@ func (r *documentRepository) CreateWithNextOrder(d *domain.Document, year *int) 
 			return err
 		}
 
-		d.Order = lastOrder + 1
+		// Busca marco inicial (initial_order) configurado em sequence_offsets
+		initialOrder := 1
+		offsetQuery := tx.Model(&domain.SequenceOffset{}).
+			Select("initial_order").
+			Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type)
+
+		if d.Type == domain.TypeContract && d.ContractType != nil {
+			offsetQuery = offsetQuery.Where("contract_type = ?", *d.ContractType)
+		} else {
+			offsetQuery = offsetQuery.Where("contract_type IS NULL")
+		}
+
+		if year != nil {
+			offsetQuery = offsetQuery.Where("year = ?", *year)
+		} else {
+			offsetQuery = offsetQuery.Where("year IS NULL")
+		}
+
+		var foundInitial int
+		if err := offsetQuery.Row().Scan(&foundInitial); err == nil && foundInitial >= 1 {
+			initialOrder = foundInitial
+		}
+
+		nextOrder := lastOrder
+		if initialOrder-1 > nextOrder {
+			nextOrder = initialOrder - 1
+		}
+		d.Order = nextOrder + 1
+
 		return tx.Create(d).Error
 	})
 }

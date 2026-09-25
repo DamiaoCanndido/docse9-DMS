@@ -117,6 +117,10 @@ type CreateDocumentInput struct {
 	ContractType *ContractType `json:"contractType" binding:"omitempty,oneof=publicinterest bidding service"`
 	Value        *float64      `json:"value"        binding:"omitempty,gt=0"`
 	StartIn      *time.Time    `json:"startIn"      binding:"omitempty"`
+
+	// Campos opcionais para data oficial do ato e cadastro retroativo/manual
+	CreatedAt   *time.Time `json:"createdAt"   binding:"omitempty"`
+	ManualOrder *int       `json:"manualOrder" binding:"omitempty,gt=0"`
 }
 
 type UpdateDocumentInput struct {

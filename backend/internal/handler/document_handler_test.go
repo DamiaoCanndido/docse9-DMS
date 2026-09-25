@@ -107,6 +107,98 @@ func TestCreateDocument_Handler_403_ForbiddenPermission(t *testing.T) {
 	permRepo.AssertExpectations(t)
 }
 
+func TestCreateDocument_Handler_403_CommonManualOrderForbidden(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	userID := uuid.New()
+	manualOrder := 10
+
+	input := domain.CreateDocumentInput{
+		Type:        domain.TypeNotice,
+		Description: "Oficio com ordem manual por COMMON",
+		ManualOrder: &manualOrder,
+	}
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleCommon),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	svc.AssertNotCalled(t, "Create")
+}
+
+func TestCreateDocument_Handler_201_ModManualOrder(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	userID := uuid.New()
+	manualOrder := 14
+
+	input := domain.CreateDocumentInput{
+		Type:           domain.TypeNotice,
+		Description:    "Oficio legado com número manual",
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		ManualOrder:    &manualOrder,
+	}
+
+	doc := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          14,
+		Description:    "Oficio legado com número manual",
+		CreatorID:      userID,
+		MunicipalityID: munID,
+	}
+
+	svc.On("Create", input).Return(doc, nil)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+	svc.AssertExpectations(t)
+}
+
+func TestCreateDocument_Handler_409_ConflictOrderAlreadyExists(t *testing.T) {
+	svc := new(handlerMocks.DocumentService)
+	permRepo := new(handlerMocks.UserPermissionRepository)
+	munID := uuid.New()
+	userID := uuid.New()
+	manualOrder := 14
+
+	input := domain.CreateDocumentInput{
+		Type:           domain.TypeNotice,
+		Description:    "Oficio com número duplicado",
+		CreatorID:      userID,
+		MunicipalityID: munID,
+		ManualOrder:    &manualOrder,
+	}
+
+	svc.On("Create", input).Return(nil, domain.ErrOrderAlreadyExists)
+
+	claims := &security.UserClaims{
+		UserID:         userID,
+		Role:           string(domain.RoleMod),
+		MunicipalityID: munID,
+	}
+
+	w := doRequest(setupDocumentRouter(svc, permRepo, claims), http.MethodPost, "/api/v1/documents", input)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	svc.AssertExpectations(t)
+}
+
 func TestGetDocumentByID_Handler_200(t *testing.T) {
 	svc := new(handlerMocks.DocumentService)
 	permRepo := new(handlerMocks.UserPermissionRepository)

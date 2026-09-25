@@ -443,6 +443,7 @@ export const DocumentsContent: React.FC<DocumentsContentProps> = ({
         onSave={handleFormSave}
         creatorId={currentUser.id}
         municipalityId={currentUser.municipalityId}
+        currentUser={currentUser}
       />
 
       {/* Confirmation Delete / Restore / HardDelete Dialog */}

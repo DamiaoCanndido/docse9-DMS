@@ -75,10 +75,18 @@ func Migrate(db *gorm.DB) error {
 	_ = db.Exec("ALTER TABLE municipalities ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC'")
 	_ = db.Exec("ALTER TABLE municipalities ALTER COLUMN updated_at TYPE timestamptz USING updated_at AT TIME ZONE 'UTC'")
 
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&domain.Municipality{},
 		&domain.User{},
 		&domain.Document{},
 		&domain.UserPermission{},
-	)
+		&domain.SequenceOffset{},
+	); err != nil {
+		return err
+	}
+
+	// Índice único para sequence_offsets tratando nulos
+	_ = db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_sequence_offsets_unique ON sequence_offsets (municipality_id, type, COALESCE(contract_type, ''), COALESCE(year, 0))")
+
+	return nil
 }

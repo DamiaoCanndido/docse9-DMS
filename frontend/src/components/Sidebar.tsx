@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
-import { FileText, LogOut, Building2, User, Users } from 'lucide-react';
+import { FileText, LogOut, Building2, User, Users, ListOrdered } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -88,6 +88,21 @@ export const Sidebar: React.FC = () => {
             >
               <Users className={`w-5 h-5 ${pathname.startsWith('/users') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
               Usuários
+            </MotionLink>
+          )}
+
+          {isMod && (
+            <MotionLink
+              whileHover={{ x: 4 }}
+              href="/sequences"
+              className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                pathname.startsWith('/sequences')
+                  ? 'bg-teal-600/10 border border-teal-500/20 text-teal-600 dark:text-teal-300 shadow-sm'
+                  : 'border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <ListOrdered className={`w-5 h-5 ${pathname.startsWith('/sequences') ? 'text-teal-600 dark:text-teal-400' : 'text-muted-foreground'}`} />
+              Sequências
             </MotionLink>
           )}
 

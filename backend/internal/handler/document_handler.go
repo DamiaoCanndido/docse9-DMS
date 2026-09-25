@@ -57,6 +57,12 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// Validação estrita de número manual: exclusivo para moderadores (MOD)
+	if input.ManualOrder != nil && actorRole != domain.RoleMod {
+		response.Forbidden(c, "apenas moderadores podem definir número manual de documento")
+		return
+	}
+
 	// Preenche automaticamente o autor e o município com base nas claims
 	input.CreatorID = claims.UserID
 	input.MunicipalityID = claims.MunicipalityID

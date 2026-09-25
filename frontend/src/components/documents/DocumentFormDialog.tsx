@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Document, DocumentType, ContractType, CreateDocumentInput, UpdateDocumentInput } from '@/types';
+import { Document, DocumentType, ContractType, CreateDocumentInput, UpdateDocumentInput, User } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +38,7 @@ import {
   AlertCircle,
   X,
   Loader2,
+  Hash,
 } from 'lucide-react';
 import { formatDate, formatTime, parseDateSafe, combineDateAndTime, ptBR } from '@/lib/date';
 import { validatePDFClientSide } from '@/lib/pdf-validator';
@@ -77,6 +79,7 @@ interface DocumentFormDialogProps {
   }) => Promise<void>;
   creatorId: string;
   municipalityId: string;
+  currentUser?: User | null;
 }
 
 interface DocumentFormContentProps {
@@ -96,6 +99,7 @@ interface DocumentFormContentProps {
   }) => Promise<void>;
   creatorId: string;
   municipalityId: string;
+  currentUser?: User | null;
 }
 
 const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
@@ -108,7 +112,22 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
   onSave,
   creatorId,
   municipalityId,
+  currentUser,
 }) => {
+  let authUser: User | null = null;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const auth = useAuth();
+    authUser = auth.user;
+  } catch {
+    // Outside AuthProvider
+  }
+  const activeUser = currentUser || authUser;
+  const isMod = activeUser?.role === 'MOD';
+
+  const [isManualOrder, setIsManualOrder] = useState(false);
+  const [manualOrder, setManualOrder] = useState('');
+
   const initialType: DocumentType = editingDocument
     ? editingDocument.type
     : canCreate(activeTab)
@@ -137,8 +156,10 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
 
   const initialCreatedAtDate = editingDocument?.createdAt
     ? parseDateSafe(editingDocument.createdAt)
-    : undefined;
-  const initialCreatedAtTime = initialCreatedAtDate ? formatTime(initialCreatedAtDate) : '00:00';
+    : new Date();
+  const initialCreatedAtTime = editingDocument?.createdAt
+    ? formatTime(parseDateSafe(editingDocument.createdAt))
+    : formatTime(new Date());
 
   const [createdAtDate, setCreatedAtDate] = useState<Date | undefined>(initialCreatedAtDate);
   const [createdAtTime, setCreatedAtTime] = useState(initialCreatedAtTime);
@@ -213,6 +234,14 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
       }
     }
 
+    if (!editingDocument && isManualOrder) {
+      const orderNum = Number(manualOrder);
+      if (!manualOrder.trim() || isNaN(orderNum) || orderNum <= 0 || !Number.isInteger(orderNum)) {
+        setFormError('O número oficial do ato deve ser um número inteiro positivo maior que zero.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       if (editingDocument) {
@@ -247,6 +276,12 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           createInput.value = Number(value);
           createInput.duration = Number(duration);
           createInput.startIn = combineDateAndTime(startInDate, startInTime);
+        } else if (createdAtDate) {
+          createInput.createdAt = combineDateAndTime(createdAtDate, createdAtTime);
+        }
+
+        if (isManualOrder && manualOrder.trim()) {
+          createInput.manualOrder = Number(manualOrder);
         }
 
         await onSave({
@@ -258,9 +293,13 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
       }
       onClose();
     } catch (err: unknown) {
-      const errorMsg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Erro ao salvar o documento.';
+      const axiosErr = err as { response?: { status?: number; data?: { error?: string } } };
+      let errorMsg = axiosErr?.response?.data?.error;
+      if (axiosErr?.response?.status === 409) {
+        errorMsg = errorMsg || 'O número informado já está cadastrado para este tipo e ano.';
+      } else if (!errorMsg) {
+        errorMsg = 'Erro ao salvar o documento.';
+      }
       setFormError(errorMsg);
     } finally {
       setIsSaving(false);
@@ -412,8 +451,8 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
             )}
           </div>
 
-          {/* CreatedAt Date & Time editing for non-contract documents */}
-          {editingDocument && type !== 'CONTRACT' && (
+          {/* CreatedAt Date & Time for non-contract documents */}
+          {type !== 'CONTRACT' && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -427,7 +466,7 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
               <div className="grid grid-cols-2 gap-2 items-end">
                 <div className="w-full flex flex-col gap-1">
                   <label className="text-[11px] font-semibold text-foreground/80 uppercase tracking-wider">
-                    Data de Registro
+                    Data do Ato
                   </label>
                   <Popover>
                     <PopoverTrigger render={
@@ -463,6 +502,53 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
                   className="text-xs py-1.5 h-9"
                 />
               </div>
+            </motion.div>
+          )}
+
+          {/* Lançamento de documento de acervo físico / Número manual (apenas MOD na criação) */}
+          {!editingDocument && isMod && type !== 'CONTRACT' && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border border-border rounded-xl p-2.5 bg-muted/40 flex flex-col gap-2"
+            >
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-foreground">
+                <input
+                  type="checkbox"
+                  data-testid="manual-order-checkbox"
+                  checked={isManualOrder}
+                  onChange={(e) => {
+                    setIsManualOrder(e.target.checked);
+                    if (!e.target.checked) setManualOrder('');
+                  }}
+                  className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-border bg-background cursor-pointer"
+                />
+                <span>Lançamento de documento de acervo físico / Número manual</span>
+              </label>
+
+              {!isManualOrder ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 text-[11px] font-medium">
+                  <Hash className="w-3.5 h-3.5 shrink-0" />
+                  <span>O número sequencial será gerado automaticamente pelo sistema.</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1 mt-1">
+                  <Input
+                    label="Número Oficial do Ato"
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="Ex: 85"
+                    value={manualOrder}
+                    onChange={(e) => setManualOrder(e.target.value)}
+                    className="text-xs py-1.5 h-9"
+                    required={isManualOrder}
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    Informe o número que já consta no documento físico ou planilha legada.
+                  </span>
+                </div>
+              )}
             </motion.div>
           )}
         </div>
@@ -639,6 +725,7 @@ export const DocumentFormDialog: React.FC<DocumentFormDialogProps> = ({
   onSave,
   creatorId,
   municipalityId,
+  currentUser,
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -666,6 +753,7 @@ export const DocumentFormDialog: React.FC<DocumentFormDialogProps> = ({
             onSave={onSave}
             creatorId={creatorId}
             municipalityId={municipalityId}
+            currentUser={currentUser}
           />
         )}
       </DialogContent>
