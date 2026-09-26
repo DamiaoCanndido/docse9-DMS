@@ -24,6 +24,9 @@ func (r *documentRepository) Create(d *domain.Document) error {
 }
 
 func (r *documentRepository) CreateWithNextOrder(d *domain.Document, year *int) error {
+	if d.CreatedAt.IsZero() {
+		d.CreatedAt = time.Now()
+	}
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var lockKey string
 		if d.ContractType != nil {
@@ -133,7 +136,7 @@ func (r *documentRepository) FindAll(filter domain.DocumentFilter, page, pageSiz
 	}
 
 	if err := query.Preload("CreatedBy").Preload("CreatedBy.Municipality").Preload("Municipality").
-		Order("created_at DESC").
+		Order("created_at DESC, documents.order DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&documents).Error; err != nil {
@@ -161,7 +164,7 @@ func (r *documentRepository) FindDeleted(filter domain.DocumentFilter, page, pag
 	}
 
 	if err := query.Preload("CreatedBy").Preload("CreatedBy.Municipality").Preload("Municipality").
-		Order("deleted_at DESC").
+		Order("deleted_at DESC, documents.order DESC").
 		Offset(offset).
 		Limit(pageSize).
 		Find(&documents).Error; err != nil {

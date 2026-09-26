@@ -84,7 +84,7 @@ function Calendar({
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(
-          "absolute inset-0 bg-transparent opacity-0 cursor-pointer w-full h-full z-20 text-foreground",
+          "absolute inset-0 bg-transparent opacity-0 cursor-pointer w-full h-full z-20 [color-scheme:light] dark:[color-scheme:dark]",
           defaultClassNames.dropdown
         ),
         caption_label: cn(
@@ -177,6 +177,24 @@ function Calendar({
             </td>
           )
         },
+        Select: ({ className, ...props }: React.ComponentProps<"select">) => (
+          <select
+            className={cn(
+              className,
+              "[color-scheme:light] dark:[color-scheme:dark] bg-popover text-popover-foreground dark:bg-zinc-900 dark:text-zinc-100"
+            )}
+            {...props}
+          />
+        ),
+        Option: ({ className, ...props }: React.ComponentProps<"option">) => (
+          <option
+            className={cn(
+              "bg-white text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 py-1",
+              className
+            )}
+            {...props}
+          />
+        ),
         ...components,
       }}
       {...props}
