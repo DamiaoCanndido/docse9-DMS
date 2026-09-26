@@ -355,10 +355,12 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           municipalityId,
         };
         if (type === 'CONTRACT') {
+          const contractDateTime = combineDateAndTime(startInDate, startInTime);
           createInput.contractType = contractType;
           createInput.value = Number(value);
           createInput.duration = Number(duration);
-          createInput.startIn = combineDateAndTime(startInDate, startInTime);
+          createInput.startIn = contractDateTime;
+          createInput.createdAt = contractDateTime;
         } else if (createdAtDate) {
           createInput.createdAt = combineDateAndTime(createdAtDate, createdAtTime);
         }
@@ -601,7 +603,7 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
           )}
 
           {/* Lançamento de documento de acervo físico / Número manual (apenas MOD na criação) */}
-          {!editingDocument && isMod && type !== 'CONTRACT' && (
+          {!editingDocument && isMod && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}

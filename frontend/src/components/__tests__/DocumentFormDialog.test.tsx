@@ -202,4 +202,140 @@ describe('DocumentFormDialog Component', () => {
       })
     );
   });
+
+  it('deve exibir opção de número manual para usuário MOD quando o tipo for CONTRACT', () => {
+    const modUser = {
+      id: 'mod-1',
+      username: 'mod_user',
+      email: 'mod@example.com',
+      role: 'MOD' as const,
+      municipalityId: 'mun-1',
+      createdAt: '',
+      updatedAt: '',
+    };
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="CONTRACT"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={vi.fn()}
+        creatorId="mod-1"
+        municipalityId="mun-1"
+        currentUser={modUser}
+      />
+    );
+
+    expect(
+      screen.getByText('Lançamento de documento de acervo físico / Número manual')
+    ).toBeInTheDocument();
+  });
+
+  it('NÃO deve exibir opção de número manual para usuário COMMON quando o tipo for CONTRACT', () => {
+    const commonUser = {
+      id: 'common-1',
+      username: 'common_user',
+      email: 'common@example.com',
+      role: 'COMMON' as const,
+      municipalityId: 'mun-1',
+      createdAt: '',
+      updatedAt: '',
+    };
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="CONTRACT"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={vi.fn()}
+        creatorId="common-1"
+        municipalityId="mun-1"
+        currentUser={commonUser}
+      />
+    );
+
+    expect(
+      screen.queryByText('Lançamento de documento de acervo físico / Número manual')
+    ).not.toBeInTheDocument();
+  });
+
+  it('deve submeter contrato com número manual e createdAt sincronizado com startIn', async () => {
+    const user = userEvent.setup();
+    const handleSave = vi.fn().mockResolvedValue(undefined);
+    const modUser = {
+      id: 'mod-1',
+      username: 'mod_user',
+      email: 'mod@example.com',
+      role: 'MOD' as const,
+      municipalityId: 'mun-1',
+      createdAt: '',
+      updatedAt: '',
+    };
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="CONTRACT"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={handleSave}
+        creatorId="mod-1"
+        municipalityId="mun-1"
+        currentUser={modUser}
+      />
+    );
+
+    // Marca o checkbox de acervo físico
+    const manualCheckbox = screen.getByTestId('manual-order-checkbox');
+    await user.click(manualCheckbox);
+
+    // Preenche o número oficial do ato
+    const manualOrderInput = screen.getByLabelText(/Número Oficial do Ato/i);
+    await user.type(manualOrderInput, '42');
+
+    // Preenche a descrição
+    const descInput = screen.getByPlaceholderText(/Descreva o conteúdo do documento/i);
+    await user.type(descInput, 'Contrato Físico Legado nº 42 de 2024');
+
+    // Preenche valor e duração
+    const valueInput = screen.getByLabelText(/Valor \(R\$\)/i);
+    await user.type(valueInput, '50000.00');
+
+    const durationInput = screen.getByLabelText(/Duração \(meses\)/i);
+    await user.type(durationInput, '12');
+
+    // Preenche data de início retroativa (10/02/2024)
+    const startDateInput = screen.getByLabelText(/Data de Início/i);
+    await user.clear(startDateInput);
+    await user.type(startDateInput, '10/02/2024');
+
+    // Submete o formulário
+    const submitBtn = screen.getByRole('button', { name: /Salvar/i });
+    await user.click(submitBtn);
+
+    expect(handleSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createInput: expect.objectContaining({
+          type: 'CONTRACT',
+          description: 'Contrato Físico Legado nº 42 de 2024',
+          manualOrder: 42,
+          value: 50000,
+          duration: 12,
+          startIn: expect.stringContaining('2024-02-10'),
+          createdAt: expect.stringContaining('2024-02-10'),
+        }),
+      })
+    );
+  });
 });
