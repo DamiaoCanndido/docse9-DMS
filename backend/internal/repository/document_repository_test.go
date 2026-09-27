@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -572,5 +573,168 @@ func (s *DocumentRepositorySuite) TestCreateWithNextOrder_ChronologicalIntegrity
 	err = s.repo.CreateWithNextOrder(decFebInvalid, &yr2026)
 	s.Require().Error(err)
 	s.ErrorIs(err, domain.ErrChronologicalOrderInvalid)
+
+	// 8. Atos no mesmo dia com horários distintos (Cenário do Ofício 12 vs 20/22):
+	// Ofício 10 (11:56), Ofício 11 (12:00), Ofício 20 (12:00), Ofício 22 (13:46), Ofício 23 (26/09 18:53)
+	// Tentativa de criar Ofício 12 com horário 20:04 (posterior aos ofícios 20 e 22) -> Erro
+	// Criar Ofício 12 com horário 12:00 (consistente com 11 e 20) -> Sucesso
+	recifeLoc, err := time.LoadLocation("America/Recife")
+	s.Require().NoError(err)
+
+	notice10 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          10,
+		Description:    "teste de numeral",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 11, 56, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice10, &yr2026))
+
+	notice11 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          11,
+		Description:    "testando offset",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice11, &yr2026))
+
+	notice20 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          20,
+		Description:    "testando offset 20",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice20, &yr2026))
+
+	notice22 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          22,
+		Description:    "teste 22",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 13, 46, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice22, &yr2026))
+
+	notice23 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          23,
+		Description:    "oficio 23",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 26, 18, 53, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice23, &yr2026))
+
+	// Tentativa inválida: Ofício 12 às 20:04 (data/hora posterior a 20 e 22)
+	notice12Invalid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          12,
+		Description:    "oficio 12 invalido",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 20, 4, 0, 0, recifeLoc),
+	}
+	err = s.repo.CreateWithNextOrder(notice12Invalid, &yr2026)
+	s.Require().Error(err)
+	s.ErrorIs(err, domain.ErrChronologicalOrderInvalid)
+
+	// Criação válida: Ofício 12 às 12:00 (consistente entre 11 e 20)
+	notice12Valid := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          12,
+		Description:    "oficio 12 valido",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(notice12Valid, &yr2026))
+}
+
+func (s *DocumentRepositorySuite) TestFindAll_StrictOrderSorting() {
+	recifeLoc, err := time.LoadLocation("America/Recife")
+	s.Require().NoError(err)
+
+	yr2026 := 2026
+	yr2025 := 2025
+
+	items2026 := []struct {
+		order int
+		t     time.Time
+	}{
+		{10, time.Date(2026, 9, 25, 11, 56, 0, 0, recifeLoc)},
+		{11, time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc)},
+		{12, time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc)},
+		{20, time.Date(2026, 9, 25, 12, 0, 0, 0, recifeLoc)},
+		{22, time.Date(2026, 9, 25, 13, 46, 0, 0, recifeLoc)},
+		{23, time.Date(2026, 9, 26, 18, 53, 0, 0, recifeLoc)},
+	}
+
+	for _, item := range items2026 {
+		doc := &domain.Document{
+			ID:             uuid.New(),
+			Type:           domain.TypeNotice,
+			Order:          item.order,
+			Description:    fmt.Sprintf("Oficio %d", item.order),
+			CreatorID:      s.user.ID,
+			MunicipalityID: s.mun.ID,
+			CreatedAt:      item.t,
+		}
+		s.Require().NoError(s.repo.CreateWithNextOrder(doc, &yr2026))
+	}
+
+	// Documento de 2025 com número mais alto (nº 50) para verificar ordenação inter-anual
+	doc2025 := &domain.Document{
+		ID:             uuid.New(),
+		Type:           domain.TypeNotice,
+		Order:          50,
+		Description:    "Oficio 50 de 2025",
+		CreatorID:      s.user.ID,
+		MunicipalityID: s.mun.ID,
+		CreatedAt:      time.Date(2025, 12, 30, 10, 0, 0, 0, recifeLoc),
+	}
+	s.Require().NoError(s.repo.CreateWithNextOrder(doc2025, &yr2025))
+
+	tNotice := domain.TypeNotice
+
+	// 1. Consulta com filtro de ano (2026): deve listar estritamente [23, 22, 20, 12, 11, 10]
+	docs, total, err := s.repo.FindAll(domain.DocumentFilter{
+		Type: &tNotice,
+		Year: &yr2026,
+	}, 1, 10)
+	s.Require().NoError(err)
+	s.Equal(int64(6), total)
+
+	orders := make([]int, len(docs))
+	for i, d := range docs {
+		orders[i] = d.Order
+	}
+	s.Equal([]int{23, 22, 20, 12, 11, 10}, orders)
+
+	// 2. Consulta sem filtro de ano (todos os anos): ano mais recente primeiro (2026), depois 2025
+	docsAll, totalAll, err := s.repo.FindAll(domain.DocumentFilter{
+		Type: &tNotice,
+	}, 1, 10)
+	s.Require().NoError(err)
+	s.Equal(int64(7), totalAll)
+
+	ordersAll := make([]int, len(docsAll))
+	for i, d := range docsAll {
+		ordersAll[i] = d.Order
+	}
+	// 2026 (23, 22, 20, 12, 11, 10) seguido de 2025 (50)
+	s.Equal([]int{23, 22, 20, 12, 11, 10, 50}, ordersAll)
 }
 

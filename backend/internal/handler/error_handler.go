@@ -7,7 +7,37 @@ import (
 	"github.com/DamiaoCanndido/docse9-DMS/backend/internal/service"
 	"github.com/DamiaoCanndido/docse9-DMS/backend/pkg/response"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
+
+// formatBindingError converte erros de validação do Gin/Validator para mensagens amigáveis em português.
+func formatBindingError(err error) string {
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
+		for _, fe := range ve {
+			switch fe.Field() {
+			case "Description":
+				switch fe.Tag() {
+				case "required":
+					return "A descrição do documento é obrigatória"
+				case "min":
+					return "A descrição deve conter no mínimo 3 caracteres"
+				}
+			case "Type":
+				return "Tipo de documento inválido"
+			case "Duration":
+				return "Duração do contrato é obrigatória e deve ser maior que zero"
+			case "ContractType":
+				return "Tipo de contrato inválido"
+			case "Value":
+				return "Valor do contrato é obrigatório e deve ser maior que zero"
+			case "StartIn":
+				return "Data de início do contrato é obrigatória"
+			}
+		}
+	}
+	return err.Error()
+}
 
 // handleDomainError mapeia os erros padrão de domínio para o status HTTP correspondente.
 // Retorna true se o erro foi reconhecido e tratado, ou false caso contrário.

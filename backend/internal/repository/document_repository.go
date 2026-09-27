@@ -135,8 +135,17 @@ func (r *documentRepository) FindAll(filter domain.DocumentFilter, page, pageSiz
 		return nil, 0, err
 	}
 
+	yearExpr := "EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife')"
+	if r.db.Dialector.Name() != "postgres" {
+		yearExpr = "CAST(strftime('%Y', created_at) AS INTEGER)"
+	}
+	orderClause := fmt.Sprintf("%s DESC, documents.order DESC, created_at DESC", yearExpr)
+	if filter.Type != nil && *filter.Type == domain.TypeLaw {
+		orderClause = "documents.order DESC, created_at DESC"
+	}
+
 	if err := query.Preload("CreatedBy").Preload("CreatedBy.Municipality").Preload("Municipality").
-		Order("created_at DESC, documents.order DESC").
+		Order(orderClause).
 		Offset(offset).
 		Limit(pageSize).
 		Find(&documents).Error; err != nil {
@@ -212,32 +221,62 @@ func (r *documentRepository) Update(d *domain.Document) error {
 	})
 }
 
+func formatChronoDate(t time.Time, loc *time.Location) string {
+	inLoc := t.In(loc)
+	if inLoc.Hour() == 0 && inLoc.Minute() == 0 && inLoc.Second() == 0 {
+		return inLoc.Format("02/01/2006")
+	}
+	return inLoc.Format("02/01/2006 15:04")
+}
+
 func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
 	recifeLoc, err := time.LoadLocation("America/Recife")
 	if err != nil {
 		recifeLoc = time.FixedZone("BRT", -3*3600)
 	}
-	docDateStr := d.CreatedAt.In(recifeLoc).Format("2006-01-02")
-	docDateFormatted := d.CreatedAt.In(recifeLoc).Format("02/01/2006")
+
+	docTimeTrunc := d.CreatedAt.Truncate(time.Minute)
+	docMinuteStr := d.CreatedAt.In(recifeLoc).Format("2006-01-02 15:04:00")
+	docDateFormatted := formatChronoDate(d.CreatedAt, recifeLoc)
 
 	type chronoRecord struct {
 		Order     int
 		CreatedAt time.Time
 	}
 
-	dateExpr := "DATE(created_at AT TIME ZONE 'America/Recife')"
 	yearExpr := "EXTRACT(YEAR FROM created_at AT TIME ZONE 'America/Recife')"
 	if tx.Dialector.Name() != "postgres" {
-		dateExpr = "DATE(created_at)"
 		yearExpr = "CAST(strftime('%Y', created_at) AS INTEGER)"
 	}
 
-	// 1. Verificar se existe ato com data estritamente anterior e número maior ou igual
-	var preceding chronoRecord
+	var typeName string
+	switch d.Type {
+	case domain.TypeLaw:
+		typeName = "a Lei"
+	case domain.TypeDecree:
+		typeName = "o Decreto"
+	case domain.TypeOrdinance:
+		typeName = "a Portaria"
+	case domain.TypeNotice:
+		typeName = "o Ofício"
+	case domain.TypeContract:
+		typeName = "o Contrato"
+	default:
+		typeName = "o ato"
+	}
+
+	// 1. Verificar se existe ato com número menor e data/hora estritamente posterior
+	var precedingConflict chronoRecord
 	precedingQuery := tx.Unscoped().Model(&domain.Document{}).
 		Select("documents.order, created_at").
 		Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type).
-		Where(fmt.Sprintf("%s < ?", dateExpr), docDateStr)
+		Where("documents.order < ?", d.Order)
+
+	if tx.Dialector.Name() == "postgres" {
+		precedingQuery = precedingQuery.Where("date_trunc('minute', created_at) > ?", docTimeTrunc)
+	} else {
+		precedingQuery = precedingQuery.Where("strftime('%Y-%m-%d %H:%M:00', created_at) > ?", docMinuteStr)
+	}
 
 	if d.Type == domain.TypeContract {
 		if d.ContractType != nil {
@@ -253,38 +292,27 @@ func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
 		precedingQuery = precedingQuery.Where("id != ?", d.ID)
 	}
 
-	if err := precedingQuery.Order("documents.order DESC, created_at DESC").Limit(1).Scan(&preceding).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := precedingQuery.Order("created_at DESC, documents.order DESC").Limit(1).Scan(&precedingConflict).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	if preceding.Order > 0 {
-		if d.Order <= preceding.Order {
-			precDate := preceding.CreatedAt.In(recifeLoc).Format("02/01/2006")
-			var typeName string
-			switch d.Type {
-			case domain.TypeLaw:
-				typeName = "a Lei"
-			case domain.TypeDecree:
-				typeName = "o Decreto"
-			case domain.TypeOrdinance:
-				typeName = "a Portaria"
-			case domain.TypeNotice:
-				typeName = "o Ofício"
-			case domain.TypeContract:
-				typeName = "o Contrato"
-			default:
-				typeName = "o ato"
-			}
-			return fmt.Errorf("%w: existe %s nº %d com data anterior (%s). Para a data informada (%s), o número deve ser superior a %d",
-				domain.ErrChronologicalOrderInvalid, typeName, preceding.Order, precDate, docDateFormatted, preceding.Order)
-		}
+	if precedingConflict.Order > 0 {
+		precDate := formatChronoDate(precedingConflict.CreatedAt, recifeLoc)
+		return fmt.Errorf("%w: existe %s nº %d com data posterior (%s). Para a data informada (%s), o número deve ser inferior a %d",
+			domain.ErrChronologicalOrderInvalid, typeName, precedingConflict.Order, precDate, docDateFormatted, precedingConflict.Order)
 	}
 
-	// 2. Verificar se existe ato com data estritamente posterior e número menor ou igual
-	var succeeding chronoRecord
+	// 2. Verificar se existe ato com número maior e data/hora estritamente anterior
+	var succeedingConflict chronoRecord
 	succeedingQuery := tx.Unscoped().Model(&domain.Document{}).
 		Select("documents.order, created_at").
 		Where("municipality_id = ? AND type = ?", d.MunicipalityID, d.Type).
-		Where(fmt.Sprintf("%s > ?", dateExpr), docDateStr)
+		Where("documents.order > ?", d.Order)
+
+	if tx.Dialector.Name() == "postgres" {
+		succeedingQuery = succeedingQuery.Where("date_trunc('minute', created_at) < ?", docTimeTrunc)
+	} else {
+		succeedingQuery = succeedingQuery.Where("strftime('%Y-%m-%d %H:%M:00', created_at) < ?", docMinuteStr)
+	}
 
 	if d.Type == domain.TypeContract {
 		if d.ContractType != nil {
@@ -300,30 +328,13 @@ func validateChronology(tx *gorm.DB, d *domain.Document, year *int) error {
 		succeedingQuery = succeedingQuery.Where("id != ?", d.ID)
 	}
 
-	if err := succeedingQuery.Order("documents.order ASC, created_at ASC").Limit(1).Scan(&succeeding).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := succeedingQuery.Order("created_at ASC, documents.order ASC").Limit(1).Scan(&succeedingConflict).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	if succeeding.Order > 0 {
-		if d.Order >= succeeding.Order {
-			succDate := succeeding.CreatedAt.In(recifeLoc).Format("02/01/2006")
-			var typeName string
-			switch d.Type {
-			case domain.TypeLaw:
-				typeName = "a Lei"
-			case domain.TypeDecree:
-				typeName = "o Decreto"
-			case domain.TypeOrdinance:
-				typeName = "a Portaria"
-			case domain.TypeNotice:
-				typeName = "o Ofício"
-			case domain.TypeContract:
-				typeName = "o Contrato"
-			default:
-				typeName = "o ato"
-			}
-			return fmt.Errorf("%w: existe %s nº %d com data posterior (%s). Para a data informada (%s), o número deve ser inferior a %d",
-				domain.ErrChronologicalOrderInvalid, typeName, succeeding.Order, succDate, docDateFormatted, succeeding.Order)
-		}
+	if succeedingConflict.Order > 0 {
+		succDate := formatChronoDate(succeedingConflict.CreatedAt, recifeLoc)
+		return fmt.Errorf("%w: existe %s nº %d com data anterior (%s). Para a data informada (%s), o número deve ser superior a %d",
+			domain.ErrChronologicalOrderInvalid, typeName, succeedingConflict.Order, succDate, docDateFormatted, succeedingConflict.Order)
 	}
 
 	return nil

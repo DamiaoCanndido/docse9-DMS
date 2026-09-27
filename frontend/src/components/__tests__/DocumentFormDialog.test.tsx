@@ -338,4 +338,70 @@ describe('DocumentFormDialog Component', () => {
       })
     );
   });
+
+  it('deve validar no frontend por Zod que a descrição deve ter no mínimo 3 caracteres', async () => {
+    const user = userEvent.setup();
+    const handleSave = vi.fn();
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="NOTICE"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={handleSave}
+        creatorId="user-1"
+        municipalityId="mun-1"
+      />
+    );
+
+    const descInput = screen.getByPlaceholderText(/Descreva o conteúdo do documento/i);
+    await user.type(descInput, 'ab');
+
+    const submitBtn = screen.getByRole('button', { name: /Salvar/i });
+    await user.click(submitBtn);
+
+    expect(handleSave).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('A descrição deve conter no mínimo 3 caracteres.')
+    ).toBeInTheDocument();
+  });
+
+  it('deve enviar a descrição trimada ao submeter o formulário', async () => {
+    const user = userEvent.setup();
+    const handleSave = vi.fn();
+
+    render(
+      <DocumentFormDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        editingDocument={null}
+        activeTab="NOTICE"
+        canCreate={() => true}
+        docTypesList={mockDocTypesList}
+        contractTypeLabels={mockContractTypeLabels}
+        onSave={handleSave}
+        creatorId="user-1"
+        municipalityId="mun-1"
+      />
+    );
+
+    const descInput = screen.getByPlaceholderText(/Descreva o conteúdo do documento/i);
+    await user.type(descInput, '   Ofício com espaços   ');
+
+    const submitBtn = screen.getByRole('button', { name: /Salvar/i });
+    await user.click(submitBtn);
+
+    expect(handleSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createInput: expect.objectContaining({
+          type: 'NOTICE',
+          description: 'Ofício com espaços',
+        }),
+      })
+    );
+  });
 });

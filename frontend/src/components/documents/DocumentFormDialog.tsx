@@ -48,7 +48,11 @@ import { z } from 'zod';
 
 const documentFormSchema = z.object({
   type: z.enum(['NOTICE', 'DECREE', 'ORDINANCE', 'LAW', 'CONTRACT']),
-  description: z.string().trim().min(1, 'A descrição do documento é obrigatória.'),
+  description: z
+    .string({ required_error: 'A descrição do documento é obrigatória.' })
+    .trim()
+    .min(1, 'A descrição do documento é obrigatória.')
+    .min(3, 'A descrição deve conter no mínimo 3 caracteres.'),
   contractType: z.enum(['service', 'bidding', 'publicinterest']).optional(),
   value: z.string().optional(),
   duration: z.string().optional(),
@@ -329,7 +333,7 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
     try {
       if (editingDocument) {
         const updateInput: UpdateDocumentInput = {
-          description,
+          description: parsed.data.description,
         };
         if (type === 'CONTRACT') {
           updateInput.contractType = contractType;
@@ -350,7 +354,7 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
       } else {
         const createInput: CreateDocumentInput = {
           type,
-          description,
+          description: parsed.data.description,
           creatorId,
           municipalityId,
         };
@@ -664,7 +668,11 @@ const DocumentFormContent: React.FC<DocumentFormContentProps> = ({
               )}
               placeholder="Descreva o conteúdo do documento ou sua ementa oficial..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (formError) setFormError('');
+              }}
+              minLength={3}
               required
             />
           </div>

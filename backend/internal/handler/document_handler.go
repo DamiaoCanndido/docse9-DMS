@@ -53,7 +53,7 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 
 	var input domain.CreateDocumentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		response.BadRequest(c, err.Error())
+		response.BadRequest(c, formatBindingError(err))
 		return
 	}
 
@@ -235,7 +235,7 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 
 	var input domain.UpdateDocumentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		response.BadRequest(c, err.Error())
+		response.BadRequest(c, formatBindingError(err))
 		return
 	}
 
